@@ -3,9 +3,16 @@
 from datasets import load_dataset
 from trl import GRPOConfig, GRPOTrainer
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoProcessor
+import torch
+import wandb
+from jiwer import process_words
+from datetime import datetime
+import jiwer.transforms as tr
 
-dataset = load_dataset("trl-lib/tldr", split="train")
-# %%
+log_name = f"grpo-run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+wandb.init(project="trl-grpo-demo", name=log_name)
+
+# dataset = load_dataset("trl-lib/tldr", split="train")
 
 dataset = load_dataset(
     "hf-audio/esb-datasets-test-only-sorted",
@@ -13,7 +20,6 @@ dataset = load_dataset(
     split="test.clean",
 )
 INSTRUCTION = "Transcribe the clip into text."
-import torch
 
 
 def process_sample(sample):
@@ -26,16 +32,31 @@ def process_sample(sample):
     }
     return x
 
-
 # dataset = dataset.take(2)
-# %%
 dataset = dataset.map(process_sample)
 
 
-# %%
-# Define the reward function, which rewards completions that are close to 20 characters
-def reward_len(completions, **kwargs):
-    return [-abs(20 - len(completion)) for completion in completions]
+def word_error(ref, hyp):
+    """Compute the word error rate between two strings."""
+    norm = tr.Compose(
+        [
+            tr.ToLowerCase(),
+            tr.ExpandCommonEnglishContractions(),
+            tr.SubstituteRegexes({r"\*([^\*]+)\*": r"\1"}),
+            tr.RemovePunctuation(),
+            tr.RemoveWhiteSpace(replace_by_space=True),
+            tr.RemoveMultipleSpaces(),
+            tr.Strip(),
+            tr.ReduceToSingleSentence(),
+            tr.ReduceToListOfListOfWords(),
+        ]
+    )
+    output = process_words(ref, hyp, norm, norm)
+    return output.wer * 100
+
+def reward_errors(completions, **kwargs):
+    references = kwargs["text"]
+    return [-word_error(ref,hyp) for hyp, ref in zip(completions, references)]
 
 
 # MODEL_ID = "Qwen/Qwen2-0.5B-Instruct"
@@ -58,7 +79,7 @@ processor = AutoProcessor.from_pretrained(
     trust_remote_code=True,
 )
 
-OUTPUT_DIR = f"output/{MODEL_ID}_GRPO"
+OUTPUT_DIR = f"output/{MODEL_ID}_GRPO_v0"
 training_args = GRPOConfig(
     output_dir=OUTPUT_DIR,
     logging_steps=1,
@@ -66,12 +87,14 @@ training_args = GRPOConfig(
     bf16=True,
     gradient_checkpointing=True,
     logging_dir=f"{OUTPUT_DIR}/logs",
-    report_to=["tensorboard"],
+    report_to=["wandb"],
     eval_strategy="no",
+    learning_rate=5e-6,
+    log_completions=True,
 )
 trainer = GRPOTrainer(
     model=model,
-    reward_funcs=reward_len,
+    reward_funcs=reward_errors,
     args=training_args,
     train_dataset=dataset,
     processing_class=processor,
