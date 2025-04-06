@@ -966,8 +966,12 @@ class GRPOTrainer(Trainer):
                     )
 
         # Decode the generated completions
+        completion_masked_ids = completion_ids.masked_fill(
+            completion_mask == 0, self.processing_class.tokenizer.pad_token_id
+        )
+        
         completions_text = self.processing_class.tokenizer.batch_decode(
-            completion_ids, skip_special_tokens=True
+            completion_masked_ids, skip_special_tokens=True
         )
         if is_conversational(inputs[0]):
             completions = []

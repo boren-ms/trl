@@ -32,6 +32,7 @@ def process_sample(sample):
     }
     return x
 
+
 # dataset = dataset.take(2)
 dataset = dataset.map(process_sample)
 
@@ -51,12 +52,19 @@ def word_error(ref, hyp):
             tr.ReduceToListOfListOfWords(),
         ]
     )
+    print(f"ref: {ref}")
+    print(f"hyp: {hyp}")
     output = process_words(ref, hyp, norm, norm)
     return output.wer * 100
 
+
 def reward_errors(completions, **kwargs):
+    """Compute the reward for a list of completions."""
     references = kwargs["text"]
-    return [-word_error(ref,hyp) for hyp, ref in zip(completions, references)]
+    return [
+        -word_error(ref, completion[-1]["content"])
+        for completion, ref in zip(completions, references)
+    ]
 
 
 # MODEL_ID = "Qwen/Qwen2-0.5B-Instruct"
