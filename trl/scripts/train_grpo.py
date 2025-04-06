@@ -52,8 +52,8 @@ def word_error(ref, hyp):
             tr.ReduceToListOfListOfWords(),
         ]
     )
-    print(f"ref: {ref}")
-    print(f"hyp: {hyp}")
+    # print(f"ref: {ref}")
+    # print(f"hyp: {hyp}")
     output = process_words(ref, hyp, norm, norm)
     return output.wer * 100
 
