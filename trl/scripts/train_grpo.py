@@ -2,40 +2,21 @@
 # %%
 from datasets import load_dataset
 from trl import GRPOConfig, GRPOTrainer
-from transformers import AutoModelForCausalLM, AutoTokenizer, AutoProcessor
+from transformers import AutoModelForCausalLM, AutoProcessor
 import torch
 import wandb
 from jiwer import process_words
 from datetime import datetime
 import jiwer.transforms as tr
+from audio_set import create_dataset
 
 log_name = f"grpo-run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 wandb.init(project="trl-grpo-demo", name=log_name)
 
-# dataset = load_dataset("trl-lib/tldr", split="train")
 
-dataset = load_dataset(
-    "hf-audio/esb-datasets-test-only-sorted",
-    "librispeech",
-    split="test.clean",
-)
-INSTRUCTION = "Transcribe the clip into text."
-
-
-def process_sample(sample):
-    """Process a sample from the dataset."""
-    x = {
-        "prompt": [{"role": "user", "content": f"<|audio_1|>{INSTRUCTION}"}],
-        "sr": sample["audio"]["sampling_rate"],
-        "audio": torch.tensor(sample["audio"]["array"]),
-        "completion": sample["text"],
-    }
-    return x
-
-
-# dataset = dataset.take(2)
-dataset = dataset.map(process_sample)
-
+dataset = create_dataset(name="bias", num=200)
+# dataset = create_dataset(name="ls", num=200)
+# dataset = dataset.map(process_sample)
 
 def word_error(ref, hyp):
     """Compute the word error rate between two strings."""
@@ -77,21 +58,18 @@ model = AutoModelForCausalLM.from_pretrained(
     torch_dtype="auto",
     _attn_implementation="flash_attention_2",
 )
-# model.set_lora_adapter("speech")
-# processor = AutoTokenizer.from_pretrained(
-#     MODEL_ID,
-#     trust_remote_code=True,
-# )
+model.set_lora_adapter("speech")
+
 processor = AutoProcessor.from_pretrained(
     MODEL_ID,
     trust_remote_code=True,
 )
 
 OUTPUT_DIR = f"output/{MODEL_ID}_GRPO_v0"
+NUM_SAMPLE=4
 training_args = GRPOConfig(
     output_dir=OUTPUT_DIR,
     logging_steps=1,
-    # per_device_train_batch_size=2,
     bf16=True,
     gradient_checkpointing=True,
     logging_dir=f"{OUTPUT_DIR}/logs",
@@ -99,6 +77,11 @@ training_args = GRPOConfig(
     eval_strategy="no",
     learning_rate=5e-6,
     log_completions=True,
+    max_prompt_length=1024,
+    max_completion_length=512,
+    per_device_train_batch_size=NUM_SAMPLE,
+    num_generations=NUM_SAMPLE,
+    wandb_log_unique_prompts=True,
 )
 trainer = GRPOTrainer(
     model=model,
