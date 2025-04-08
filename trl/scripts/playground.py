@@ -106,13 +106,11 @@ print(norm(text))
 # %%
 
 from datasets import load_dataset
+import fsspec
 
-data = load_dataset("openslr/librispeech_asr", trust_remote_code=True, split="test.clean")
-dataset = data.take(2)
-# %%
-# Specify the cache directory
-cache_dir = "/path/to/cache/directory"
+# Set a longer timeout (e.g., 60 seconds)
+fsspec.config.conf['timeout'] = 600
 
-# Load the dataset with caching
-data = load_dataset("openslr/librispeech_asr", trust_remote_code=True, split="test.clean", cache_dir=cache_dir)
-dataset = data.take(2)
+cache_dir = "/datablob1/users/boren/data/librispeech_asr"
+data = load_dataset("openslr/librispeech_asr", trust_remote_code=True,  cache_dir=cache_dir)
+#%%

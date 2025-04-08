@@ -101,7 +101,7 @@ class PieceSampler:
         if self.log_interval is not None and self.idx % self.log_interval == 0:
             print(f"[{self.idx}] biasing  list: {prompt}")
             print(f"[{self.idx}] transcription: {trans}")
-        return prompt, trans, shared
+        return prompt, trans
 #%%
 if __name__ == "__main__":
     sample_utterances = [

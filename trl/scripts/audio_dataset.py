@@ -42,21 +42,22 @@ def ls_dataset(num=None):
         "librispeech",
         split="test.clean",
     )
-    sampler = PieceSampler(bias_prob=0.9, hit_prob=0.8, max_piece_len=2, max_num=100)
+    sampler = PieceSampler(bias_prob=0.9, hit_prob=0.8, max_piece_len=1, max_num=10)
+    
     def proc_sample(sample):
         """Process a sample from the dataset."""
-        context, text, ground_truth = sampler.sample(sample["text"])
+        context, text = sampler.sample(sample["text"])
+        side_prompt =  f"Please pay attention to following words: {context}." if context else ""
         return {
             "prompt": [
                 {
                     "role": "user",
-                    "content": f"<|audio_1|>Transcribe the audio clip into text. Please pay attention to following words: {context}.",
+                    "content": f"<|audio_1|>Transcribe the audio clip into text. {side_prompt}",
                 }
             ],
             "sr": sample["audio"]["sampling_rate"],
             "audio": sample["audio"]["array"],
             "text": text,
-            "ground_truth": ground_truth,
         }
 
     if num is not None:
@@ -65,18 +66,18 @@ def ls_dataset(num=None):
     return data
 
 
-def create_dataset(name="bias", files=None, num=None):
+def create_dataset(name="bias", **kwargs):
     """Create a dataset from the given split."""
     if name == "bias":
         data_dir = Path("/datablob1/users/boren/data/SR/librispeech_biasing/ref")
-        data_paths = files or [
+        data_paths = [
             data_dir / "test-clean.biasing_100.jsonl",
             data_dir / "test-clean.biasing_500.jsonl",
             # data_dir / "test-clean.biasing_1000.jsonl",
         ]
-        return bias_dataset(data_paths, num=num, ground_truth=False)
+        return bias_dataset(data_paths, **kwargs)
     elif name == "ls_bias":
-        return ls_dataset(num=num)
+        return ls_dataset(**kwargs)
 
     raise ValueError(f"Unknown dataset name: {name}")
 
