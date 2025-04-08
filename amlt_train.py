@@ -2,11 +2,10 @@
 """submit a job to AMLT"""
 import os
 import subprocess
-import shortuuid
 from pathlib import Path
+import shortuuid
 from omegaconf import OmegaConf
 import fire
-from amlt.api.registry import ProjectRegistry
 
 
 def uuid4():
