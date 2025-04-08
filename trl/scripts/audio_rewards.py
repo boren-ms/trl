@@ -19,13 +19,12 @@ class RemovePunctuationExclude(tr.RemovePunctuation):
         # print(f"tokens_to_remove: {self.tokens_to_remove}")
 
 
-def word_error(ref, hyp):
+def word_accuracy(ref, hyp):
     """Compute the word error rate between two strings."""
     norm = tr.Compose(
         [
             tr.ToLowerCase(),
             tr.ExpandCommonEnglishContractions(),
-            tr.SubstituteRegexes({r"\*([^\*]+)\*": r"\1"}),
             tr.RemovePunctuation(),
             tr.RemoveWhiteSpace(replace_by_space=True),
             tr.RemoveMultipleSpaces(),
@@ -34,10 +33,8 @@ def word_error(ref, hyp):
             tr.ReduceToListOfListOfWords(),
         ]
     )
-    # print(f"ref: {ref}")
-    # print(f"hyp: {hyp}")
     output = process_words(ref, hyp, norm, norm)
-    return output.wer * 100
+    return (1-output.wer) * 100
 
 
 def get_align(reference, hypothesis, btag="*"):
@@ -59,7 +56,7 @@ def count_tagged(text):
     return len([x for x in tagged if len(x) >= 1])
 
 
-def bias_error(ref, hyp):
+def bias_recall(ref, hyp):
     """Compute the reward for a list of completions."""
     norm = tr.Compose(
         [
@@ -75,29 +72,29 @@ def bias_error(ref, hyp):
     ref = norm(ref)
     hyp = norm(hyp)
     total = count_tagged(ref)
+    if total == 0:
+        return 0
     match = 0
     for tag, ref_part, _ in get_align(ref, hyp):
         if tag == "equal":
             match += count_tagged(ref_part)
-    if total == 0:
-        return 0
-    return (1 - match / total) * 100
+    return  match / total * 100
 
 
 def reward_bias_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
     references = kwargs["text"]
     return [
-        100 - bias_error(ref, completion[-1]["content"])
+        bias_recall(ref, completion[-1]["content"])
         for completion, ref in zip(completions, references)
     ]
 
 
-def reward_accuracy(completions, **kwargs):
+def reward_word_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
     references = kwargs["text"]
     return [
-        100 - word_error(ref, completion[-1]["content"])
+        word_accuracy(ref, completion[-1]["content"])
         for completion, ref in zip(completions, references)
     ]
 
@@ -107,7 +104,7 @@ def reward_accuracy(completions, **kwargs):
 if __name__ == "__main__":
     hyp_text = "have you not met it *anywhere*"
     ref_text = "*have* *you* *not* *met them* *anywhere*"
-    print("Bias error:", bias_error(ref_text, hyp_text))
-    print("Word error:", word_error(ref_text, hyp_text))
+    print("Bias error:", bias_recall(ref_text, hyp_text))
+    print("Word error:", word_accuracy(ref_text, hyp_text))
 
 # %%

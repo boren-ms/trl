@@ -7,7 +7,7 @@ from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
-from trl.scripts.audio_rewards import reward_bias_accuracy, reward_accuracy
+from trl.scripts.audio_rewards import reward_bias_accuracy, reward_word_accuracy
 from trl.scripts.audio_dataset import create_dataset
 
 
@@ -59,7 +59,7 @@ def main(script_args, training_args):
 
     trainer = GRPOTrainer(
         model=model,
-        reward_funcs=[reward_accuracy, reward_bias_accuracy],
+        reward_funcs=[reward_word_accuracy, reward_bias_accuracy],
         args=training_args,
         train_dataset=create_dataset(name=script_args.dataset_name,**script_args.dataset_config),
         processing_class=processor,
