@@ -24,12 +24,13 @@ storage:
     data_blob:
         container_name: data
         mount_dir: /datablob1
-        storage_account_name: highperf01eus
+        storage_account_name: tsstd01uks
+        # storage_account_name: highperf01eus
 
 code:
     local_dir: ./
 jobs:
-    - name: phi4_mm_grpo_bias_v1
+    - name: phi4_mm_grpo_bias
       sku: 1x80G4-A100-NvLink
       sla_tier: premium
       priority: high
@@ -39,7 +40,7 @@ jobs:
           - pwd
           - ls -hl
           - export NCCL_P2P_LEVEL=NVL
-          - python trl/scripts/train_grpo.py --name phi4_mm_grpo_bias --dataset bias --batch_size 8 --output_dir $$AMLT_OUTPUT_DIR
+          - python trl/scripts/grpo_bias.py --config exp_conf/ls_biasing.yaml --output_dir $$AMLT_OUTPUT_DIR
 
       submit_args:
           container_args:

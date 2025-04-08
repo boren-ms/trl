@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """submit a job to AMLT"""
+import os
 import subprocess
 import shortuuid
 from pathlib import Path
 from omegaconf import OmegaConf
 import fire
+from amlt.api.registry import ProjectRegistry
 
 
 def uuid4():
@@ -12,19 +14,23 @@ def uuid4():
     return short_id
 
 
-def amlt_run(conf_file, node=4, job_pfx="phi-omni", sla_tier=None, tag="eus", prepare=False):
+def amlt_run(conf_file, node=1, job_pfx="phi4_trl", sla_tier=None, tag="eus", prepare=False):
+    """submit a job to AMLT"""
     # remove script/train from the path
     conf_file = Path(conf_file)
     assert conf_file.exists()
-    conf_file = Path(*conf_file.parts[2:])
     amlt_conf_dir = Path("amlt_conf")
     tmp_suf = f"_{tag}" if tag else ""
     conf = OmegaConf.load(amlt_conf_dir / f"amlt_train_temp{tmp_suf}.yaml")
-    tr_cmd = f"python ds_train_advanced.py {conf_file} --output_dir $$AMLT_OUTPUT_DIR"
+    print("config file:", conf_file)
+    tr_cmd = f"python trl/scripts/grpo_bias.py --config {conf_file} --output_dir $$AMLT_OUTPUT_DIR"
     job_name = "-".join([job_pfx, conf_file.stem, uuid4()])
     sku = conf.jobs[0].sku.split("x")[-1]
     conf.jobs[0].name = job_name
     conf.jobs[0].sku = f"{node}x{sku}"
+    for key in ["WANDB_API_KEY"]:
+        if val := os.getenv(key, None) is not None:
+            conf.jobs[0].command.insert(0, f'export {key}="{val}"')
     if sla_tier:
         conf.jobs[0].sla_tier = sla_tier
     conf.jobs[0].command[-1] = tr_cmd

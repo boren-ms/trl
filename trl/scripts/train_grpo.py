@@ -3,7 +3,7 @@
 from datetime import datetime
 from jiwer import process_words
 import jiwer.transforms as tr
-from audio_set import create_dataset
+from trl.scripts.audio_dataset import create_dataset
 import wandb
 from transformers import AutoModelForCausalLM, AutoProcessor
 from trl import GRPOConfig, GRPOTrainer

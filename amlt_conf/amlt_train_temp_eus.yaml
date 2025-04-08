@@ -9,25 +9,13 @@ environment:
     # image: haiping/h100-nvidia23.10-pytorch2.1.1-cuda12.2.2-deepspeed0.12.3-flashattn2.3.4:20231124
     # username: FlorenceContainerRegistryEU
     registry: sramdevregistry.azurecr.io
-    image: jing-dev:a100_latest
+    image: boren_dev:trl
     username: sramdevregistry
 
     setup:
         - set -e -o xtrace
-        - pip install -e .
-        - wget https://aka.ms/downloadazcopy-v10-linux && tar xzf downloadazcopy-v10-linux
-        - sudo mv azcopy_linux_amd64_*/azcopy /usr/local/bin/azcopy
-        - pip install azure-storage-blob==12.19.1
-        - pip install -U transformers==4.46.2
-        - pip install --upgrade Pillow
-        - pip install webp
-        - pip install openai-whisper
-        - pip install typing_extensions==4.7.1
-        - pip install pydantic==2.0.3
-        - pip install backoff
-        - pip install unidecode
-        - pip install timm
-        - pip install mup
+        - pip install -e . --no-deps
+        - pip install rich
 
 storage:
     output:
@@ -36,25 +24,23 @@ storage:
     data_blob:
         container_name: data
         mount_dir: /datablob1
-        storage_account_name: highperf01eus
+        storage_account_name: tsstd01uks
+        # storage_account_name: highperf01eus
 
 code:
     local_dir: ./
 jobs:
-    - name: phi-omni-sqa-zh
+    - name: phi4_mm_grpo_bias
       sku: 1x80G4-A100-NvLink
       sla_tier: premium
       priority: high
       mpi: True
       process_count_per_node: 4
       command:
-          - ls -hl
           - pwd
-          - python scripts/train/allreduce_test.py
-          - cd scripts/train
           - ls -hl
           - export NCCL_P2P_LEVEL=NVL
-          - python ds_train_advanced.py configs/phi3_audio/cascade_encoder_stage2/phiS-sqa-zh.yaml --output_dir $$AMLT_OUTPUT_DIR
+          - python trl/scripts/grpo_bias.py --config ls_biasing.yaml --output_dir $$AMLT_OUTPUT_DIR
 
       submit_args:
           container_args:
