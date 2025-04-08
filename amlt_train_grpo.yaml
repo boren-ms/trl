@@ -29,7 +29,7 @@ storage:
 code:
     local_dir: ./
 jobs:
-    - name: phi-omni-sqa-zh
+    - name: phi4_mm_grpo
       sku: 1x80G4-A100-NvLink
       sla_tier: premium
       priority: high
