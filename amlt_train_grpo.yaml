@@ -39,7 +39,7 @@ jobs:
           - pwd
           - ls -hl
           - export NCCL_P2P_LEVEL=NVL
-          - accelerate launch trl/scripts/train_grpo.py --name phi4_mm_grpo_ls --output_dir $$AMLT_OUTPUT_DIR
+          - python trl/scripts/train_grpo.py --name phi4_mm_grpo_ls --output_dir $$AMLT_OUTPUT_DIR
 
       submit_args:
           container_args:
