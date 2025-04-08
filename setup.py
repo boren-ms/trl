@@ -75,7 +75,12 @@ REQUIRED_PKGS = [
     "accelerate>=0.34.0",
     "datasets>=3.0.0",
     "rich",  # rich shouldn't be a required package for trl, we should remove it from here
-    "transformers>=4.46.0",
+    "transformers==4.46.2",
+    # "librosa",
+    # "soundfile",
+    # "jiwer",
+    # "wandb",
+    # "backoff",
 ]
 EXTRAS = {
     "deepspeed": ["deepspeed>=0.14.4"],
@@ -87,7 +92,13 @@ EXTRAS = {
     "quantization": ["bitsandbytes"],
     "scikit": ["scikit-learn"],
     "bco": ["scikit-learn", "joblib"],
-    "test": ["parameterized", "pytest-cov", "pytest-rerunfailures", "pytest-xdist", "pytest"],
+    "test": [
+        "parameterized",
+        "pytest-cov",
+        "pytest-rerunfailures",
+        "pytest-xdist",
+        "pytest",
+    ],
     "vllm": ["vllm>=0.7.0", "fastapi", "pydantic", "requests", "uvicorn"],
     "vlm": ["Pillow"],
 }

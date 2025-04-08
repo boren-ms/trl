@@ -822,7 +822,7 @@ class GRPOTrainer(Trainer):
             )
             for prompt in prompts
         ]
-        audios = [(torch.tensor(x["audio"]), x["sr"]) for x in inputs]
+        audios = [(np.array(x["audio"]), x["sr"]) for x in inputs]
         prompt_inputs = self.processing_class(
             text=prompts_text,
             audios=audios,
@@ -969,7 +969,7 @@ class GRPOTrainer(Trainer):
         completion_masked_ids = completion_ids.masked_fill(
             completion_mask == 0, self.processing_class.tokenizer.pad_token_id
         )
-        
+
         completions_text = self.processing_class.tokenizer.batch_decode(
             completion_masked_ids, skip_special_tokens=True
         )

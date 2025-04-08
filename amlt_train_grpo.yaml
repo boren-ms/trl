@@ -1,0 +1,53 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+description: speech-training
+target:
+    service: sing
+    name: ast-sing-prod01-eus
+environment:
+    # registry: florencecontainerregistryeu.azurecr.io
+    # image: haiping/h100-nvidia23.10-pytorch2.1.1-cuda12.2.2-deepspeed0.12.3-flashattn2.3.4:20231124
+    # username: FlorenceContainerRegistryEU
+    registry: sramdevregistry.azurecr.io
+    image: boren_dev:trl
+    username: sramdevregistry
+
+    setup:
+        - set -e -o xtrace
+        - pip install -e . --no-deps
+        - pip install rich
+
+storage:
+    output:
+        storage_account_name: tsstd01uks
+        container_name: data
+    data_blob:
+        container_name: data
+        mount_dir: /datablob1
+        storage_account_name: highperf01eus
+
+code:
+    local_dir: ./
+jobs:
+    - name: phi-omni-sqa-zh
+      sku: 1x80G4-A100-NvLink
+      sla_tier: premium
+      priority: high
+      mpi: True
+      process_count_per_node: 4
+      command:
+          - pwd
+          - ls -hl
+          - export NCCL_P2P_LEVEL=NVL
+          - accelerate launch trl/scripts/train_grpo.py --name phi4_mm_grpo_ls --output_dir $$AMLT_OUTPUT_DIR
+
+      submit_args:
+          container_args:
+              shm_size: 1024g
+          env:
+              NCCL_TOPO_FILE: "topology.xml"
+              NCCL_DEBUG_SUBSYS: "INIT,GRAPH"
+              NCCL_DEBUG: "INFO"
+              _AZUREML_SINGULARITY_JOB_UAI: "/subscriptions/48b6cd5e-3ffe-4c2e-9e99-5760a42cd093/resourcegroups/ast-singularity-01/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ast-singularity-01-uai"
+
+      identity: managed

@@ -1,20 +1,13 @@
 # train_grpo.py
 # %%
-from trl import GRPOConfig, GRPOTrainer
-from transformers import AutoModelForCausalLM, AutoProcessor
-import wandb
-from jiwer import process_words
 from datetime import datetime
+from jiwer import process_words
 import jiwer.transforms as tr
 from audio_set import create_dataset
+import wandb
+from transformers import AutoModelForCausalLM, AutoProcessor
+from trl import GRPOConfig, GRPOTrainer
 
-log_name = f"grpo-run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-wandb.init(project="trl-grpo-demo", name=log_name)
-
-
-dataset = create_dataset(name="bias", num=200)
-# dataset = create_dataset(name="ls", num=200)
-# dataset = dataset.map(process_sample)
 
 def word_error(ref, hyp):
     """Compute the word error rate between two strings."""
@@ -46,48 +39,73 @@ def reward_errors(completions, **kwargs):
     ]
 
 
-# MODEL_ID = "Qwen/Qwen2-0.5B-Instruct"
-MODEL_ID = "microsoft/Phi-4-multimodal-instruct"
-# MODEL_ID = "microsoft/Phi-4-mini-instruct"
+def init_model(model_id=None):
+    """Initialize the model and processor."""
+    model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        trust_remote_code=True,
+        torch_dtype="auto",
+        _attn_implementation="flash_attention_2",
+    )
+    model.set_lora_adapter("speech")
+    processor = AutoProcessor.from_pretrained(
+        model_id,
+        trust_remote_code=True,
+    )
+    return model, processor
 
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_ID,
-    trust_remote_code=True,
-    torch_dtype="auto",
-    _attn_implementation="flash_attention_2",
-)
-model.set_lora_adapter("speech")
 
-processor = AutoProcessor.from_pretrained(
-    MODEL_ID,
-    trust_remote_code=True,
-)
+def grpo_train(
+    name="phi4_mm_grpo_ls",
+    output_dir=None,
+    dataset="ls",
+    batch_size=None,
+    num_sample=4,
+    lr=5e-6,
+):
+    """Train the model with GRPO."""
+    wandb.login()
+    log_name = f"{name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    wandb.init(project=f"{name}", name=log_name)
+    batch_size = batch_size or num_sample
+    if batch_size % num_sample != 0:
+        raise ValueError(
+            f"Batch size {batch_size} must be divisible by num_sample {num_sample}"
+        )
+    output_dir = output_dir or f"output/{log_name}"
+    print(f"Dataset: {dataset}")
+    print(f"Output dir: {output_dir}")
+    model, processor = init_model()
+    training_args = GRPOConfig(
+        output_dir=output_dir,
+        logging_steps=1,
+        bf16=True,
+        gradient_checkpointing=True,
+        logging_dir=f"{output_dir}/logs",
+        report_to=["wandb"],
+        eval_strategy="no",
+        learning_rate=lr,
+        log_completions=True,
+        max_prompt_length=1024,
+        max_completion_length=512,
+        per_device_train_batch_size=num_sample,
+        num_generations=num_sample,
+        wandb_log_unique_prompts=True,
+    )
+    trainer = GRPOTrainer(
+        model=model,
+        reward_funcs=reward_errors,
+        args=training_args,
+        train_dataset=create_dataset(name=dataset),
+        processing_class=processor,
+    )
+    print("Training...")
+    trainer.train()
+    print("All Done.")
 
-OUTPUT_DIR = f"output/{MODEL_ID}_GRPO_v0"
-NUM_SAMPLE=4
-training_args = GRPOConfig(
-    output_dir=OUTPUT_DIR,
-    logging_steps=1,
-    bf16=True,
-    gradient_checkpointing=True,
-    logging_dir=f"{OUTPUT_DIR}/logs",
-    report_to=["wandb"],
-    eval_strategy="no",
-    learning_rate=5e-6,
-    log_completions=True,
-    max_prompt_length=1024,
-    max_completion_length=512,
-    per_device_train_batch_size=NUM_SAMPLE,
-    num_generations=NUM_SAMPLE,
-    wandb_log_unique_prompts=True,
-)
-trainer = GRPOTrainer(
-    model=model,
-    reward_funcs=reward_errors,
-    args=training_args,
-    train_dataset=dataset,
-    processing_class=processor,
-)
-trainer.train()
 
-# %%
+if __name__ == "__main__":
+    import fire
+
+    fire.Fire(grpo_train)

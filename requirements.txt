@@ -1,4 +1,10 @@
 accelerate
 datasets
 rich
-transformers>=4.46.0
+transformers==4.46.2
+librosa
+soundfile
+jiwer
+wandb
+backoff
+flash-attn --no-build-isolation
