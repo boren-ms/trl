@@ -28,7 +28,7 @@ def amlt_run(conf_file, node=4, job_pfx="phi4_trl", sla_tier=None, tag="eus", pr
     conf.jobs[0].name = job_name
     conf.jobs[0].sku = f"{node}x{sku}"
     for key in ["WANDB_API_KEY"]:
-        if val := os.getenv(key, None) is not None:
+        if (val := os.getenv(key, None)) is not None:
             conf.jobs[0].command.insert(0, f'export {key}="{val}"')
     if sla_tier:
         conf.jobs[0].sla_tier = sla_tier

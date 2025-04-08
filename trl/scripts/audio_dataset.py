@@ -35,18 +35,23 @@ def bias_dataset(file_paths, num=None, ground_truth=True):
     return data
 
 
-def ls_dataset(num=None):
+def ls_dataset(head=None, sampler=None):
     """Create a dataset from the given split."""
     data = load_dataset(
         "hf-audio/esb-datasets-test-only-sorted",
         "librispeech",
         split="test.clean",
     )
-    sampler = PieceSampler(bias_prob=0.9, hit_prob=0.8, max_piece_len=1, max_num=10)
-    
+    sampler_kwargs = sampler or {
+        "bias_prob": 0.9,
+        "hit_prob": 0.8,
+        "max_piece_len": 1,
+        "max_num": 10,
+    }
+    bias_sampler = PieceSampler(**sampler_kwargs)
     def proc_sample(sample):
         """Process a sample from the dataset."""
-        context, text = sampler.sample(sample["text"])
+        context, text = bias_sampler.sample(sample["text"])
         side_prompt =  f"Please pay attention to following words: {context}." if context else ""
         return {
             "prompt": [
@@ -60,8 +65,8 @@ def ls_dataset(num=None):
             "text": text,
         }
 
-    if num is not None:
-        data = data.take(num)
+    if head is not None:
+        data = data.take(head)
     data = data.map(proc_sample)
     return data
 

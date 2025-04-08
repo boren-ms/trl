@@ -61,7 +61,7 @@ def main(script_args, training_args):
         model=model,
         reward_funcs=[reward_accuracy, reward_bias_accuracy],
         args=training_args,
-        train_dataset=create_dataset(name=script_args.dataset_name),
+        train_dataset=create_dataset(name=script_args.dataset_name,**script_args.dataset_config),
         processing_class=processor,
     )
     print("Training...")

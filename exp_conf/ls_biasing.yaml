@@ -1,4 +1,11 @@
 dataset_name: ls_bias
+dataset_config:
+    head: 3200
+    sampler:
+        bias_prob: 1.0
+        hit_prob: 0.9
+        max_piece_len: 1
+        max_num: 2
 report_to: [wandb]
 learning_rate: 0.000001
 lr_scheduler_type: cosine
