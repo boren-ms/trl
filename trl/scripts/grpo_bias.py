@@ -57,8 +57,6 @@ def main(script_args, training_args):
     init_wandb(name=script_args.job_name)
     model, processor = init_model()
 
-    print(f"Training args: {training_args}")
-
     trainer = GRPOTrainer(
         model=model,
         reward_funcs=[reward_accuracy, reward_bias_accuracy],
