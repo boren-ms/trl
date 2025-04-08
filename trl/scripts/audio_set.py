@@ -65,7 +65,7 @@ def create_dataset(name="bias", files=None, num=None):
         data_dir = Path("/datablob1/users/boren/data/SR/librispeech_biasing/ref")
         data_paths = files or [
             data_dir / "test-clean.biasing_100.jsonl",
-            # data_dir / "test-clean.biasing_500.jsonl",
+            data_dir / "test-clean.biasing_500.jsonl",
             # data_dir / "test-clean.biasing_1000.jsonl",
         ]
         return bias_dataset(data_paths, num=num, ground_truth=False)
