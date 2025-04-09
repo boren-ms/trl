@@ -24,8 +24,8 @@ storage:
     data_blob:
         container_name: data
         mount_dir: /datablob1
-        storage_account_name: tsstd01uks
-        # storage_account_name: highperf01eus
+        storage_account_name: highperf01eus
+        # storage_account_name: tsstd01uks
 
 code:
     local_dir: ./
