@@ -1,6 +1,7 @@
 dataset_name: openasr
 dataset_config:
-    split: test.other
+    num_egs: 100
+    split: test.clean
     name: librispeech
     biasing:
         bias_prob: 1.0

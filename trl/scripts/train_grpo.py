@@ -97,7 +97,7 @@ def grpo_train(
         model=model,
         reward_funcs=reward_errors,
         args=training_args,
-        train_dataset=create_dataset(name=dataset),
+        train_dataset=create_dataset(dataset_name=dataset),
         processing_class=processor,
     )
     print("Training...")

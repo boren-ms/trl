@@ -4,22 +4,24 @@ from datasets import load_dataset
 import soundfile as sf
 from functools import partial
 
-from trl.scripts.biasing import PieceSampler
+from biasing import PieceSampler
+
+# from trl.scripts.biasing import PieceSampler
 
 
-def bias_dataset(file_paths, num=None, ground_truth=True, **kwargs):
+def bias_dataset(file_paths, ground_truth=True, **kwargs):
     """Create a dataset from the given split."""
     # data_dir = Path("/datablob1/users/boren/data/SR/librispeech_biasing/ref")
     # jsonl_path = data_dir/"test-clean.biasing_100.jsonl"
     data_files = [file_paths] if isinstance(file_paths, str) else file_paths
     data_files = [str(file_path) for file_path in data_files]
 
-    data = load_dataset(
+    dataset = load_dataset(
         "json",
         data_files=data_files,
         split="train",
-        streaming=kwargs.get("streaming", False),
     )
+    dataset = stream_shuffle(dataset, **kwargs)
     ins_fmt = "Transcribe the audio clip into text. Please pay attention to following words: {words}."
 
     def load_audio(example, ground_truth=False):
@@ -35,24 +37,22 @@ def bias_dataset(file_paths, num=None, ground_truth=True, **kwargs):
         }
         return x
 
-    if num is not None:
-        data = data.take(num)
-    data = data.map(partial(load_audio, ground_truth=ground_truth))
-    return data
+    dataset = dataset.map(partial(load_audio, ground_truth=ground_truth))
+    return dataset
 
 
-def tsv_dataset(tsv_paths, head=None, **kwargs):
+def tsv_dataset(tsv_paths, **kwargs):
     """Create a dataset from the given split."""
     if isinstance(tsv_paths, str):
         tsv_paths = [tsv_paths]
-    data = load_dataset(
+    dataset = load_dataset(
         "csv",
         data_files=[str(tsv_path) for tsv_path in tsv_paths],
         split="train",
         delimiter="\t",
         column_names=["id", "paths", "msgs"],
-        streaming=kwargs.get("streaming", False),
     )
+    dataset = stream_shuffle(dataset, **kwargs)
 
     def load_sample(egs):
         """Process a single sample."""
@@ -69,13 +69,11 @@ def tsv_dataset(tsv_paths, head=None, **kwargs):
         }
         return x
 
-    if head is not None:
-        data = data.take(head)
-    data = data.map(load_sample)
-    return data
+    dataset = dataset.map(load_sample)
+    return dataset
 
 
-def openasr_dataset(head=None, **kwargs):
+def openasr_dataset(**kwargs):
     """Create a dataset from the given split."""
     name = kwargs.get("name", "librispeech")
     split = kwargs.get("split", "test.clean")
@@ -83,14 +81,22 @@ def openasr_dataset(head=None, **kwargs):
         "hf-audio/esb-datasets-test-only-sorted",
         name,
         split=split,
-        streaming=kwargs.get("streaming", False),
     )
-    if head is not None:
-        dataset = dataset.take(head)
+    dataset = stream_shuffle(dataset, **kwargs)
     return dataset
 
 
-def apply_bias_sampling(dataset, **kwargs):
+def stream_shuffle(dataset, **kwargs):
+    """Process the dataset."""
+    # dataset = dataset.to_iterable_dataset(num_shards=kwargs.get("num_shards", 128))
+    num_egs = kwargs.get("num_egs", None)
+    if num_egs is not None:
+        dataset = dataset.take(num_egs)
+    # dataset = dataset.shuffle(seed=42, buffer_size=kwargs.get("buffer_size", 1000))
+    return dataset
+
+
+def bias_sampling(dataset, **kwargs):
     """Apply bias sampling to the dataset."""
     kwargs = kwargs or {
         "bias_prob": 0.9,
@@ -122,9 +128,9 @@ def apply_bias_sampling(dataset, **kwargs):
     return dataset
 
 
-def create_dataset(name="openasr", **kwargs):
+def create_dataset(dataset_name="openasr", **kwargs):
     """Create a dataset from the given split."""
-    if name == "ls_bias":
+    if dataset_name == "ls_bias":
         data_dir = Path("/datablob1/users/boren/data/SR/librispeech_biasing/ref")
         data_paths = [
             data_dir / "test-clean.biasing_100.jsonl",
@@ -132,15 +138,15 @@ def create_dataset(name="openasr", **kwargs):
             # data_dir / "test-clean.biasing_1000.jsonl",
         ]
         return bias_dataset(data_paths, **kwargs)
-    elif name == "openasr":
+    elif dataset_name == "openasr":
         dataset = openasr_dataset(**kwargs)
-        dataset = apply_bias_sampling(dataset, **kwargs.get("biasing", {}))
+        dataset = bias_sampling(dataset, **kwargs.get("biasing", {}))
         return dataset
-    elif name == "tsv":
+    elif dataset_name == "tsv":
         dataset = tsv_dataset(**kwargs)
-        dataset = apply_bias_sampling(dataset, **kwargs.get("biasing", {}))
+        dataset = bias_sampling(dataset, **kwargs.get("biasing", {}))
         return dataset
-    raise ValueError(f"Unknown dataset name: {name}")
+    raise ValueError(f"Unknown dataset name: {dataset_name}")
 
 
 # %%
@@ -150,8 +156,8 @@ if __name__ == "__main__":
     # print(dataset)
     # print(dataset[0]["text"])
     tsv_path = "/datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv"
-    dataset = create_dataset(name="tsv", head=2, tsv_paths=[tsv_path])
+    dataset = create_dataset(dataset_name="tsv", num_egs=2, tsv_paths=[tsv_path])
     print(dataset)
-    print(dataset[0]["text"])
+    print(next(iter(dataset)))
 
 # %%

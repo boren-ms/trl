@@ -1,8 +1,6 @@
 dataset_name: tsv
-max_steps: 1000
 dataset_config:
-    head: 1000
-    streaming: True
+    num_egs: 100
     tsv_paths: /datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv
     biasing:
         bias_prob: 1.0
