@@ -48,6 +48,7 @@ newdata = dataset.map(
 from difflib import SequenceMatcher
 import re
 
+
 def get_align(reference, hypothesis, btag="*"):
     """Aligns the reference and hypothesis strings and returns the alignment details."""
     refs = reference.split()
@@ -60,6 +61,7 @@ def get_align(reference, hypothesis, btag="*"):
         alignment.append((operation, " ".join(refs[i1:i2]), " ".join(hyps[j1:j2])))
     return alignment
 
+
 hyp = "have you not met it *anywhere*"
 ref = "*have* *you* *not* *met them* *anywhere*"
 
@@ -67,15 +69,18 @@ for tag, ref_part, hyp_part in get_align(ref, hyp):
     print(f"{tag}: '{ref_part}' -> '{hyp_part}'")
 # %%
 
+
 def count_starred_phrases(text):
     """Counts the number of phrases surrounded by '*' in the given text."""
     return len(re.findall(r"\*.*?\*", text))
+
 
 text = "*have* *you* *not* *met them* *anywhere*"
 count = count_starred_phrases(text)
 print(f"Number of starred phrases: {count}")
 # %%
 import jiwer.transforms as tr
+
 
 class RemovePunctuationExclude(tr.RemovePunctuation):
     """RemovePunctuation excluding certain characters."""
@@ -87,6 +92,7 @@ class RemovePunctuationExclude(tr.RemovePunctuation):
             x for x in self.tokens_to_remove if x not in self.exclude
         ]
         print(f"tokens_to_remove: {self.tokens_to_remove}")
+
 
 norm = tr.Compose(
     [
@@ -109,15 +115,18 @@ from datasets import load_dataset
 import fsspec
 
 # Set a longer timeout (e.g., 60 seconds)
-fsspec.config.conf['timeout'] = 600
+fsspec.config.conf["timeout"] = 600
 
 cache_dir = "/datablob1/users/boren/data/librispeech_asr"
-data = load_dataset("openslr/librispeech_asr", trust_remote_code=True,  cache_dir=cache_dir)
-#%%
+data = load_dataset(
+    "openslr/librispeech_asr", trust_remote_code=True, cache_dir=cache_dir
+)
+# %%
 from datasets import load_dataset
+
 data = load_dataset(
     "openslr/librispeech_asr",
-    "clean", 
+    "clean",
     data_dir="/datablob1/users/boren/data/librispeech_asr/train-clean-100",
     split="train.100",
     trust_remote_code=True,
@@ -127,7 +136,9 @@ from pathlib import Path
 from datasets import load_dataset
 
 
-tsv_path = Path("/datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv")
+tsv_path = Path(
+    "/datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv"
+)
 
 # Load TSV dataset with specified column names
 data = load_dataset(
@@ -137,6 +148,7 @@ data = load_dataset(
     delimiter="\t",
     column_names=["id", "paths", "messages"],
 )
+
 
 def proc_sample(example):
     """Process a single sample."""
@@ -150,6 +162,8 @@ def proc_sample(example):
         "id": example["id"],
     }
     return x
+
+
 print(data)
 
 
@@ -184,5 +198,13 @@ class TsvDataset(dataset):
         data = data.shuffle(seed=42)
         data = data.map(self.load_audio)
         return data
+
+
+# %%
+import pytz
+from datetime import datetime
+
+tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
+print(f"{datetime.now(tz).strftime('%Y%m%d-%H%M%S')}")
 
 # %%

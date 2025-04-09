@@ -1,5 +1,6 @@
 # train_grpo.py
 # %%
+import pytz
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
@@ -47,7 +48,8 @@ def init_wandb(name=None):
     """Initialize wandb."""
     wandb.login()
     name = name or "grpo-bias"
-    log_name = f"{name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
+    log_name = f"{name}-{datetime.now(tz).strftime('%Y%m%d-%H%M%S')}"
     wandb.init(project=name, name=log_name)
     return log_name
 
