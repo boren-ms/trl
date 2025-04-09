@@ -208,3 +208,14 @@ tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
 print(f"{datetime.now(tz).strftime('%Y%m%d-%H%M%S')}")
 
 # %%
+# try pairRM
+import llm_blender
+blender = llm_blender.Blender()
+blender.loadranker("llm-blender/PairRM") # load ranker checkpoint
+#%%
+inputs = ["Can you help m!"]
+candidates = [["can you help me", "can you help me!", "Can you help me?"]]
+rewards = blender.rank_with_ref(inputs, candidates, return_scores=False, batch_size=2)
+print("Rewards for input 1:", rewards[0]) # rewards of candidates for input 1
+
+# %%
