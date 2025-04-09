@@ -1,0 +1,24 @@
+dataset_name: openasr
+dataset_config:
+    split: test.other
+    name: librispeech
+    biasing:
+        bias_prob: 1.0
+        hit_prob: 0.9
+        max_piece_len: 1
+        max_num: 2
+report_to: [wandb]
+learning_rate: 0.000001
+lr_scheduler_type: cosine
+output_dir: ./output
+per_device_train_batch_size: 16
+num_generations: 8
+logging_steps: 1
+bf16: True
+gradient_checkpointing: True
+log_completions: True
+max_prompt_length: 1024
+max_completion_length: 256
+wandb_log_unique_prompts: True
+beta: 0.0
+epsilon_high: 0.28

@@ -114,3 +114,75 @@ fsspec.config.conf['timeout'] = 600
 cache_dir = "/datablob1/users/boren/data/librispeech_asr"
 data = load_dataset("openslr/librispeech_asr", trust_remote_code=True,  cache_dir=cache_dir)
 #%%
+from datasets import load_dataset
+data = load_dataset(
+    "openslr/librispeech_asr",
+    "clean", 
+    data_dir="/datablob1/users/boren/data/librispeech_asr/train-clean-100",
+    split="train.100",
+    trust_remote_code=True,
+)
+# %%
+from pathlib import Path
+from datasets import load_dataset
+
+
+tsv_path = Path("/datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv")
+
+# Load TSV dataset with specified column names
+data = load_dataset(
+    "csv",
+    data_files=[str(tsv_path)],
+    split="train",
+    delimiter="\t",
+    column_names=["id", "paths", "messages"],
+)
+
+def proc_sample(example):
+    """Process a single sample."""
+    audio_path = eval(example["paths"])[0]
+    messages = eval(example["messages"])[0]["messages"]
+    audio, fs = sf.read(audio_path)
+    x = {
+        "audio": audio,
+        "sr": fs,
+        "text": messages[-1]["content"],
+        "id": example["id"],
+    }
+    return x
+print(data)
+
+
+class TsvDataset(dataset):
+    def __init__(self, file_paths, num=None):
+        self.file_paths = file_paths
+        self.num = num
+
+    def load_audio(self, example):
+        """Load audio from a file."""
+        audio_path = example["paths"]
+        audio, sr = sf.read(audio_path)
+        instruct = example["messages"]
+        x = {
+            "prompt": [{"role": "user", "content": f"<|audio_1|>{instruct}"}],
+            "sr": sr,
+            "audio": audio,
+            "text": example["text"],
+        }
+        return x
+
+    def load_dataset(self):
+        data = load_dataset(
+            "csv",
+            data_files=self.file_paths,
+            split="train",
+            delimiter="\t",
+            column_names=["id", "paths", "messages"],
+        )
+        if self.num is not None:
+            data = data.take(self.num)
+        data = data.shuffle(seed=42)
+        data = data.map(self.load_audio)
+        return data
+
+# %%
