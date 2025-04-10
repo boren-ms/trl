@@ -21,6 +21,11 @@ storage:
     output:
         storage_account_name: tsstd01uks
         container_name: data
+    uks_blob:
+        container_name: data
+        mount_dir: /uksblob
+        storage_account_name: tsstd01uks
+        # storage_account_name: tsstd01uks
     data_blob:
         container_name: data
         mount_dir: /datablob1

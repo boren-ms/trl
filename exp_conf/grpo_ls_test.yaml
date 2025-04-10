@@ -8,6 +8,8 @@ dataset_config:
         hit_prob: 0.9
         max_piece_len: 1
         max_num: 2
+model_name_or_path: /home/boren/phi4_mm_bias
+job_name: grpo_bias_debug
 report_to: [wandb]
 learning_rate: 5e-6
 lr_scheduler_type: cosine

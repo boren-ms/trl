@@ -42,6 +42,10 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Dataset config"},
     )
+    model_name_or_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to the model."},
+    )
 
 
 def init_wandb(name=None):
@@ -57,7 +61,7 @@ def init_wandb(name=None):
 def main(script_args, training_args):
     """Train the model with GRPO."""
     init_wandb(name=script_args.job_name)
-    model, processor = init_model()
+    model, processor = init_model(script_args.model_name_or_path)
 
     trainer = GRPOTrainer(
         model=model,
