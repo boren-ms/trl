@@ -8,6 +8,7 @@ dataset_config:
         hit_prob: 0.9
         max_piece_len: 1
         max_num: 2
+reward_funcs: [reward_bias_error, reward_word_error]
 model_name_or_path: /home/boren/phi4_mm_bias
 job_name: grpo_bias_debug
 report_to: [wandb]

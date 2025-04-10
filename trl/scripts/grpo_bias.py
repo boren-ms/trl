@@ -8,7 +8,6 @@ from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
-from trl.scripts.audio_rewards import reward_bias_accuracy, reward_word_accuracy
 from trl.scripts.audio_dataset import create_dataset
 
 
@@ -46,6 +45,12 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Path to the model."},
     )
+    reward_funcs: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Reward functions to use. Can be a list of functions or a single function."
+        },
+    )
 
 
 def init_wandb(name=None):
@@ -58,6 +63,20 @@ def init_wandb(name=None):
     return log_name
 
 
+def reward_functions(names=None):
+    """get the reward functions based on the function name."""
+    names = names or ["reward_bias_accuracy", "reward_word_accuracy"]
+    if isinstance(names, str):
+        names = [names]
+    funcs = []
+    for name in names:
+        try:
+            module = __import__("trl.scripts.audio_rewards", fromlist=[name])
+            funcs.append(getattr(module, name))
+        except (ImportError, AttributeError) as e:
+            raise ValueError(f"Reward function '{name}' not found.") from e
+    return funcs
+
 def main(script_args, training_args):
     """Train the model with GRPO."""
     init_wandb(name=script_args.job_name)
@@ -65,7 +84,7 @@ def main(script_args, training_args):
 
     trainer = GRPOTrainer(
         model=model,
-        reward_funcs=[reward_word_accuracy, reward_bias_accuracy],
+        reward_funcs=reward_functions(script_args.reward_funcs),
         args=training_args,
         train_dataset=create_dataset(
             dataset_name=script_args.dataset_name, **script_args.dataset_config
