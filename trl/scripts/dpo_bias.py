@@ -43,11 +43,13 @@ def init_model(model_id=None):
 
 
 def main(script_args, training_args):
-    model, processor = init_model()
+    """Main function for the DPO training script."""
+    
     dataset = create_dataset(
         dataset_name=script_args.dataset_name,
         **script_args.dataset_config,
     )
+    model, processor = init_model()
 
     trainer = DPOTrainer(
         model,

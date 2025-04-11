@@ -345,7 +345,8 @@ class DPOTrainer(Trainer):
             )
 
         self.is_encoder_decoder = model.config.is_encoder_decoder
-        self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
+        # self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
+        self.is_vision_model = True
         self.is_peft_model = is_peft_available() and isinstance(model, PeftModel)
         self.model_adapter_name = args.model_adapter_name
         self.ref_adapter_name = args.ref_adapter_name
@@ -639,8 +640,14 @@ class DPOTrainer(Trainer):
         Same as `tokenize_row` but for vision models. Please refer to `tokenize_row` for more information.
         """
         processor, tokenizer = processing_class, processing_class.tokenizer  # the processing class is a processor
-        processed_features = processor(images=features["images"], text=features["prompt"], add_special_tokens=False)
-
+        # processed_features = processor(images=features["images"], text=features["prompt"], add_special_tokens=False)
+        audio = (torch.tensor(features["audio"]), features["sr"])
+        processed_features = processor(
+            text=features["prompt"],
+            audios=[audio],
+            return_tensors="pt",
+            # add_special_tokens=False,
+        )
         prompt_input_ids = processed_features["input_ids"][0]
         pixel_values = processed_features["pixel_values"][0]
         chosen_input_ids = tokenizer(features["chosen"], add_special_tokens=False)["input_ids"]

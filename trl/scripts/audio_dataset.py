@@ -122,6 +122,18 @@ def bias_sampling(dataset, **kwargs):
             "sr": sample["audio"]["sampling_rate"],
             "audio": sample["audio"]["array"],
             "text": text,
+            "chosen":  [
+                {
+                    "role": "assistant",
+                    "content": text,
+                }
+            ],
+            "rejected":  [
+                {
+                    "role": "assistant",
+                    "content": text,
+                }
+            ],
         }
 
     dataset = dataset.map(proc_sample)
