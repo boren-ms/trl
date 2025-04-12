@@ -6,7 +6,7 @@ dataset_config:
         bias_prob: 0.9
         hit_prob: 0.9
         max_piece_len: 1
-        max_num: 300
+        max_num: 200
     simu_perference:
         error_rate: 0.25
         buffer_size: 10000
@@ -22,6 +22,6 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: True
 logging_steps: 1
 bf16: True
-max_prompt_length: 1024
+max_prompt_length: 2048
 wandb_log_unique_prompts: True
 # beta: 0.0
