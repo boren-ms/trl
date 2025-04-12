@@ -1,6 +1,6 @@
 dataset_name: openasr
 dataset_config:
-    num_egs: 3
+    num_egs: 100
     split: test.clean
     name: librispeech
     biasing:
@@ -8,12 +8,16 @@ dataset_config:
         hit_prob: 0.9
         max_piece_len: 1
         max_num: 2
+    simu_perference:
+        error_rate: 0.5
+        buffer_size: 10000
+job_name: dpo_bias_debug
 report_to: [wandb]
 learning_rate: 5.0e-6
 lr_scheduler_type: cosine
 output_dir: ./output/dpo_bias
 num_train_epochs: 1
-per_device_train_batch_size: 2
+per_device_train_batch_size: 1
 gradient_accumulation_steps: 8
 gradient_checkpointing: True
 logging_steps: 1

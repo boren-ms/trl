@@ -1,28 +1,13 @@
-# Copyright 2025 The HuggingFace Team. All rights reserved.
-#
 """DPO training script."""
-
+import pytz
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
+from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
+import wandb
 from trl import DPOConfig, DPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_dataset
-
-
-@dataclass
-class DPOScriptArguments:
-    """Script arguments for the GRPO training script."""
-
-    dataset_name: str = field(metadata={"help": "Dataset name."})
-    job_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "Name of the script."},
-    )
-    dataset_config: Optional[str] = field(
-        default=None,
-        metadata={"help": "Dataset config"},
-    )
 
 
 def init_model(model_id=None):
@@ -42,30 +27,57 @@ def init_model(model_id=None):
     return model, processor
 
 
-def main(script_args, training_args):
-    """Main function for the DPO training script."""
-    
-    dataset = create_dataset(
-        dataset_name=script_args.dataset_name,
-        **script_args.dataset_config,
+@dataclass
+class DPOScriptArguments:
+    """Script arguments for the GRPO training script."""
+
+    dataset_name: str = field(metadata={"help": "Dataset name."})
+    job_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Name of the script."},
     )
-    model, processor = init_model()
+    dataset_config: Optional[str] = field(
+        default=None,
+        metadata={"help": "Dataset config"},
+    )
+    model_name_or_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to the model."},
+    )
+
+
+def init_wandb(name=None):
+    """Initialize wandb."""
+    wandb.login()
+    name = name or "dpo-bias"
+    tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
+    log_name = f"{name}-{datetime.now(tz).strftime('%Y%m%d-%H%M%S')}"
+    wandb.init(project=name, name=log_name)
+    return log_name
+
+
+def main(script_args, training_args):
+    """Train the model with DPO."""
+    init_wandb(name=script_args.job_name)
+    model, processor = init_model(script_args.model_name_or_path)
 
     trainer = DPOTrainer(
         model,
         None,
         args=training_args,
-        train_dataset=dataset,
+        train_dataset=create_dataset(
+            dataset_name=script_args.dataset_name, **script_args.dataset_config
+        ),
         eval_dataset=None,
         processing_class=processor,
-        # peft_config=peft_config,
     )
     print("Training...")
     trainer.train()
-    print("Training complete.")
+    print("All Done.")
 
 
 def make_parser(subparsers: argparse._SubParsersAction = None):
+    """Create the argument parser for the DPO script."""
     dataclass_types = (DPOScriptArguments, DPOConfig)
     if subparsers is not None:
         parser = subparsers.add_parser(

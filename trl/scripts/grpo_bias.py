@@ -112,5 +112,3 @@ if __name__ == "__main__":
     parser = make_parser()
     script_args, training_args = parser.parse_args_and_config()
     main(script_args, training_args)
-
-# %%

@@ -3,7 +3,7 @@ from pathlib import Path
 from datasets import load_dataset
 import soundfile as sf
 from functools import partial
-
+from error_simu import ErrorSimulator
 from biasing import PieceSampler
 
 # from trl.scripts.biasing import PieceSampler
@@ -122,21 +122,36 @@ def bias_sampling(dataset, **kwargs):
             "sr": sample["audio"]["sampling_rate"],
             "audio": sample["audio"]["array"],
             "text": text,
-            "chosen":  [
+        }
+
+    dataset = dataset.map(proc_sample)
+    return dataset
+
+
+def simulate_perference(dataset, **kwargs):
+    """simulate the perference  to the dataset."""
+    err_rate = kwargs.pop("error_rate", 0.25)
+    simulator = ErrorSimulator(**kwargs)
+    def add_perference(sample):
+        """Process a sample from the dataset."""
+        text = sample["text"]
+        bad_text = simulator.random_error(text, err_rate)
+        return {
+            "chosen": [
                 {
                     "role": "assistant",
                     "content": text,
                 }
             ],
-            "rejected":  [
+            "rejected": [
                 {
                     "role": "assistant",
-                    "content": text,
+                    "content": bad_text,
                 }
             ],
         }
 
-    dataset = dataset.map(proc_sample)
+    dataset = dataset.map(add_perference)
     return dataset
 
 
@@ -153,10 +168,12 @@ def create_dataset(dataset_name="openasr", **kwargs):
     elif dataset_name == "openasr":
         dataset = openasr_dataset(**kwargs)
         dataset = bias_sampling(dataset, **kwargs.get("biasing", {}))
+        dataset = simulate_perference(dataset, **kwargs.get("simu_perference", {}))
         return dataset
     elif dataset_name == "tsv":
         dataset = tsv_dataset(**kwargs)
         dataset = bias_sampling(dataset, **kwargs.get("biasing", {}))
+        dataset = simulate_perference(dataset, **kwargs.get("simu_perference", {}))
         return dataset
     raise ValueError(f"Unknown dataset name: {dataset_name}")
 

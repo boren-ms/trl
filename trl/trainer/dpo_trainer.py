@@ -132,10 +132,10 @@ class DataCollatorForPreference(DataCollatorMixin):
         chosen_attention_mask = [torch.ones_like(input_ids) for input_ids in chosen_input_ids]
         rejected_input_ids = [torch.tensor(example["rejected_input_ids"]) for example in examples]
         rejected_attention_mask = [torch.ones_like(input_ids) for input_ids in rejected_input_ids]
-        if "pixel_values" in examples[0]:
-            pixel_values = [torch.tensor(example["pixel_values"]) for example in examples]
-        if "pixel_attention_mask" in examples[0]:
-            pixel_attention_mask = [torch.tensor(example["pixel_attention_mask"]) for example in examples]
+        if "input_audio_embeds" in examples[0]:
+            input_audio_embeds = [torch.tensor(example["input_audio_embeds"]) for example in examples]
+        if "audio_attention_mask" in examples[0]:
+            audio_attention_mask = [torch.tensor(example["audio_attention_mask"]) for example in examples]
         if "ref_chosen_logps" in examples[0] and "ref_rejected_logps" in examples[0]:
             ref_chosen_logps = torch.tensor([example["ref_chosen_logps"] for example in examples])
             ref_rejected_logps = torch.tensor([example["ref_rejected_logps"] for example in examples])
@@ -148,12 +148,12 @@ class DataCollatorForPreference(DataCollatorMixin):
         output["chosen_attention_mask"] = pad(chosen_attention_mask, padding_value=0)
         output["rejected_input_ids"] = pad(rejected_input_ids, padding_value=self.pad_token_id)
         output["rejected_attention_mask"] = pad(rejected_attention_mask, padding_value=0)
-        if "pixel_values" in examples[0]:
-            output["pixel_values"] = pad(pixel_values, padding_value=0.0)
-        if "pixel_attention_mask" in examples[0]:
-            output["pixel_attention_mask"] = pad(pixel_attention_mask, padding_value=0)
-        if "image_sizes" in examples[0]:
-            output["image_sizes"] = torch.tensor([example["image_sizes"] for example in examples])
+        if "input_audio_embeds" in examples[0]:
+            output["input_audio_embeds"] = pad(input_audio_embeds, padding_value=0.0)
+        if "audio_attention_mask" in examples[0]:
+            output["audio_attention_mask"] = pad(audio_attention_mask, padding_value=0)
+        if "audio_embed_sizes" in examples[0]:
+            output["audio_embed_sizes"] = torch.tensor([example["audio_embed_sizes"] for example in examples])
         if "ref_chosen_logps" in examples[0] and "ref_rejected_logps" in examples[0]:
             output["ref_chosen_logps"] = ref_chosen_logps
             output["ref_rejected_logps"] = ref_rejected_logps
@@ -649,7 +649,7 @@ class DPOTrainer(Trainer):
             # add_special_tokens=False,
         )
         prompt_input_ids = processed_features["input_ids"][0]
-        pixel_values = processed_features["pixel_values"][0]
+        # pixel_values = processed_features["pixel_values"][0]
         chosen_input_ids = tokenizer(features["chosen"], add_special_tokens=False)["input_ids"]
         rejected_input_ids = tokenizer(features["rejected"], add_special_tokens=False)["input_ids"]
 
@@ -671,15 +671,15 @@ class DPOTrainer(Trainer):
 
         output = {
             "prompt_input_ids": prompt_input_ids,
-            "pixel_values": pixel_values,
+            # "pixel_values": pixel_values,
             "chosen_input_ids": chosen_input_ids,
             "rejected_input_ids": rejected_input_ids,
         }
-
-        if "pixel_attention_mask" in processed_features:
-            output["pixel_attention_mask"] = processed_features["pixel_attention_mask"][0]
-        if "image_sizes" in processed_features:
-            output["image_sizes"] = processed_features["image_sizes"][0]
+        if "input_audio_embeds" in processed_features:
+            output["input_audio_embeds"] = processed_features["input_audio_embeds"][0]
+            output["audio_embed_sizes"] = processed_features["audio_embed_sizes"][0]
+        if processed_features["audio_attention_mask"] is not None:
+            output["audio_attention_mask"] = processed_features["audio_attention_mask"][0]
 
         return output
 
@@ -724,7 +724,9 @@ class DPOTrainer(Trainer):
                 "prompt_input_ids",
                 "chosen_input_ids",
                 "rejected_input_ids",
-                "image_sizes",
+                "input_audio_embeds",
+                "audio_attention_mask",
+                "audio_embed_sizes",
                 "ref_chosen_logps",
                 "ref_rejected_logps",
             ]
@@ -895,15 +897,12 @@ class DPOTrainer(Trainer):
         output["prompt_attention_mask"] = torch.cat(
             [batch["prompt_attention_mask"], batch["prompt_attention_mask"]], dim=0
         )
-        if "pixel_values" in batch:
-            output["pixel_values"] = torch.cat([batch["pixel_values"], batch["pixel_values"]], dim=0)
-
-        if "pixel_attention_mask" in batch:
-            output["pixel_attention_mask"] = torch.cat(
-                [batch["pixel_attention_mask"], batch["pixel_attention_mask"]], dim=0
-            )
-        if "image_sizes" in batch:
-            output["image_sizes"] = torch.cat([batch["image_sizes"], batch["image_sizes"]], dim=0)
+        if "input_audio_embeds" in batch:
+            output["input_audio_embeds"] = torch.cat([batch["input_audio_embeds"], batch["input_audio_embeds"]], dim=0)
+            output["audio_embed_sizes"] = torch.cat([batch["audio_embed_sizes"], batch["audio_embed_sizes"]], dim=0)
+        
+        if "audio_attention_mask" in batch:
+            output["audio_attention_mask"] = torch.cat([batch["audio_attention_mask"], batch["audio_attention_mask"]], dim=0)
 
         # Concatenate the chosen and rejected completions
         max_completion_length = max(batch["chosen_input_ids"].shape[1], batch["rejected_input_ids"].shape[1])
@@ -1122,13 +1121,13 @@ class DPOTrainer(Trainer):
         if self.aux_loss_enabled:
             model_kwargs["output_router_logits"] = True
 
-        # Add the pixel values and attention masks for vision models
-        if "pixel_values" in concatenated_batch:
-            model_kwargs["pixel_values"] = concatenated_batch["pixel_values"]
-        if "pixel_attention_mask" in concatenated_batch:
-            model_kwargs["pixel_attention_mask"] = concatenated_batch["pixel_attention_mask"]
-        if "image_sizes" in concatenated_batch:
-            model_kwargs["image_sizes"] = concatenated_batch["image_sizes"]
+        if "input_audio_embeds" in concatenated_batch:
+            model_kwargs["input_audio_embeds"] = concatenated_batch["input_audio_embeds"]
+            model_kwargs["audio_embed_sizes"] = concatenated_batch["audio_embed_sizes"]
+            model_kwargs["input_mode"] = 2
+        
+        if "audio_attention_mask" in model_kwargs:
+            model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
 
         prompt_input_ids = concatenated_batch["prompt_input_ids"]
         prompt_attention_mask = concatenated_batch["prompt_attention_mask"]
