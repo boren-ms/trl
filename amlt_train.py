@@ -13,7 +13,14 @@ def uuid4():
     return short_id
 
 
-def amlt_run(conf_file, node=4, job_pfx="phi4_trl", sla_tier=None, tag="eus", prepare=False):
+def amlt_run(
+    conf_file,
+    node=4,
+    job_pfx="phi4_trl",
+    sla_tier=None,
+    tag="eus",
+    prepare=False,
+):
     """submit a job to AMLT"""
     # remove script/train from the path
     conf_file = Path(conf_file)
@@ -22,7 +29,13 @@ def amlt_run(conf_file, node=4, job_pfx="phi4_trl", sla_tier=None, tag="eus", pr
     tmp_suf = f"_{tag}" if tag else ""
     conf = OmegaConf.load(amlt_conf_dir / f"amlt_train_temp{tmp_suf}.yaml")
     print("config file:", conf_file)
-    tr_cmd = f"python trl/scripts/grpo_bias.py --config {conf_file} --output_dir $$AMLT_OUTPUT_DIR"
+    file_stem = conf_file.stem
+    if "dpo" in file_stem:
+        tr_cmd = f"python trl/scripts/dpo_bias.py --config {conf_file} --output_dir $$AMLT_OUTPUT_DIR"
+    elif "grpo" in file_stem:
+        tr_cmd = f"python trl/scripts/grpo_bias.py --config {conf_file} --output_dir $$AMLT_OUTPUT_DIR"
+    else:
+        raise ValueError(f"Unknown config file: {conf_file}")
     job_name = "-".join([job_pfx, conf_file.stem, uuid4()])
     sku = conf.jobs[0].sku.split("x")[-1]
     conf.jobs[0].name = job_name
