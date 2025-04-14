@@ -1,6 +1,6 @@
 dataset_name: openasr
 dataset_config:
-    num_egs: 10
+    num_egs: 100
     split: test.clean
     name: librispeech
     biasing:
@@ -15,8 +15,8 @@ job_name: grpo_bias_debug
 report_to: [wandb]
 learning_rate: 5e-6
 lr_scheduler_type: cosine
-output_dir: ./output
-per_device_train_batch_size: 16
+output_dir: ./output/grpo_bias_debug
+per_device_train_batch_size: 8
 num_generations: 8
 logging_steps: 1
 bf16: True
@@ -25,5 +25,6 @@ log_completions: True
 max_prompt_length: 1024
 max_completion_length: 256
 wandb_log_unique_prompts: True
+save_steps: 5
 # beta: 0.0
 # epsilon_high: 0.28

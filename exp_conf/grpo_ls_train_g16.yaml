@@ -20,5 +20,5 @@ log_completions: True
 max_prompt_length: 1024
 max_completion_length: 256
 wandb_log_unique_prompts: True
-# beta: 0.0
+beta: 0.1
 epsilon_high: 0.28
