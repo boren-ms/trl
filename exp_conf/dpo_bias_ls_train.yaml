@@ -24,4 +24,5 @@ logging_steps: 1
 bf16: True
 max_prompt_length: 2048
 wandb_log_unique_prompts: True
+save_steps: 50
 # beta: 0.0
