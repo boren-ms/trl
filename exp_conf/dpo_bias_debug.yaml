@@ -10,16 +10,19 @@ dataset_config:
         max_num: 2
     simu_perference:
         error_rate: 0.5
-        buffer_size: 10000
+        buffer_size: 1000
 job_name: dpo_bias_debug
 report_to: [wandb]
 learning_rate: 5.0e-6
 lr_scheduler_type: cosine
 output_dir: ./output/dpo_bias
 num_train_epochs: 1
-per_device_train_batch_size: 1
-gradient_accumulation_steps: 8
+per_device_train_batch_size: 3
+gradient_accumulation_steps: 2
 gradient_checkpointing: True
 logging_steps: 1
 bf16: True
-no_remove_unused_columns: True
+max_prompt_length: 2048
+wandb_log_unique_prompts: True
+save_steps: 50
+# beta: 0.0

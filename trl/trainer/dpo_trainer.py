@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Literal, Optional, Union
 
 import pandas as pd
+import numpy as np
 import torch
 import torch.amp as amp
 import torch.nn as nn
@@ -641,7 +642,7 @@ class DPOTrainer(Trainer):
         """
         processor, tokenizer = processing_class, processing_class.tokenizer  # the processing class is a processor
         # processed_features = processor(images=features["images"], text=features["prompt"], add_special_tokens=False)
-        audio = (torch.tensor(features["audio"]), features["sr"])
+        audio = (np.array(features["audio"]), features["sr"])
         processed_features = processor(
             text=features["prompt"],
             audios=[audio],
