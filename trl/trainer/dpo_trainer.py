@@ -391,8 +391,9 @@ class DPOTrainer(Trainer):
         self.generate_during_eval = args.generate_during_eval
         self.label_pad_token_id = args.label_pad_token_id
         self.max_prompt_length = args.max_prompt_length
+        assert self.max_prompt_length is not None, "max_prompt_length must be specified in DPOConfig."
         self.max_completion_length = args.max_completion_length
-        self.max_length = args.max_length
+        self.max_length = args.max_length or args.max_prompt_length + args.max_completion_length if args.max_completion_length is not None else args.max_prompt_length*2
         self.truncation_mode = args.truncation_mode
         self.precompute_ref_log_probs = args.precompute_ref_log_probs
         self.use_logits_to_keep = args.use_logits_to_keep
@@ -537,9 +538,10 @@ class DPOTrainer(Trainer):
         dataset_name: str,
     ) -> Union[Dataset, IterableDataset]:
         # Build the kwargs for the `map` function
-        map_kwargs = {"writer_batch_size": 10}
+        map_kwargs = {}
         if isinstance(dataset, Dataset):  # IterableDataset does not support num_proc
             map_kwargs["num_proc"] = args.dataset_num_proc
+            map_kwargs["writer_batch_size"] = 10
 
         with PartialState().main_process_first():
             # Extract prompt if needed

@@ -88,7 +88,9 @@ def openasr_dataset(**kwargs):
 
 def stream_shuffle(dataset, **kwargs):
     """Process the dataset."""
-    # dataset = dataset.to_iterable_dataset(num_shards=kwargs.get("num_shards", 128))
+    streaming = kwargs.get("streaming", False)
+    if streaming:
+        dataset = dataset.to_iterable_dataset(num_shards=kwargs.get("num_shards", 1))
     num_egs = kwargs.get("num_egs", None)
     if num_egs is not None:
         dataset = dataset.take(num_egs)

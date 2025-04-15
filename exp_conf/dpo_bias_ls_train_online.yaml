@@ -1,30 +1,30 @@
 dataset_name: tsv
 dataset_config:
-    num_egs: 100
     tsv_paths: /datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv
-    # streaming: True
+    streaming: True
     biasing:
         bias_prob: 0.9
         hit_prob: 0.9
         max_piece_len: 1
-        max_num: 200
+        max_num: 500
     simu_perference:
         error_rate: 0.25
         buffer_size: 5000
-# max_steps: 1000
-model_name_or_path: microsoft/Phi-4-multimodal-instruct
+model_name_or_path: /uksblob/users/boren/data/hf_models/phi4_mm_bias
+# model_name_or_path: microsoft/Phi-4-multimodal-instruct
 # job_name: phi4_mm_bias_grpo
 report_to: [wandb]
 learning_rate: 5.0e-6
 lr_scheduler_type: cosine
 output_dir: ./output
-num_train_epochs: 2
-per_device_train_batch_size: 4
-gradient_accumulation_steps: 2
+max_steps: 10000
+per_device_train_batch_size: 24
+gradient_accumulation_steps: 4
 gradient_checkpointing: True
-logging_steps: 1
+logging_steps: 10
 bf16: True
 max_prompt_length: 2048
+max_completion_length: 512
 wandb_log_unique_prompts: True
-save_steps: 10
+save_steps: 200
 # beta: 0.0

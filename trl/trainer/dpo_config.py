@@ -228,7 +228,7 @@ class DPOConfig(TrainingArguments):
         metadata={"help": "Maximum length of the completion."},
     )
     max_length: Optional[int] = field(
-        default=1024,
+        default=None,
         metadata={"help": "Maximum length of the full sequence (prompt + completion)."},
     )
     truncation_mode: str = field(
