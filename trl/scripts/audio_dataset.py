@@ -1,6 +1,6 @@
 # %%
 from pathlib import Path
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets
 import soundfile as sf
 from functools import partial
 from error_simu import ErrorSimulator
@@ -132,9 +132,10 @@ def bias_sampling(dataset, **kwargs):
 
 def simulate_perference(dataset, **kwargs):
     """simulate the perference  to the dataset."""
-    err_rate = kwargs.pop("error_rate", 0.25)
+    error_rate = kwargs.pop("error_rate", 0.25)
     simulator = ErrorSimulator(**kwargs)
-    def add_perference(sample):
+
+    def add_perference(sample, err_rate):
         """Process a sample from the dataset."""
         text = sample["text"]
         bad_text = simulator.random_error(text, err_rate)
@@ -153,8 +154,15 @@ def simulate_perference(dataset, **kwargs):
             ],
         }
 
-    dataset = dataset.map(add_perference)
-    return dataset
+    if not isinstance(error_rate, (list, tuple)):
+        error_rate = [error_rate]
+
+    datasets = [
+        dataset.map(add_perference, fn_kwargs={"err_rate": err_rate})
+        for err_rate in error_rate
+    ]
+
+    return concatenate_datasets(datasets)
 
 
 def create_dataset(dataset_name="openasr", **kwargs):
