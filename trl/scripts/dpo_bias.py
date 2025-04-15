@@ -1,4 +1,5 @@
 """DPO training script."""
+
 import pytz
 import argparse
 from dataclasses import dataclass, field
@@ -6,7 +7,7 @@ from typing import Optional
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 import wandb
-from trl import DPOConfig, DPOTrainer, TrlParser
+from trl import DPOConfig, DPOTrainer, TrlParser, ModelConfig, get_peft_config
 from trl.scripts.audio_dataset import create_dataset
 
 
@@ -40,10 +41,10 @@ class DPOScriptArguments:
         default=None,
         metadata={"help": "Dataset config"},
     )
-    model_name_or_path: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to the model."},
-    )
+    # model_name_or_path: Optional[str] = field(
+    #     default=None,
+    #     metadata={"help": "Path to the model."},
+    # )
 
 
 def init_wandb(name=None):
@@ -56,20 +57,30 @@ def init_wandb(name=None):
     return log_name
 
 
-def main(script_args, training_args):
+def main(script_args, training_args, model_args):
     """Train the model with DPO."""
     init_wandb(name=script_args.job_name)
-    model, processor = init_model(script_args.model_name_or_path)
-
+    model, processor = init_model(model_args.model_name_or_path)
+    peft_config = get_peft_config(model_args)
+    if peft_config is None:
+        ref_model = AutoModelForCausalLM.from_pretrained(
+            model_args.model_name_or_path,
+            trust_remote_code=True,
+            torch_dtype="auto",
+            _attn_implementation="flash_attention_2",
+        )
+    else:
+        ref_model = None
     trainer = DPOTrainer(
         model,
-        None,
+        ref_model,
         args=training_args,
         train_dataset=create_dataset(
             dataset_name=script_args.dataset_name, **script_args.dataset_config
         ),
         eval_dataset=None,
         processing_class=processor,
+        peft_config=peft_config,
     )
     print("Training...")
     trainer.train()
@@ -78,7 +89,7 @@ def main(script_args, training_args):
 
 def make_parser(subparsers: argparse._SubParsersAction = None):
     """Create the argument parser for the DPO script."""
-    dataclass_types = (DPOScriptArguments, DPOConfig)
+    dataclass_types = (DPOScriptArguments, DPOConfig, ModelConfig)
     if subparsers is not None:
         parser = subparsers.add_parser(
             "dpo", help="Run the DPO training script", dataclass_types=dataclass_types
@@ -90,5 +101,5 @@ def make_parser(subparsers: argparse._SubParsersAction = None):
 
 if __name__ == "__main__":
     parser = make_parser()
-    script_args, training_args = parser.parse_args_and_config()
-    main(script_args, training_args)
+    script_args, training_args, model_args = parser.parse_args_and_config()
+    main(script_args, training_args, model_args)
