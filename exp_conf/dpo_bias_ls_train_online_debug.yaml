@@ -13,7 +13,8 @@ dataset_config:
         error_rate: 0.25
         buffer_size: 5000
 # model_name_or_path: /uksblob/users/boren/data/hf_models/phi4_mm_bias
-model_name_or_path: microsoft/Phi-4-multimodal-instruct
+# model_name_or_path: microsoft/Phi-4-multimodal-instruct
+model_name_or_path: /home/boren/Phi4-MM-dev
 job_name: dpo_bias_debug
 report_to: [wandb]
 learning_rate: 5.0e-6
@@ -32,4 +33,4 @@ wandb_log_unique_prompts: True
 save_steps: 200
 # beta: 0.0
 
-ref_adapter_name: ref_adapter
+ref_lora_name: speech_ref # only speech_ref

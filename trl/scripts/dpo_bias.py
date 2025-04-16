@@ -7,23 +7,22 @@ from typing import Optional
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 import wandb
-from trl import DPOConfig, DPOTrainer, TrlParser, ModelConfig, get_peft_config
+from trl import DPOConfig, DPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_dataset
 
 from peft import LoraConfig, get_peft_model
 from peft.tuners.lora.layer import LoraLayer
 
 
-
-def clone_phimm_lora(model,  dst_name, src_name="speech"):
+def clone_phimm_lora(model, dst_name, src_name="speech"):
     """Clone the LoRA adapter from src_name to dst_name."""
     print(f"Cloning LoRA adapter from {src_name} to {dst_name}")
     src_lora_config = getattr(model.config, f"{src_name}_lora")
     lora_conf = LoraConfig(
-        r=src_lora_config['r'],
-        lora_alpha=src_lora_config['lora_alpha'],
-        target_modules=src_lora_config['layer'],
-        lora_dropout=src_lora_config['dp'],
+        r=src_lora_config["r"],
+        lora_alpha=src_lora_config["lora_alpha"],
+        target_modules=src_lora_config["layer"],
+        lora_dropout=src_lora_config["dp"],
         task_type="CAUSAL_LM",
     )
     peft_model = get_peft_model(model.model, lora_conf, adapter_name=dst_name)
@@ -34,11 +33,19 @@ def clone_phimm_lora(model,  dst_name, src_name="speech"):
             module.unmerge()
         module.lora_A[dst_name].weight.data = module.lora_A[src_name].weight.data
         module.lora_B[dst_name].weight.data = module.lora_B[src_name].weight.data
-        # module.set_adapter(dst_name)
-        # module._disable_adapters = False
-    return peft_model
+    return model
 
-def init_model(model_id=None, ref_adapter=None):
+def print_trainable_parameters(model):
+    """List the training parameters of the LoRA adapter and count the total."""
+    total_params = 0
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(f"Parameter: {name}, Shape: {param.shape}, Requires Grad: {param.requires_grad}")
+            total_params += param.numel()
+    print(f"Total trainable parameters: {total_params:,}")
+    
+
+def init_model(model_id=None, ref_lora_name=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model = AutoModelForCausalLM.from_pretrained(
@@ -47,12 +54,11 @@ def init_model(model_id=None, ref_adapter=None):
         torch_dtype="auto",
         _attn_implementation="flash_attention_2",
     )
-    if ref_adapter is not None:
-        model = clone_phimm_lora(model, ref_adapter, "speech") # PEFT model
-        model.set_adapter("speech")
-    else:
-        model.set_lora_adapter("speech")
-    
+    if ref_lora_name is not None:
+        model = clone_phimm_lora(model, ref_lora_name, "speech")  # PEFT model
+    model.set_lora_adapter("speech")
+    print_trainable_parameters(model)
+
     processor = AutoProcessor.from_pretrained(
         model_id,
         trust_remote_code=True,
@@ -78,6 +84,7 @@ class DPOScriptArguments:
         metadata={"help": "Path to the model."},
     )
 
+
 def init_wandb(name=None):
     """Initialize wandb."""
     wandb.login()
@@ -91,9 +98,10 @@ def init_wandb(name=None):
 def main(script_args, training_args):
     """Train the model with DPO."""
     init_wandb(name=script_args.job_name)
-    model, processor = init_model(script_args.model_name_or_path, training_args.ref_adapter_name)
-    if training_args.ref_adapter_name is not None:
-        training_args.model_apdapter_name = "speech"
+    model, processor = init_model(
+        script_args.model_name_or_path,
+        training_args.ref_lora_name,
+    )
     trainer = DPOTrainer(
         model,
         args=training_args,

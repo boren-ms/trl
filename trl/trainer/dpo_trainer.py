@@ -349,13 +349,14 @@ class DPOTrainer(Trainer):
         # self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
         self.is_vision_model = True
         self.is_peft_model = is_peft_available() and isinstance(model, PeftModel)
+        self.is_lora_model = args.ref_lora_name is not None
         self.model_adapter_name = args.model_adapter_name
         self.ref_adapter_name = args.ref_adapter_name
         self.reference_free = args.reference_free
 
         if ref_model:
             self.ref_model = ref_model
-        elif self.is_peft_model or args.precompute_ref_log_probs:
+        elif self.is_peft_model or args.precompute_ref_log_probs or self.is_lora_model:
             # The `model` with adapters turned off will be used as the reference model
             self.ref_model = None
         else:
@@ -503,7 +504,7 @@ class DPOTrainer(Trainer):
                 )
 
         if self.ref_model is None:
-            if not (self.is_peft_model or self.precompute_ref_log_probs):
+            if not (self.is_peft_model or self.precompute_ref_log_probs or self.is_lora_model):
                 raise ValueError(
                     "No reference model and model is not a Peft model. Try setting `precompute_ref_log_probs=True`"
                 )
@@ -850,7 +851,9 @@ class DPOTrainer(Trainer):
         device_type = "xpu" if is_torch_xpu_available() else "cuda"
         compte_ref_context_manager = amp.autocast(device_type) if self._peft_has_been_casted_to_bf16 else nullcontext()
         with torch.no_grad(), compte_ref_context_manager:
-            if self.ref_model is None:
+            if self.is_lora_model:
+                ref_model_output = self.concatenated_forward(self.model, batch, input_mode=4)
+            elif self.ref_model is None:
                 with self.null_ref_context():
                     ref_model_output = self.concatenated_forward(self.model, batch)
             else:
@@ -1111,7 +1114,7 @@ class DPOTrainer(Trainer):
 
         return losses, chosen_rewards, rejected_rewards
 
-    def concatenated_forward(self, model: nn.Module, batch: dict[str, Union[list, torch.LongTensor]]):
+    def concatenated_forward(self, model: nn.Module, batch: dict[str, Union[list, torch.LongTensor]], **kwargs):
         """Run the given model on the given batch of inputs, concatenating the chosen and rejected inputs together.
 
         We do this to avoid doing two forward passes, because it's faster for FSDP.
@@ -1131,6 +1134,7 @@ class DPOTrainer(Trainer):
         
         if "audio_attention_mask" in model_kwargs:
             model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
+        model_kwargs.update(kwargs)
 
         prompt_input_ids = concatenated_batch["prompt_input_ids"]
         prompt_attention_mask = concatenated_batch["prompt_attention_mask"]
