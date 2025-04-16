@@ -1,0 +1,32 @@
+dataset_name: tsv
+dataset_config:
+    tsv_paths: /datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv
+    streaming: True
+    biasing:
+        bias_prob: 0.9
+        hit_prob: 0.9
+        max_piece_len: 1
+        max_num: 500
+    simu_perference:
+        error_rate: 0.05
+        buffer_size: 5000
+model_name_or_path: /uksblob/users/boren/data/hf_models/phi4_mm_bias
+# model_name_or_path: microsoft/Phi-4-multimodal-instruct
+# job_name: phi4_mm_bias_grpo
+report_to: [wandb]
+learning_rate: 5.0e-6
+lr_scheduler_type: cosine
+output_dir: ./output
+max_steps: 5000
+dispatch_batches: False
+per_device_train_batch_size: 3
+gradient_accumulation_steps: 4
+gradient_checkpointing: True
+logging_steps: 10
+bf16: True
+max_prompt_length: 2048
+max_completion_length: 512
+wandb_log_unique_prompts: True
+save_steps: 200
+# beta: 0.0
+ref_lora_name: speech_ref # only speech_ref
