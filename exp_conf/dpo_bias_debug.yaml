@@ -9,7 +9,7 @@ dataset_config:
         max_piece_len: 1
         max_num: 2
     simu_perference:
-        error_rate: 0.5
+        error_range: 0.5
         buffer_size: 1000
 job_name: dpo_bias_debug
 report_to: [wandb]

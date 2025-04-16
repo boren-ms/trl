@@ -8,7 +8,7 @@ dataset_config:
         max_piece_len: 1
         max_num: 500
     simu_perference:
-        error_rate: 0.05
+        error_range: 0.05
         buffer_size: 5000
 model_name_or_path: /uksblob/users/boren/data/hf_models/phi4_mm_bias
 # model_name_or_path: microsoft/Phi-4-multimodal-instruct
