@@ -1,20 +1,45 @@
-# %%
-from audio_dataset import create_dataset
-from omegaconf import OmegaConf
-from trl.data_utils import maybe_extract_prompt, maybe_apply_chat_template
+#%%
+from transformers import AutoModelForCausalLM
 
-yaml_path = "/home/boren/trl/exp_conf/dpo_bias_ls.yaml"
-with open(yaml_path, "r") as f:
-    conf = OmegaConf.load(f)
+from peft import LoraConfig, get_peft_model
+from peft.tuners.lora.layer import LoraLayer
+
+# %%# LoRA related settings
+
+
+
+def clone_phimm_lora(model,  dst_name, src_name="speech"):
+    """Clone the LoRA adapter from src_name to dst_name."""
+    print(f"Cloning LoRA adapter from {src_name} to {dst_name}")
+    src_lora_config = getattr(model.config, f"{src_name}_lora")
+    lora_conf = LoraConfig(
+        r=src_lora_config['r'],
+        lora_alpha=src_lora_config['lora_alpha'],
+        target_modules=src_lora_config['layer'],
+        lora_dropout=src_lora_config['dp'],
+        task_type="CAUSAL_LM",
+    )
+    peft_model = get_peft_model(model.model, lora_conf, adapter_name=dst_name)
+    for module in peft_model.modules():
+        if not isinstance(module, LoraLayer):
+            continue
+        if module.merged:
+            module.unmerge()
+        module.lora_A[dst_name].weight.data = module.lora_A[src_name].weight.data
+        module.lora_B[dst_name].weight.data = module.lora_B[src_name].weight.data
+        module.set_adapter(dst_name)
+        module._disable_adapters = False
+    return peft_model
     
-dataset = create_dataset(
-    dataset_name=conf.dataset_name,
-    **conf.dataset_config,
-)
-
-dataset = dataset.map(maybe_extract_prompt)
-
-print(dataset[0])
-print("All done.")
-
 # %%
+model_id =  "microsoft/Phi-4-multimodal-instruct"
+model = AutoModelForCausalLM.from_pretrained(
+    model_id,
+    trust_remote_code=True,
+    torch_dtype="auto",
+    _attn_implementation="flash_attention_2",
+)
+model.set_lora_adapter("speech")
+#%%
+peft_model = clone_phimm_lora(model, "speech_biasing")
+#%%

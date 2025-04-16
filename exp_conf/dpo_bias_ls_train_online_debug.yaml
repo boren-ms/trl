@@ -1,6 +1,8 @@
-dataset_name: tsv
+dataset_name: openasr
 dataset_config:
-    tsv_paths: /datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv
+    # tsv_paths: /datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv
+    split: test.clean
+    name: librispeech
     streaming: True
     biasing:
         bias_prob: 0.9
@@ -12,7 +14,7 @@ dataset_config:
         buffer_size: 5000
 # model_name_or_path: /uksblob/users/boren/data/hf_models/phi4_mm_bias
 model_name_or_path: microsoft/Phi-4-multimodal-instruct
-# job_name: phi4_mm_bias_grpo
+job_name: dpo_bias_debug
 report_to: [wandb]
 learning_rate: 5.0e-6
 lr_scheduler_type: cosine
@@ -20,7 +22,7 @@ output_dir: ./output
 max_steps: 10000
 dispatch_batches: False
 per_device_train_batch_size: 2
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 1
 gradient_checkpointing: True
 logging_steps: 1
 bf16: True
@@ -29,3 +31,5 @@ max_completion_length: 512
 wandb_log_unique_prompts: True
 save_steps: 200
 # beta: 0.0
+
+ref_adapter_name: ref_adapter
