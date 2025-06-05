@@ -79,7 +79,7 @@ def reward_functions(names=None):
 
 def main(script_args, training_args):
     """Train the model with GRPO."""
-    # init_wandb(name=script_args.job_name) # disabled for wandb for orange
+xit     # init_wandb(name=script_args.job_name) # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 

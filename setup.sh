@@ -3,7 +3,7 @@
 set -x
 
 # install system dependencies
-ehco "Installing system dependencies"
+echo "Installing system dependencies"
 pip install --upgrade pip
 pip install bs4 \
     nvidia-ml-py \
