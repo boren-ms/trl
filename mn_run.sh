@@ -23,3 +23,4 @@ for i in $(seq 0 3); do
     $cmd > torchrun${i}.log 2>&1 &
 done 
 
+tail -n 20 -f torchrun*.log
