@@ -10,6 +10,6 @@ bbb sync --delete --concurrency 32 $remote_dir $data_dir
 echo "Data moved successfully to $data_dir"
 for i in $(seq 1 $N); do
     echo "Move data to ${target}${i}"
-    scp -r $data_dir ${target}${i}:$(dirname $data_dir)
+    nohup rsync -avz $data_dir ${target}${i}:$(dirname $data_dir) > rsync${i}.log 2>&1 &
 done
 
