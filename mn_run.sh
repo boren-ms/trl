@@ -10,8 +10,10 @@ cmd="${code_dir}/trl/scripts/grpo_bias.py --config ${config_file} --output_dir .
 
 host=$(hostname)
 target=${host::-1}
-num_nodes=4
-for i in $(seq 0 3); do
+num_nodes=8
+N=7 #last node
+
+for i in $(seq 0 $N); do
     ssh ${target}${i} \
     MASTER_ADDR=${host} MASTER_PORT=1235 NODE_RANK=${i} NNODES=${num_nodes} NPROC_PER_NODE=8 \
     nohup /root/.pyenv/versions/3.11.8/bin/torchrun \

@@ -8,11 +8,11 @@ copy_data="true"
 
 code_dir=/root/code/trl/
 data_dir="/root/data"
-
+N=7 #last node
 setup_script=/root/code/trl/install.sh
 if [ "$install_package" = "true" ]; then
     bash ${setup_script}
-    for i in $(seq 1 3); do
+    for i in $(seq 1 $N); do
         echo "Remotely run ${script} on ${target}${i}"
         scp  ${setup_script} ${target}${i}:${setup_script}
         ssh ${target}${i} "export PATH=/root/.pyenv/versions/3.11.8/bin/:\$PATH; bash ${setup_script}"
@@ -21,7 +21,7 @@ if [ "$install_package" = "true" ]; then
 fi
 
 if [ "$copy_code" = "true" ]; then
-    for i in $(seq 1 3); do
+    for i in $(seq 1 $N); do
         echo "move ${code_dir} to ${target}${i}"
         scp -r ${code_dir} ${target}${i}:$(dirname $code_dir)
     done 
@@ -33,7 +33,7 @@ if [ "$copy_data" = "true" ]; then
     bbb sync --delete --concurrency 32 $remote_dir $data_dir
     echo "Data moved successfully to $data_dir"
 
-    for i in $(seq 1 3); do
+    for i in $(seq 1 $N); do
         echo "Move data to ${target}${i}"
         scp -r $data_dir ${target}${i}:$(dirname $data_dir)
     done
