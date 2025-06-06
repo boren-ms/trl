@@ -4,7 +4,7 @@ target=$(hostname | sed 's/.$//')
 
 install_package="true"
 copy_code="false"
-copy_data="true"
+copy_data="false"
 
 code_dir=/root/code/trl/
 data_dir="/root/data"
