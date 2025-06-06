@@ -2,7 +2,7 @@
 
 target=$(hostname | sed 's/.$//')
 
-install_package="false"
+install_package="true"
 copy_code="false"
 copy_data="true"
 
