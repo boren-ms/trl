@@ -2,11 +2,16 @@
 
 target=$(hostname | sed 's/.$//')
 
-setup_script=/root/code/trl/install.sh
 install_package="false"
+copy_code="false"
+copy_data="true"
+
+code_dir=/root/code/trl/
+data_dir="/root/data"
+
+setup_script=/root/code/trl/install.sh
 if [ "$install_package" = "true" ]; then
     bash ${setup_script}
-
     for i in $(seq 1 3); do
         echo "Remotely run ${script} on ${target}${i}"
         scp  ${setup_script} ${target}${i}:${setup_script}
@@ -15,26 +20,22 @@ if [ "$install_package" = "true" ]; then
     done
 fi
 
-copy_code="false"
 if [ "$copy_code" = "true" ]; then
-    code_dir=/root/code/trl/
     for i in $(seq 1 3); do
         echo "move ${code_dir} to ${target}${i}"
         scp -r ${code_dir} ${target}${i}:$(dirname $code_dir)
     done 
 fi
 
-copy_data="false"
+region="wus2"
 if [ "$copy_data" = "true" ]; then
-    region="wus2"
     remote_dir="az://orng${region}cresco/data/boren/data"
-    local_dir="/root/data"
-    bbb sync --delete --concurrency 32 $remote_dir $local_dir
-    echo "Data moved successfully to $local_dir"
+    bbb sync --delete --concurrency 32 $remote_dir $data_dir
+    echo "Data moved successfully to $data_dir"
 
     for i in $(seq 1 3); do
         echo "Move data to ${target}${i}"
-        scp -r $local_dir ${target}${i}:$(dirname $local_dir)
+        scp -r $data_dir ${target}${i}:$(dirname $data_dir)
     done
 fi
 
