@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
+import os
 import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_dataset
@@ -51,6 +52,14 @@ class GRPOScriptArguments:
             "help": "Reward functions to use. Can be a list of functions or a single function."
         },
     )
+    
+def is_master():
+    """Check if the current process is the master process."""
+    local_rank = os.environ.get("LOCAL_RANK", "0")
+    rank = os.environ.get("RANK", "0")
+    print("LocalRank:", local_rank)
+    print("Rank:", rank)
+    return local_rank == "0" and local_rank == "0"
 
 
 def init_wandb(name=None):
@@ -79,7 +88,8 @@ def reward_functions(names=None):
 
 def main(script_args, training_args):
     """Train the model with GRPO."""
-    # init_wandb(name=script_args.job_name) # disabled for wandb for orange
+    if is_master():
+        init_wandb(name=script_args.job_name) # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 

@@ -18,7 +18,8 @@ pip install bs4 \
     peft \
     rich \
     tensorboardX \
-    tensorboard
+    tensorboard \
+    accelerate
 
 MAX_JOBS=20 pip install flash-attn --no-build-isolation
 pip install -e /root/code/trl --no-deps
