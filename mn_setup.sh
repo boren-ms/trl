@@ -15,7 +15,7 @@ if [ "$install_package" = "true" ]; then
     for i in $(seq 1 $N); do
         echo "Remotely run ${script} on ${target}${i}"
         scp  ${setup_script} ${target}${i}:${setup_script}
-        ssh ${target}${i} "export PATH=/root/.pyenv/versions/3.11.8/bin/:\$PATH; bash ${setup_script}"
+        ssh ${target}${i} "export PATH=/root/.pyenv/versions/3.11.8/bin/:\$PATH; nohup bash ${setup_script} > install${i}.log 2>&1 & "
         # ssh ${target}${i} "export PATH=/root/.pyenv/versions/3.11.8/bin/:\$PATH; nohup bash /root/code/openai/personal/shuowa/verl/recipe/phi_green/install.sh > install${i}.log 2>&1 & "
     done
 fi
