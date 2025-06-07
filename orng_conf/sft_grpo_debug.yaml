@@ -1,6 +1,6 @@
 dataset_name: tsv
 dataset_config:
-    num_egs: 200
+    num_egs: 2000 # >24*8*8
     tsv_paths: /root/data/LibriSpeech/asr_train_h20k.tsv
     biasing:
         bias_prob: 0.8
