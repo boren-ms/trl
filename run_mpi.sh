@@ -7,9 +7,9 @@ echo "Hostname: ${TARGET}0"
 echo "Node:${RCALL_INSTANCE_COUNT}, GPU:${RCALL_NUM_GPU}"
 export NUM_NODE=${RCALL_INSTANCE_COUNT}
 
-hostfile= "hosts"
-if [ ! -f ${hostfile} ]; then
-    for i in $(seq 0 $((NUM_NODE-1))); do echo "${TARGET}$i"; done > ${hostfile}
+
+if [ ! -f "hostfile" ]; then
+    for i in $(seq 0 $((NUM_NODE-1))); do echo "${TARGET}$i"; done > "hostfile"
 fi
 
 export NUM_GPU=${RCALL_NUM_GPU}
@@ -17,7 +17,7 @@ export MASTER_ADDR=${TARGET}0
 export MASTER_PORT=12345
 
 mpirun \
-    --hostfile ${hostfile} \
+    --f "hostfile" \
     -np ${NUM_NODE} \
     bash run_dist.sh $@
 

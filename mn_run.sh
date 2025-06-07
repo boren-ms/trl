@@ -10,18 +10,22 @@ cmd="${code_dir}/trl/scripts/grpo_bias.py --config ${config_file} --output_dir .
 
 host=$(hostname)
 target=${host::-1}
-num_nodes=8
-N=7 #last node
+echo "Hostname: ${host}"
+echo "Node:${RCALL_INSTANCE_COUNT}, GPU:${RCALL_NUM_GPU}"
 
-for i in $(seq 0 $N); do
+export NUM_NODE=${RCALL_INSTANCE_COUNT}
+export NUM_GPU=${RCALL_NUM_GPU}
+
+
+for i in $(seq 0 $((NUM_NODE-1))); do
     ssh ${target}${i} \
-    MASTER_ADDR=${host} MASTER_PORT=1235 NODE_RANK=${i} NNODES=${num_nodes} NPROC_PER_NODE=8 \
+    MASTER_ADDR=${host} MASTER_PORT=2235 NODE_RANK=${i} NNODES=${NUM_NODE} NPROC_PER_NODE=8 \
     nohup /root/.pyenv/versions/3.11.8/bin/torchrun \
     --nproc_per_node=8 \
-    --nnodes=${num_nodes} \
+    --nnodes=${NUM_NODE} \
     --node_rank=${i} \
     --master_addr=${host} \
-    --master_port=1235 \
+    --master_port=2235 \
     $cmd > torchrun${i}.log 2>&1 &
 done 
 

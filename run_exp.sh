@@ -6,6 +6,6 @@ set -x
 # wandb login --relogin --host=https://msaip.wandb.io
 
 
-bash launch.sh trl/scripts/grpo_bias.py \
+bash run_mpi.sh trl/scripts/grpo_bias.py \
      --output_dir ./output \
      --config orng_conf/sft_grpo_ls_train_n12_err_lr_v0.yaml
