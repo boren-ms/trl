@@ -6,21 +6,12 @@ code_dir=/root/code/trl
 config_file=${code_dir}/orng_conf/sft_grpo_ls_train_n12_err_lr_v0.yaml
 cmd="${code_dir}/trl/scripts/grpo_bias.py --config ${config_file} --output_dir ./output"
 # python $cmd
-
-# login to wandb
-# export WANDB_API_KEY=your_wandb_api_key_here
-wandb login --relogin --host=https://msaip.wandb.io
-# setup accelerate
-accelerate config
-accelerate test
-
-accelerate launch $cmd 2>&1 | tee accelerate.log
-exit 0
+# torchrun --nproc_per_node=8 $cmd
 
 host=$(hostname)
 target=${host::-1}
-num_nodes=1
-N=0 #last node
+num_nodes=8
+N=7 #last node
 
 for i in $(seq 0 $N); do
     ssh ${target}${i} \
@@ -35,6 +26,3 @@ for i in $(seq 0 $N); do
 done 
 
 tail -n 20 -f torchrun*.log
-
-# ps aux|grep bias
-# ps aux|grep bias|awk '{print $2}'|xargs kill -9 
