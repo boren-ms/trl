@@ -10,6 +10,7 @@ export WANDB_DISABLED="true"
 
 conf=sft_grpo_debug
 OUTPUT_DIR=${RCALL_LOGDIR}/${conf}
+# export WANDB_DIR=${OUTPUT_DIR}
 
 echo "
 export OUTPUT_DIR=${OUTPUT_DIR}
