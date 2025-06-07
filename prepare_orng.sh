@@ -23,6 +23,7 @@ if [ "${PREPARED_ENV}" != "true" ] && [ "${FORCE}" == "false" ]; then
     done
 
     export PREPARED_ENV="true"
+    echo "export PREPARED_ENV=$PREPARED_ENV" >> ~/.bashrc
 fi
 if [ "${PREPARED_DATA}" != "true" ] && [ "${FORCE}" == "false" ]; then
     echo "Preparing data"
@@ -35,6 +36,7 @@ if [ "${PREPARED_DATA}" != "true" ] && [ "${FORCE}" == "false" ]; then
     done
 
     export PREPARED_DATA="true"
+    echo "export PREPARED_DATA=$PREPARED_DATA" >> ~/.bashrc
 fi
 
 echo "Preparation complete. Starting ORNG job..."

@@ -10,7 +10,7 @@ export WANDB_DISABLED="true"
 
 conf=sft_grpo_debug
 OUTPUT_DIR=${RCALL_LOGDIR}/${conf}
-export WANDB_DIR=${OUTPUT_DIR}/wandb
+export WANDB_DIR=${OUTPUT_DIR}
 
 # bash prepare_orng.sh --force
 bash prepare_orng.sh
