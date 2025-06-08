@@ -16,7 +16,7 @@ name=grpo_bias_debug
 # name=grpo_bias_v0_n12_b20k
 
 
-
+export USE_ACCELERATE=true
 
 OUTPUT_DIR=${RCALL_LOGDIR}/${name}
 echo "
