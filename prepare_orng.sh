@@ -15,7 +15,7 @@ if [ "$1" == "--force" ]; then
     FORCE="true"
 fi
 
-if [ "${PREPARED_ENV}" != "true" ] && [ "${FORCE}" == "false" ]; then
+if [ "${PREPARED_ENV}" != "true" ] || [ "${FORCE}" == "true" ]; then
     echo "Preparing trl environment"
     for i in $(seq 0 $((NUM_NODE-1))); do
         echo "Remotely run ${CODE_DIR}/install.sh on ${JOB_NAME}-${i}"
@@ -25,7 +25,7 @@ if [ "${PREPARED_ENV}" != "true" ] && [ "${FORCE}" == "false" ]; then
     export PREPARED_ENV="true"
     echo "export PREPARED_ENV=true" >> ~/.bashrc
 fi
-if [ "${PREPARED_DATA}" != "true" ] && [ "${FORCE}" == "false" ]; then
+if [ "${PREPARED_DATA}" != "true" ] || [ "${FORCE}" == "true" ]; then
     echo "Preparing data"
     remote_dir="az://orng${region}cresco/data/boren/data"
     bbb sync --delete --concurrency 32 $remote_dir $DATA_DIR
