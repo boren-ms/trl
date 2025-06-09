@@ -17,6 +17,8 @@ export EXP_NAME=grpo_bias_debug
 
 export OUTPUT_DIR=${RCALL_LOGDIR}/${EXP_NAME}
 
+mkdir -p ${OUTPUT_DIR}
+
 
 # EXP_CONFIG=${CODE_DIR}/orng_conf/grpo_bias_librispeech_v0.yaml
 # NAME=grpo_bias_v0_n12_b20k
