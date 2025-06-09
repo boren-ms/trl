@@ -13,4 +13,5 @@ bbb sync --delete --concurrency 32  $local_dir $remote_dir
 
 echo "Data moved successfully to $remote_dir"
 
-
+# upload tsv az://orng${region}cresco/data/boren/data/LibriSpeech/ 
+bbb cp /home/boren/data/LibriSpeech/ls_clean10k_other10k.tsv az://orngwus2cresco/data/boren/data/LibriSpeech/ls_clean10k_other10k.tsv
