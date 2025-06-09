@@ -1,13 +1,9 @@
 #%!/bin/bash
 set -x 
 echo "Preparing ENV and DATA for ORNG job..."
-JOB_NAME=${RCALL_JOB_NAME}
 echo "Job: ${JOB_NAME}"
-echo "Node:${RCALL_INSTANCE_COUNT}, GPU:${RCALL_NUM_GPU}"
+echo "Node:${NUM_NODE}, GPU:${NUM_GPU}"
 
-export NUM_NODE=${RCALL_INSTANCE_COUNT}
-CODE_DIR=/root/code/trl/
-DATA_DIR="/root/data"
 region="wus2"
 
 FORCE="false"
