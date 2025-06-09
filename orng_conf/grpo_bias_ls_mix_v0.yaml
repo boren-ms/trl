@@ -1,7 +1,7 @@
 dataset_name: tsv
 dataset_config:
     num_egs: 20000
-    tsv_paths: /root/data/LibriSpeech/grpo_bias_ls_mix_v0.tsv
+    tsv_paths: /root/data/LibriSpeech/asr_train_h20k.tsv
     biasing:
         bias_prob: 0.8
         hit_prob: 0.8
