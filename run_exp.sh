@@ -9,7 +9,7 @@ export NUM_GPU=${RCALL_NUM_GPU}
 export CODE_DIR=/root/code/trl
 export DATA_DIR=/root/data
 export USE_ACCELERATE=false
-export WANDB_DISABLED=true
+export WANDB_MODE=offline
 
 # export EXP_CONFIG=${CODE_DIR}/orng_conf/grpo_bias_debug.yaml
 # export EXP_NAME=grpo_bias_debug

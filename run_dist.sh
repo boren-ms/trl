@@ -2,7 +2,6 @@
 # dist_train.sh
 set -euo pipefail
 
-wandb offline
 # printenv
 USE_ACCELERATE=${USE_ACCELERATE:-false}
 
