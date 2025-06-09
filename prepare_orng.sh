@@ -24,7 +24,9 @@ fi
 if [ "${PREPARED_DATA}" != "true" ] || [ "${FORCE}" == "true" ]; then
     echo "Preparing data"
     remote_dir="az://orng${region}cresco/data/boren/data"
-    bbb sync --delete --concurrency 32 $remote_dir $DATA_DIR
+
+    bbb sync --delete --concurrency 32 $remote_dir/LibriSpeech $DATA_DIR/LibriSpeech
+    bbb sync --delete --concurrency 32 $remote_dir/phi4_mm_bias $DATA_DIR/phi4_mm_bias
     echo "Data moved successfully to $DATA_DIR"
     for i in $(seq 1 $((NUM_NODE-1))); do
         echo "Move data to ${JOB_NAME}-${i}"
