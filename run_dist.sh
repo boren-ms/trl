@@ -28,6 +28,7 @@ else
     "
 fi
 
+mkdir -p ${OUTPUT_DIR}
 RANK_LOG_FILE=${OUTPUT_DIR}/rank_${PMI_RANK}.log
 
 echo "Running $cmd" > $RANK_LOG_FILE

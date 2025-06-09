@@ -25,7 +25,6 @@ for i in $(seq 1 $((NUM_NODE-1))); do
 done
 
 export OUTPUT_DIR=${RCALL_LOGDIR}/${EXP_NAME}
-mkdir -p ${OUTPUT_DIR}
 
 # bash prepare_orng.sh --force
 bash prepare_orng.sh
