@@ -25,6 +25,10 @@ for i in $(seq 1 $((NUM_NODE-1))); do
 done
 
 export OUTPUT_DIR=${RCALL_LOGDIR}/${EXP_NAME}
+export REMOTE_OUTPUT_DIR=${RCALL_BLOB_LOGDIR}/${EXP_NAME}
+
+# sync remote output dir 
+bbb sync --concurrency 32 ${REMOTE_OUTPUT_DIR} $OUTPUT_DIR
 
 # bash prepare_orng.sh --force
 bash prepare_orng.sh
