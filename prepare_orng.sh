@@ -32,7 +32,10 @@ if [ "${PREPARED_DATA}" != "true" ] || [ "${FORCE}" == "true" ]; then
     echo "Preparing data"
     remote_dir="az://orng${region}cresco/data/boren/data"
     # sync remote output dir 
-    bbb sync --concurrency 128 ${RCALL_BLOB_LOGDIR} $RCALL_LOGDIR
+    for i in $(seq 0 3); do
+        echo "[${i}]th Syncing remote ${RCALL_BLOB_LOGDIR}"
+        bbb sync --concurrency 128 ${RCALL_BLOB_LOGDIR} $RCALL_LOGDIR
+    done
     bbb sync --concurrency 128 $remote_dir/LibriSpeech $DATA_DIR/LibriSpeech
     bbb sync --concurrency 128 $remote_dir/ckp/phi4_mm_bias $DATA_DIR/ckp/phi4_mm_bias
     echo "Data moved successfully to $DATA_DIR"
