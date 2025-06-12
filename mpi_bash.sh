@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+# set -x
 
 N=${RCALL_INSTANCE_COUNT}
 # generate hostfile
