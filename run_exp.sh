@@ -25,12 +25,7 @@ for i in $(seq 1 $((NUM_NODE-1))); do
 done
 
 export OUTPUT_DIR=${RCALL_LOGDIR}/${EXP_NAME}
-
-# sync remote output dir 
-bbb sync --concurrency 32 ${RCALL_BLOB_LOGDIR} $RCALL_LOGDIR
-
 # bash prepare_orng.sh --force
 bash prepare_orng.sh
 
-bash run_mpi.sh trl/scripts/grpo_bias.py \
-     --output_dir ${OUTPUT_DIR}  --config ${EXP_CONFIG}
+bash run_mpi.sh trl/scripts/grpo_bias.py --output_dir ${OUTPUT_DIR}  --config ${EXP_CONFIG}

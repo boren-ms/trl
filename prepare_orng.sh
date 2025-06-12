@@ -1,5 +1,12 @@
 #%!/bin/bash
 set -x 
+
+export JOB_NAME=${RCALL_JOB_NAME}
+export NUM_NODE=${RCALL_INSTANCE_COUNT}
+export NUM_GPU=${RCALL_NUM_GPU}
+
+export CODE_DIR=/root/code/trl
+export DATA_DIR=/root/data
 echo "Preparing ENV and DATA for ORNG job..."
 echo "Job: ${JOB_NAME}"
 echo "Node:${NUM_NODE}, GPU:${NUM_GPU}"
@@ -24,13 +31,15 @@ fi
 if [ "${PREPARED_DATA}" != "true" ] || [ "${FORCE}" == "true" ]; then
     echo "Preparing data"
     remote_dir="az://orng${region}cresco/data/boren/data"
-
-    bbb sync --delete --concurrency 32 $remote_dir/LibriSpeech $DATA_DIR/LibriSpeech
-    bbb sync --delete --concurrency 32 $remote_dir/cpk/phi4_mm_bias $DATA_DIR/cpk/phi4_mm_bias
+    # sync remote output dir 
+    bbb sync --concurrency 128 ${RCALL_BLOB_LOGDIR} $RCALL_LOGDIR
+    bbb sync --concurrency 128 $remote_dir/LibriSpeech $DATA_DIR/LibriSpeech
+    bbb sync --concurrency 128 $remote_dir/ckp/phi4_mm_bias $DATA_DIR/ckp/phi4_mm_bias
     echo "Data moved successfully to $DATA_DIR"
     for i in $(seq 1 $((NUM_NODE-1))); do
         echo "Move data to ${JOB_NAME}-${i}"
-        nohup rsync -avz $DATA_DIR ${JOB_NAME}-${i}:$(dirname $DATA_DIR) > rsync${i}.log 2>&1 &
+        nohup rsync -avz $DATA_DIR ${JOB_NAME}-${i}:$(dirname $DATA_DIR) > rsync_data_${i}.log 2>&1 &
+        nohup rsync -avz $RCALL_LOGDIR ${JOB_NAME}-${i}:$(dirname $RCALL_LOGDIR) > rsync_output_${i}.log 2>&1 &
     done
 
     export PREPARED_DATA="true"
