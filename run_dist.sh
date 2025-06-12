@@ -29,7 +29,7 @@ fi
 
 mkdir -p ${OUTPUT_DIR}
 RANK_LOG_FILE=${OUTPUT_DIR}/rank_${PMI_RANK}.log
-
+echo "Logging to ${RANK_LOG_FILE}"
 echo "Running $cmd" > $RANK_LOG_FILE
 # printenv >> $RANK_LOG_FILE
 $cmd >> $RANK_LOG_FILE 2>&1 
