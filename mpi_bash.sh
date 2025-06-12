@@ -2,19 +2,9 @@
 
 set -x
 
-echo "Job: ${JOB_NAME}"
-echo "Node:${NUM_NODE}, GPU:${NUM_GPU}"
-
+N=${RCALL_INSTANCE_COUNT}
 # generate hostfile
-for i in $(seq 0 $((NUM_NODE-1))); do echo "${JOB_NAME}-$i"; done > "hostfile"
+for i in $(seq 0 $((N-1))); do echo "${RCALL_JOB_NAME}-$i"; done > "hostfile"
 
 # mpirun launch
-mpirun -f "hostfile" -np ${NUM_NODE} bash -c "$@"
-# export PMI_SIZE=$NUM_NODE
-# for i in $(seq 0 $((NUM_NODE-1))); do
-#     export PMI_RANK=${i}
-#     ssh ${JOB_NAME}-${i} bash run_dist.sh $@
-# done
-
-
-# for i in $(seq 0 $((NUM_NODE-1))); do     ssh "${JOB_NAME}-${i}" sudo hostname;pgrep -fa bias; done
+mpirun -l -f "hostfile" bash -c "$*" | sort -k1
