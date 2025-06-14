@@ -36,7 +36,7 @@ if [ "${PREPARED_DATA}" != "true" ] || [ "${FORCE}" == "true" ]; then
         echo "[${i}]th Syncing remote ${RCALL_BLOB_LOGDIR}"
         bbb sync --concurrency 128 ${RCALL_BLOB_LOGDIR} $RCALL_LOGDIR
     done
-    bbb sync --concurrency 128 $remote_dir/LibriSpeech $DATA_DIR/LibriSpeech
+    bbb sync --concurrency 128 $remote_dir/LibriSpeech/${region}_tsv $DATA_DIR/LibriSpeech/${region}_tsv
     bbb sync --concurrency 128 $remote_dir/ckp/phi4_mm_bias $DATA_DIR/ckp/phi4_mm_bias
     echo "Data moved successfully to $DATA_DIR"
     for i in $(seq 1 $((NUM_NODE-1))); do
