@@ -2,6 +2,7 @@
 from pathlib import Path
 import random
 from datasets import load_dataset, concatenate_datasets
+import blobfile as bf
 import soundfile as sf
 from functools import partial
 from error_simu import ErrorSimulator
@@ -10,6 +11,14 @@ from biasing import PieceSampler
 # from trl.scripts.biasing import PieceSampler
 
 
+def sf_read(file_path):
+    """Load audio from a file."""
+    if not bf.exists(file_path):
+        raise FileNotFoundError(f"File {file_path} does not exist.")
+    with bf.BlobFile(file_path, "rb") as f:
+        audio, sr = sf.read(f)
+    return audio, sr
+    
 def bias_dataset(file_paths, ground_truth=True, **kwargs):
     """Create a dataset from the given split."""
     # data_dir = Path("/datablob1/users/boren/data/SR/librispeech_biasing/ref")
@@ -27,7 +36,7 @@ def bias_dataset(file_paths, ground_truth=True, **kwargs):
 
     def load_audio(example, ground_truth=False):
         """Load audio from a file."""
-        audio, sr = sf.read(example["audio_path"])
+        audio, sr = sf_read(example["audio_path"])
         words = example["ground_truth"] if ground_truth else example["distractors"]
         instruct = ins_fmt.format(words=", ".join(words))
         x = {
@@ -59,7 +68,7 @@ def tsv_dataset(tsv_paths, **kwargs):
         """Process a single sample."""
         audio_path = eval(egs["paths"])[0]
         messages = eval(egs["msgs"])[0]["messages"]
-        audio, fs = sf.read(audio_path)
+        audio, fs = sf_read(audio_path)
         x = {
             "audio": {
                 "array": audio,
