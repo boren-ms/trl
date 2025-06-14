@@ -1,7 +1,7 @@
 dataset_name: tsv
 dataset_config:
     num_egs: 30000
-    tsv_paths: /root/data/LibriSpeech/ls_30k_shuf.tsv
+    tsv_paths: /root/data/LibriSpeech/scus_tsv/ls_30k_shuf_scus.tsv
     biasing:
         bias_prob: 0.8
         hit_prob: 0.8
