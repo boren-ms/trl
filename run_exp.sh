@@ -14,7 +14,7 @@ export WANDB_MODE=offline
 # export EXP_CONFIG=${CODE_DIR}/orng_conf/grpo_bias_debug.yaml
 # export EXP_NAME=grpo_bias_debug
 
-export EXP_NAME=grpo_bias_v0_n12_b100k
+export EXP_NAME=grpo_bias_ls_mix_30k
 export EXP_CONFIG=${CODE_DIR}/orng_conf/${EXP_NAME}.yaml
 
 
