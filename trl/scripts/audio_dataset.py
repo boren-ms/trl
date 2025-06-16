@@ -15,6 +15,7 @@ from biasing import PieceSampler
 
 def sf_read(file_path):
     """Load audio from a file."""
+    # print("Audio file:", file_path)
     if not bf.exists(file_path):
         raise FileNotFoundError(f"File {file_path} does not exist.")
     with bf.BlobFile(file_path, "rb") as f:
@@ -78,6 +79,7 @@ def load_tsv(tsv_file):
     )
     
     dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
+    print("DATA DIR:", dir_path)
     ds = ds.map(lambda x: {"dir": dir_path})
     return ds
 
@@ -96,9 +98,8 @@ def tsv_dataset(tsv_paths, **kwargs):
     def load_sample(egs):
         """Process a single sample."""
         audio_path = ast.literal_eval(egs["paths"])[0]
-        if ds["dir"]:
-            audio_path = audio_path.replace("/root/data/LibriSpeech/", "") # TODO: remove this line once the tsv files are updated
-            audio_path = str(Path(ds["dir"]) / audio_path)
+        if egs["dir"]:
+            audio_path = audio_path.replace("/root/data/LibriSpeech", egs["dir"])
         messages = ast.literal_eval(egs["msgs"])[0]["messages"]
         audio, fs = sf_read(audio_path)
         x = {
