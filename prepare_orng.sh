@@ -11,8 +11,6 @@ echo "Preparing ENV and DATA for ORNG job..."
 echo "Job: ${JOB_NAME}"
 echo "Node:${NUM_NODE}, GPU:${NUM_GPU}"
 
-region="wus2"
-
 FORCE="false"
 if [ "$1" == "--force" ]; then
     FORCE="true"
@@ -28,16 +26,15 @@ if [ "${PREPARED_ENV}" != "true" ] || [ "${FORCE}" == "true" ]; then
     export PREPARED_ENV="true"
     echo "export PREPARED_ENV=true" >> ~/.bashrc
 fi
-PREPARED_DATA=true
 if [ "${PREPARED_DATA}" != "true" ] || [ "${FORCE}" == "true" ]; then
     echo "Preparing data"
-    remote_dir="az://orng${region}cresco/data/boren/data"
+    remote_dir="az://orng${REGION_CODE}cresco/data/boren/data"
     # sync remote output dir 
     for i in $(seq 0 3); do
         echo "[${i}]th Syncing remote ${RCALL_BLOB_LOGDIR}"
         bbb sync --concurrency 128 ${RCALL_BLOB_LOGDIR} $RCALL_LOGDIR
     done
-    bbb sync --concurrency 128 $remote_dir/LibriSpeech/${region}_tsv $DATA_DIR/LibriSpeech/${region}_tsv
+    # bbb sync --concurrency 128 $remote_dir/LibriSpeech/${REGION_CODE}_tsv $DATA_DIR/LibriSpeech/${REGION_CODE}_tsv
     bbb sync --concurrency 128 $remote_dir/ckp/phi4_mm_bias $DATA_DIR/ckp/phi4_mm_bias
     echo "Data moved successfully to $DATA_DIR"
     for i in $(seq 1 $((NUM_NODE-1))); do
