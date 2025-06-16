@@ -1,4 +1,7 @@
 # %%
+import os
+import ast
+import urllib
 from pathlib import Path
 import random
 from datasets import load_dataset, concatenate_datasets
@@ -7,7 +10,6 @@ import soundfile as sf
 from functools import partial
 from error_simu import ErrorSimulator
 from biasing import PieceSampler
-
 # from trl.scripts.biasing import PieceSampler
 
 
@@ -18,7 +20,8 @@ def sf_read(file_path):
     with bf.BlobFile(file_path, "rb") as f:
         audio, sr = sf.read(f)
     return audio, sr
-    
+
+
 def bias_dataset(file_paths, ground_truth=True, **kwargs):
     """Create a dataset from the given split."""
     # data_dir = Path("/datablob1/users/boren/data/SR/librispeech_biasing/ref")
@@ -26,12 +29,12 @@ def bias_dataset(file_paths, ground_truth=True, **kwargs):
     data_files = [file_paths] if isinstance(file_paths, str) else file_paths
     data_files = [str(file_path) for file_path in data_files]
 
-    dataset = load_dataset(
+    ds = load_dataset(
         "json",
         data_files=data_files,
         split="train",
     )
-    dataset = stream_shuffle(dataset, **kwargs)
+    ds = stream_shuffle(ds, **kwargs)
     ins_fmt = "Transcribe the audio clip into text. Please pay attention to following words: {words}."
 
     def load_audio(example, ground_truth=False):
@@ -47,27 +50,58 @@ def bias_dataset(file_paths, ground_truth=True, **kwargs):
         }
         return x
 
-    dataset = dataset.map(partial(load_audio, ground_truth=ground_truth))
-    return dataset
+    ds = ds.map(partial(load_audio, ground_truth=ground_truth))
+    return ds
 
 
-def tsv_dataset(tsv_paths, **kwargs):
-    """Create a dataset from the given split."""
-    if isinstance(tsv_paths, str):
-        tsv_paths = [tsv_paths]
-    dataset = load_dataset(
+def load_tsv(tsv_file):
+    """Load a TSV file into a dataset."""
+    url = urllib.parse.urlparse(tsv_file)
+    options = {}
+    if url.scheme == "az":  # blobfile
+        options = {
+            "account_name": url.netloc,
+            "tenant_id": os.environ.get("AZURE_TENANT_ID"),
+            "client_id": os.environ.get("AZURE_CLIENT_ID"),
+            "client_secret": os.environ.get("AZURE_CLIENT_SECRET"),
+        }
+        # update remote path
+        tsv_file = f"{url.scheme}:/{url.path}"
+
+    ds = load_dataset(
         "csv",
-        data_files=[str(tsv_path) for tsv_path in tsv_paths],
+        data_files=tsv_file,
         split="train",
         delimiter="\t",
         column_names=["id", "paths", "msgs"],
+        storage_options=options,
     )
-    dataset = stream_shuffle(dataset, **kwargs)
+    if url.scheme == "az":
+        tsv_dir = str(Path(url.path).parent)
+        ds["dir"] = url._replace(path=tsv_dir).geturl()
+    else:
+        ds["dir"] = None
+    return ds
+
+def tsv_dataset(tsv_paths, **kwargs):
+    """Create a dataset from the given split."""
+    if isinstance(tsv_paths, (list, tuple)):
+        ds = concatenate_datasets(
+            [load_tsv(tsv_path) for tsv_path in tsv_paths]
+        )
+    else:
+        ds = load_tsv(tsv_paths)
+        
+    ds = stream_shuffle(ds, **kwargs)
+
 
     def load_sample(egs):
         """Process a single sample."""
-        audio_path = eval(egs["paths"])[0]
-        messages = eval(egs["msgs"])[0]["messages"]
+        audio_path = ast.literal_eval(egs["paths"])[0]
+        if ds["dir"]:
+            audio_path = audio_path.replace("/root/data/LibriSpeech/", "") # TODO: remove this line once the tsv files are updated
+            audio_path = str(Path(ds["dir"]) / audio_path)
+        messages = ast.literal_eval(egs["msgs"])[0]["messages"]
         audio, fs = sf_read(audio_path)
         x = {
             "audio": {
@@ -79,36 +113,36 @@ def tsv_dataset(tsv_paths, **kwargs):
         }
         return x
 
-    dataset = dataset.map(load_sample)
-    return dataset
+    ds = ds.map(load_sample)
+    return ds
 
 
 def openasr_dataset(**kwargs):
     """Create a dataset from the given split."""
     name = kwargs.get("name", "librispeech")
     split = kwargs.get("split", "test.clean")
-    dataset = load_dataset(
+    ds = load_dataset(
         "hf-audio/esb-datasets-test-only-sorted",
         name,
         split=split,
     )
-    dataset = stream_shuffle(dataset, **kwargs)
-    return dataset
+    ds = stream_shuffle(ds, **kwargs)
+    return ds
 
 
-def stream_shuffle(dataset, **kwargs):
+def stream_shuffle(ds, **kwargs):
     """Process the dataset."""
     streaming = kwargs.get("streaming", False)
     if streaming:
-        dataset = dataset.to_iterable_dataset(num_shards=kwargs.get("num_shards", 1))
+        ds = ds.to_iterable_dataset(num_shards=kwargs.get("num_shards", 1))
     num_egs = kwargs.get("num_egs", None)
     if num_egs is not None:
-        dataset = dataset.take(num_egs)
+        ds = ds.take(num_egs)
     # dataset = dataset.shuffle(seed=42, buffer_size=kwargs.get("buffer_size", 1000))
-    return dataset
+    return ds
 
 
-def bias_sampling(dataset, **kwargs):
+def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
     kwargs = kwargs or {
         "bias_prob": 0.9,
@@ -136,11 +170,11 @@ def bias_sampling(dataset, **kwargs):
             "text": text,
         }
 
-    dataset = dataset.map(proc_sample)
-    return dataset
+    ds = ds.map(proc_sample)
+    return ds
 
 
-def simulate_perference(dataset, **kwargs):
+def simulate_perference(ds, **kwargs):
     """simulate the perference  to the dataset."""
     error_range = kwargs.pop("error_range", (0.1, 0.25))
     if not isinstance(error_range, (tuple, list)):
@@ -167,7 +201,7 @@ def simulate_perference(dataset, **kwargs):
             ],
         }
 
-    return dataset.map(add_perference, fn_kwargs={"error_range": error_range})
+    return ds.map(add_perference, fn_kwargs={"error_range": error_range})
 
     # return concatenate_datasets(datasets)
 
@@ -183,15 +217,15 @@ def create_dataset(dataset_name="openasr", **kwargs):
         ]
         return bias_dataset(data_paths, **kwargs)
     elif dataset_name == "openasr":
-        dataset = openasr_dataset(**kwargs)
-        dataset = bias_sampling(dataset, **kwargs.get("biasing", {}))
-        dataset = simulate_perference(dataset, **kwargs.get("simu_perference", {}))
-        return dataset
+        ds = openasr_dataset(**kwargs)
+        ds = bias_sampling(ds, **kwargs.get("biasing", {}))
+        ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
+        return ds
     elif dataset_name == "tsv":
-        dataset = tsv_dataset(**kwargs)
-        dataset = bias_sampling(dataset, **kwargs.get("biasing", {}))
-        dataset = simulate_perference(dataset, **kwargs.get("simu_perference", {}))
-        return dataset
+        ds = tsv_dataset(**kwargs)
+        ds = bias_sampling(ds, **kwargs.get("biasing", {}))
+        ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
+        return ds
     raise ValueError(f"Unknown dataset name: {dataset_name}")
 
 
