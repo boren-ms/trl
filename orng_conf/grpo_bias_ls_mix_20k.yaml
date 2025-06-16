@@ -1,7 +1,6 @@
 dataset_name: tsv
 dataset_config:
     num_egs: 20000
-    shuffle_buffer_size: 10000
     tsv_paths: az://orng${REGION_CODE}cresco/data/boren/data/LibriSpeech/ls_20k_shuf.tsv
     biasing:
         bias_prob: 0.8
