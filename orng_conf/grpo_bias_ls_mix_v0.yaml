@@ -28,4 +28,4 @@ wandb_log_unique_prompts: True
 # beta: 0.1
 epsilon_high: 0.28
 save_steps: 100
-resume_from_checkpoint: True
+# resume_from_checkpoint: True
