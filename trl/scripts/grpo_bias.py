@@ -106,7 +106,7 @@ def main(script_args, training_args):
         processing_class=processor,
     )
     print("Training...")
-    trainer.train()
+    trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
     print("All Done.")
 
 
