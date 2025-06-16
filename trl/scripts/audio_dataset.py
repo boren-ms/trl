@@ -76,11 +76,9 @@ def load_tsv(tsv_file):
         column_names=["id", "paths", "msgs"],
         storage_options=options,
     )
-    if url.scheme == "az":
-        tsv_dir = str(Path(url.path).parent)
-        ds["dir"] = url._replace(path=tsv_dir).geturl()
-    else:
-        ds["dir"] = None
+    
+    dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
+    ds = ds.map(lambda x: {"dir": dir_path})
     return ds
 
 def tsv_dataset(tsv_paths, **kwargs):
