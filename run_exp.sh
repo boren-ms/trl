@@ -15,15 +15,23 @@ export WANDB_MODE=offline
 # export EXP_NAME=grpo_bias_debug
 
 export EXP_NAME=grpo_bias_ls_mix_30k
-export EXP_CONFIG=${CODE_DIR}/orng_conf/${EXP_NAME}.yaml
 
-
+#update the ENV variables in the config file
+export CLUSTER_REGION=$(echo "$RCALL_KUBE_CLUSTER" | cut -d'-' -f2)
+declare -A region_map
+region_map=(
+    ["southcentralus"]="scus"
+    ["westus2"]="wus2"
+    ["uksouth"]="uks"
+)   
+export REGION_CODE=${region_map[$CLUSTER_REGION]}
+envsubst < ${CODE_DIR}/orng_conf/${EXP_NAME}.yaml > ${CODE_DIR}/orng_conf/${EXP_NAME}_tmp.yaml
+export EXP_CONFIG=${CODE_DIR}/orng_conf/${EXP_NAME}_tmp.yaml
 
 echo "sync ${EXP_CONFIG}"
 for i in $(seq 1 $((NUM_NODE-1))); do
     rsync -avz ${EXP_CONFIG} ${JOB_NAME}-${i}:${EXP_CONFIG}
 done
-
 export OUTPUT_DIR=${RCALL_LOGDIR}/${EXP_NAME}
 # bash prepare_orng.sh --force
 bash prepare_orng.sh

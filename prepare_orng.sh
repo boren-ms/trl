@@ -28,6 +28,7 @@ if [ "${PREPARED_ENV}" != "true" ] || [ "${FORCE}" == "true" ]; then
     export PREPARED_ENV="true"
     echo "export PREPARED_ENV=true" >> ~/.bashrc
 fi
+PREPARED_DATA=true
 if [ "${PREPARED_DATA}" != "true" ] || [ "${FORCE}" == "true" ]; then
     echo "Preparing data"
     remote_dir="az://orng${region}cresco/data/boren/data"
