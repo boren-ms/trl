@@ -137,7 +137,9 @@ def stream_shuffle(ds, **kwargs):
     num_egs = kwargs.get("num_egs", None)
     if num_egs is not None:
         ds = ds.take(num_egs)
-    # dataset = dataset.shuffle(seed=42, buffer_size=kwargs.get("buffer_size", 1000))
+    shuf_buf = kwargs.get("shuffle_buffer_size", None)
+    if shuf_buf is not None:
+        ds = ds.shuffle(seed=42, buffer_size=shuf_buf)
     return ds
 
 
