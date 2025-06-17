@@ -3,12 +3,15 @@
 set -x
 # install system dependencies
 echo "Installing system dependencies"
+pip uninstall -y torch torchvision torchaudio transformers
 pip install --upgrade pip
 pip install bs4 \
     nvidia-ml-py \
     accelerate \
     datasets \
-    transformers==4.52.3 \
+    torch==2.5.0 \
+    torchvision==0.20.0 \
+    transformers==4.46.2 \
     librosa \
     soundfile \
     jiwer \
