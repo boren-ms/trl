@@ -33,6 +33,13 @@ for i in $(seq 1 $((NUM_NODE-1))); do
     rsync -avz ${EXP_CONFIG} ${JOB_NAME}-${i}:${EXP_CONFIG}
 done
 export OUTPUT_DIR=${RCALL_LOGDIR}/${EXP_NAME}
+
+echo "
+export OUTPUT_DIR=${OUTPUT_DIR}
+export REGION_CODE=${REGION_CODE}
+export EXP_NAME=${EXP_NAME}
+" >> ~/.bashrc
+
 # bash prepare_orng.sh --force
 bash prepare_orng.sh
 

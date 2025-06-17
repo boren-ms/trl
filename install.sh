@@ -8,7 +8,7 @@ pip install bs4 \
     nvidia-ml-py \
     accelerate \
     datasets \
-    transformers==4.46.2 \
+    transformers==4.52.3 \
     librosa \
     soundfile \
     jiwer \
