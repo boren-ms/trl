@@ -36,4 +36,7 @@ export OUTPUT_DIR=${RCALL_LOGDIR}/${EXP_NAME}
 # bash prepare_orng.sh --force
 bash prepare_orng.sh
 
+# sync the ckpt for resuming training 
+bash mpi_bash.sh "rsync -avz ${RCALL_JOB_NAME}-0:$OUTPUT_DIR/checkpoint-* $OUTPUT_DIR/"
+
 bash run_mpi.sh trl/scripts/grpo_bias.py --output_dir ${OUTPUT_DIR}  --config ${EXP_CONFIG}
