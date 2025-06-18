@@ -4,7 +4,7 @@ description: speech-training
 target:
     service: sing
     name: GenAI-Shared-UKSouth2
-    workspace_name: Singularity-GenAI-WS-UKSouth
+    workspace_name: Singularity-GenAI-WS-UKSouth2
 environment:
     # registry: florencecontainerregistryeu.azurecr.io
     # image: haiping/h100-nvidia23.10-pytorch2.1.1-cuda12.2.2-deepspeed0.12.3-flashattn2.3.4:20231124
@@ -56,5 +56,6 @@ jobs:
               NCCL_DEBUG_SUBSYS: "INIT,GRAPH"
               NCCL_DEBUG: "INFO"
               _AZUREML_SINGULARITY_JOB_UAI: "/subscriptions/d676d072-7cbf-4197-b2d6-17ecf38370d0/resourceGroups/Singularity-GenAI-GPU-UKSouth2/providers/Microsoft.ManagedIdentity/userAssignedIdentities/genai-sing-uai2"
+            #   _AZUREML_SINGULARITY_JOB_UAI: "/subscriptions/d676d072-7cbf-4197-b2d6-17ecf38370d0/resourceGroups/Singularity-GenAI-GPU-UKSouth/providers/Microsoft.ManagedIdentity/userAssignedIdentities/genai-sing-uai"
 
       identity: managed
