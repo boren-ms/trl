@@ -3,7 +3,7 @@
 set -x
 # install system dependencies
 echo "Installing system dependencies"
-pip uninstall -y torch torchvision torchaudio transformers
+pip uninstall -y torch torchvision torchaudio transformers flash-attn
 pip install --upgrade pip
 pip install bs4 \
     nvidia-ml-py \
