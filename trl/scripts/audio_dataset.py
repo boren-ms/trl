@@ -1,6 +1,8 @@
 # %%
+import ast
+import random
 from pathlib import Path
-from datasets import load_dataset, concatenate_datasets
+from datasets import load_dataset
 import soundfile as sf
 from functools import partial
 from error_simu import ErrorSimulator
@@ -56,8 +58,8 @@ def tsv_dataset(tsv_paths, **kwargs):
 
     def load_sample(egs):
         """Process a single sample."""
-        audio_path = eval(egs["paths"])[0]
-        messages = eval(egs["msgs"])[0]["messages"]
+        audio_path =  ast.literal_eval(egs["paths"])[0]
+        messages =  ast.literal_eval(egs["msgs"])[0]["messages"]
         audio, fs = sf.read(audio_path)
         x = {
             "audio": {
@@ -132,11 +134,14 @@ def bias_sampling(dataset, **kwargs):
 
 def simulate_perference(dataset, **kwargs):
     """simulate the perference  to the dataset."""
-    error_rate = kwargs.pop("error_rate", 0.25)
+    error_range = kwargs.pop("error_range", (0.1, 0.25))
+    if not isinstance(error_range, (tuple, list)):
+        error_range = [float(error_range), float(error_range)]
     simulator = ErrorSimulator(**kwargs)
 
-    def add_perference(sample, err_rate):
+    def add_perference(sample, error_range):
         """Process a sample from the dataset."""
+        err_rate = random.uniform(*error_range)
         text = sample["text"]
         bad_text = simulator.random_error(text, err_rate)
         return {
@@ -154,15 +159,9 @@ def simulate_perference(dataset, **kwargs):
             ],
         }
 
-    if not isinstance(error_rate, (list, tuple)):
-        error_rate = [error_rate]
+    return dataset.map(add_perference, fn_kwargs={"error_range": error_range})
 
-    datasets = [
-        dataset.map(add_perference, fn_kwargs={"err_rate": err_rate})
-        for err_rate in error_rate
-    ]
-
-    return concatenate_datasets(datasets)
+    # return concatenate_datasets(datasets)
 
 
 def create_dataset(dataset_name="openasr", **kwargs):

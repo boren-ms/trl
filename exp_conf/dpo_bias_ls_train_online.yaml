@@ -8,10 +8,10 @@ dataset_config:
         max_piece_len: 1
         max_num: 500
     simu_perference:
-        error_rate: 0.25
+        error_range: 0.25
         buffer_size: 5000
-model_name_or_path: /uksblob/users/boren/data/hf_models/phi4_mm_bias
-# model_name_or_path: microsoft/Phi-4-multimodal-instruct
+# model_name_or_path: /home/boren/phi4_mm_bias
+model_name_or_path: microsoft/Phi-4-multimodal-instruct
 # job_name: phi4_mm_bias_grpo
 report_to: [wandb]
 learning_rate: 5.0e-6
@@ -29,3 +29,8 @@ max_completion_length: 512
 wandb_log_unique_prompts: True
 save_steps: 200
 # beta: 0.0
+use_peft: True
+lora_r: 32
+lora_alpha: 16
+ref_adapter_name: ref
+model_adapter_name: speech

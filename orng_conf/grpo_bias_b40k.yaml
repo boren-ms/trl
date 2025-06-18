@@ -1,0 +1,31 @@
+# REGION_CODE is set in the environment by job submission script
+dataset_name: tsv
+dataset_config:
+    num_egs: 40000
+    tsv_paths: az://orng${REGION_CODE}cresco/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
+    biasing:
+        bias_prob: 0.8
+        hit_prob: 0.8
+        max_piece_len: 1
+        max_num: 500
+reward_funcs: [reward_word_error,reward_bias_error]
+reward_weights: [1, 1]
+model_name_or_path: az://orng${REGION_CODE}cresco/data/boren/data/ckp/phi4_mm_bias
+# job_name: phi4_mm_bias_grpo
+report_to: [tensorboard]
+learning_rate: 1e-5
+lr_scheduler_type: cosine
+output_dir: ./output
+per_device_train_batch_size: 24
+num_generations: 12
+logging_steps: 10
+bf16: True
+gradient_checkpointing: True
+log_completions: True
+max_prompt_length: 2048
+max_completion_length: 512
+wandb_log_unique_prompts: True
+# beta: 0.1
+epsilon_high: 0.28
+save_steps: 50
+resume_from_checkpoint: True

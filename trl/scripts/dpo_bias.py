@@ -10,8 +10,42 @@ import wandb
 from trl import DPOConfig, DPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_dataset
 
+from peft import LoraConfig, get_peft_model
+from peft.tuners.lora.layer import LoraLayer
 
-def init_model(model_id=None):
+
+def clone_phimm_lora(model, dst_name, src_name="speech"):
+    """Clone the LoRA adapter from src_name to dst_name."""
+    print(f"Cloning LoRA adapter from {src_name} to {dst_name}")
+    src_lora_config = getattr(model.config, f"{src_name}_lora")
+    lora_conf = LoraConfig(
+        r=src_lora_config["r"],
+        lora_alpha=src_lora_config["lora_alpha"],
+        target_modules=src_lora_config["layer"],
+        lora_dropout=src_lora_config["dp"],
+        task_type="CAUSAL_LM",
+    )
+    peft_model = get_peft_model(model.model, lora_conf, adapter_name=dst_name)
+    for module in peft_model.modules():
+        if not isinstance(module, LoraLayer):
+            continue
+        if module.merged:
+            module.unmerge()
+        module.lora_A[dst_name].weight.data = module.lora_A[src_name].weight.data
+        module.lora_B[dst_name].weight.data = module.lora_B[src_name].weight.data
+    return model
+
+def print_trainable_parameters(model):
+    """List the training parameters of the LoRA adapter and count the total."""
+    total_params = 0
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(f"Parameter: {name}, Shape: {param.shape}, Requires Grad: {param.requires_grad}")
+            total_params += param.numel()
+    print(f"Total trainable parameters: {total_params:,}")
+    
+
+def init_model(model_id=None, ref_lora_name=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model = AutoModelForCausalLM.from_pretrained(
@@ -20,7 +54,11 @@ def init_model(model_id=None):
         torch_dtype="auto",
         _attn_implementation="flash_attention_2",
     )
+    if ref_lora_name is not None:
+        model = clone_phimm_lora(model, ref_lora_name, "speech")  # PEFT model
     model.set_lora_adapter("speech")
+    print_trainable_parameters(model)
+
     processor = AutoProcessor.from_pretrained(
         model_id,
         trust_remote_code=True,
@@ -60,11 +98,12 @@ def init_wandb(name=None):
 def main(script_args, training_args):
     """Train the model with DPO."""
     init_wandb(name=script_args.job_name)
-    model, processor = init_model(script_args.model_name_or_path)
-
+    model, processor = init_model(
+        script_args.model_name_or_path,
+        training_args.ref_lora_name,
+    )
     trainer = DPOTrainer(
         model,
-        None,
         args=training_args,
         train_dataset=create_dataset(
             dataset_name=script_args.dataset_name, **script_args.dataset_config
