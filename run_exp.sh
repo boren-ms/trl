@@ -29,9 +29,10 @@ envsubst < ${CODE_DIR}/orng_conf/${EXP_NAME}.yaml > ${CODE_DIR}/orng_conf/${EXP_
 export EXP_CONFIG=${CODE_DIR}/orng_conf/${EXP_NAME}_tmp.yaml
 
 echo "sync ${EXP_CONFIG}"
-for i in $(seq 1 $((NUM_NODE-1))); do
-    rsync -avz ${EXP_CONFIG} ${JOB_NAME}-${i}:${EXP_CONFIG}
-done
+# for i in $(seq 1 $((NUM_NODE-1))); do
+#     rsync -avz ${EXP_CONFIG} ${JOB_NAME}-${i}:${EXP_CONFIG}
+# done
+bash mpi_bash.sh "rsync -avz ${JOB_NAME}-0:${EXP_CONFIG} ${EXP_CONFIG}"
 export OUTPUT_DIR=${RCALL_LOGDIR}/${EXP_NAME}
 
 echo "

@@ -18,11 +18,12 @@ fi
 
 if [ "${PREPARED_ENV}" != "true" ] || [ "${FORCE}" == "true" ]; then
     echo "Preparing trl environment"
-    for i in $(seq 0 $((NUM_NODE-1))); do
-        echo "Remotely run ${CODE_DIR}/install.sh on ${JOB_NAME}-${i}"
-        ssh ${JOB_NAME}-${i} "export PATH=/root/.pyenv/versions/3.11.8/bin/:\$PATH; bash ${CODE_DIR}/install.sh > ${CODE_DIR}/install.log 2>&1 & "
-    done
-
+    # for i in $(seq 0 $((NUM_NODE-1))); do
+    #     echo "Remotely run ${CODE_DIR}/install.sh on ${JOB_NAME}-${i}"
+    #     ssh ${JOB_NAME}-${i} "export PATH=/root/.pyenv/versions/3.11.8/bin/:\$PATH; bash ${CODE_DIR}/install.sh > ${CODE_DIR}/install.log 2>&1 & "
+    # done
+    bash mpi_bash.sh "rsync -avz  ${JOB_NAME}-0:${CODE_DIR} ${CODE_DIR}"
+    bash mpi_bash.sh "bash ${CODE_DIR}/install.sh"
     export PREPARED_ENV="true"
     echo "export PREPARED_ENV=true" >> ~/.bashrc
 fi
@@ -37,11 +38,14 @@ if [ "${PREPARED_DATA}" != "true" ] || [ "${FORCE}" == "true" ]; then
     done
     # bbb sync --concurrency 128 $remote_dir/LibriSpeech/${REGION_CODE}_tsv $DATA_DIR/LibriSpeech/${REGION_CODE}_tsv
     echo "Data moved successfully to $DATA_DIR"
-    for i in $(seq 1 $((NUM_NODE-1))); do
-        echo "Move data to ${JOB_NAME}-${i}"
-        rsync -avz $DATA_DIR ${JOB_NAME}-${i}:$(dirname $DATA_DIR) > rsync_data_${i}.log 2>&1 
-        rsync -avz $RCALL_LOGDIR ${JOB_NAME}-${i}:$(dirname $RCALL_LOGDIR) > rsync_output_${i}.log 2>&1 
-    done
+
+    bash mpi_bash.sh " rsync -avz ${JOB_NAME}-0:$DATA_DIR $DATA_DIR"
+    bash mpi_bash.sh " rsync -avz ${JOB_NAME}-0:$RCALL_LOGDIR $RCALL_LOGDIR "
+    # for i in $(seq 1 $((NUM_NODE-1))); do
+    #     echo "Move data to ${JOB_NAME}-${i}"
+    #     rsync -avz $DATA_DIR ${JOB_NAME}-${i}:$(dirname $DATA_DIR) > rsync_data_${i}.log 2>&1 
+    #     rsync -avz $RCALL_LOGDIR ${JOB_NAME}-${i}:$(dirname $RCALL_LOGDIR) > rsync_output_${i}.log 2>&1 
+    # done
 
     export PREPARED_DATA="true"
     echo "export PREPARED_DATA=true" >> ~/.bashrc
