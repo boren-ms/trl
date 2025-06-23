@@ -24,5 +24,5 @@ pip install bs4 \
     tensorboard \
     accelerate
 
-MAX_JOBS=20 pip install flash-attn --no-build-isolation
+MAX_JOBS=20 pip install flash-attn --no-build-isolation --no-cache-dir
 pip install -e /root/code/trl --no-deps
