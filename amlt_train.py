@@ -16,7 +16,7 @@ def uuid4():
 def amlt_run(
     conf_file,
     node=4,
-    job_pfx="phi4_trl",
+    job_pfx="phi",
     sla_tier=None,
     tag="eus",
     prepare=False,
