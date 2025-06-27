@@ -30,14 +30,15 @@ def amlt_run(
     conf = OmegaConf.load(amlt_conf_dir / f"amlt_train_temp{tmp_suf}.yaml")
     print("config file:", conf_file)
     file_stem = conf_file.stem
-    if "dpo" in file_stem:
-        tr_cmd = f"python trl/scripts/dpo_bias.py --config {conf_file} --output_dir $$AMLT_OUTPUT_DIR"
-    elif "grpo" in file_stem:
-        tr_cmd = f"python trl/scripts/grpo_bias.py --config {conf_file} --output_dir $$AMLT_OUTPUT_DIR"
-    else:
-        raise ValueError(f"Unknown config file: {conf_file}")
     job_name = "-".join([job_pfx, conf_file.stem, uuid4()])
     sku = conf.jobs[0].sku.split("x")[-1]
+
+    if "dpo" in file_stem:
+        tr_cmd = f"python trl/scripts/dpo_bias.py --config {conf_file} --job_name {job_name} --output_dir $$AMLT_OUTPUT_DIR "
+    elif "grpo" in file_stem:
+        tr_cmd = f"python trl/scripts/grpo_bias.py --config {conf_file} --job_name {job_name} --output_dir $$AMLT_OUTPUT_DIR "
+    else:
+        raise ValueError(f"Unknown config file: {conf_file}")
     conf.jobs[0].name = job_name
     conf.jobs[0].sku = f"{node}x{sku}"
     for key in ["WANDB_API_KEY"]:

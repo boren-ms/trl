@@ -77,7 +77,7 @@ def is_master():
 def get_job_name(jobname=None):
     """Get a unique job name."""
     if jobname:
-        return f"{jobname}-{uuid4()}"
+        return jobname
     if "--config" in sys.argv:
         # use config file name as job name
         jobname = Path(sys.argv[sys.argv.index("--config") + 1]).stem
@@ -115,7 +115,7 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(project_name=script_args.job_name)  # disabled for wandb for orange
+        init_wandb(job_name=script_args.job_name, project_name=script_args.project_name)  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 

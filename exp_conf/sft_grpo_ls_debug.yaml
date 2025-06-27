@@ -14,7 +14,7 @@ dataset_config:
 reward_funcs: [reward_word_error,reward_bias_error]
 reward_weights: [1, 2]
 model_name_or_path: /home/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq
-# job_name: phi4_mm_bias_grpo
+job_name: grpo_debug_ls
 report_to: [wandb]
 learning_rate: 5e-6
 lr_scheduler_type: cosine
