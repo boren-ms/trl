@@ -16,6 +16,7 @@ environment:
         - set -e -o xtrace
         - pip install -e . --no-deps
         - pip install rich
+        - pip install shortuuid
 
 storage:
     output:

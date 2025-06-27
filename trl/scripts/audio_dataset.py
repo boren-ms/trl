@@ -114,7 +114,7 @@ def bias_sampling(dataset, **kwargs):
         """Process a sample from the dataset."""
         context, text = bias_sampler.sample(sample["text"])
         side_prompt = (
-            f"Please pay attention to following words: {context}." if context else ""
+            f"Pay extra attention to the following phrases/words: {context}." if context else ""
         )
         return {
             "prompt": [
