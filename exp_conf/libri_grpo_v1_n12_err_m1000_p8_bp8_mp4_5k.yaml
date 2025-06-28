@@ -4,7 +4,7 @@ dataset_config:
     tsv_paths: /datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe_shuf.tsv
     biasing:
         buffer_size: 10000
-        max_piece_len: 1
+        max_piece_len: 4
         max_num: 500
         bias_prob: 0.8
         hit_prob: 0.8
@@ -26,7 +26,7 @@ logging_steps: 10
 bf16: True
 gradient_checkpointing: True
 log_completions: True
-max_prompt_length: 2048
+max_prompt_length: 4096
 max_completion_length: 512
 wandb_log_unique_prompts: True
 # beta: 0.1

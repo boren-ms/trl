@@ -4,17 +4,17 @@ dataset_config:
     tsv_paths: /datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe_shuf.tsv
     biasing:
         buffer_size: 10000
-        max_piece_len: 4
+        max_piece_len: 1
         max_num: 500
         #   bias_prob: 0.6
         hit_prob: 0.8
         log_interval: 1000 # print biasing every 10000 samples
         new_sampling: True
 
-reward_funcs: [reward_word_error,reward_bias_error]
+reward_funcs: [reward_word_error, reward_bias_error]
 reward_weights: [1, 2]
 # model_name_or_path: /uksblob/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq
-model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf/5000_hf
+model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 # job_name: phi4_mm_bias_grpo
 report_to: [wandb]
 learning_rate: 5e-6
