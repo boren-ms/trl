@@ -5,7 +5,7 @@ dataset_config:
     biasing:
         buffer_size: 10000
         max_piece_len: 4
-        max_num: 500
+        max_num: 300
         bias_prob: 0.8
         hit_prob: 0.8
         log_interval: 1000 # print biasing every 10000 samples
@@ -26,7 +26,7 @@ logging_steps: 10
 bf16: True
 gradient_checkpointing: True
 log_completions: True
-max_prompt_length: 4096
+max_prompt_length: 3072
 max_completion_length: 512
 wandb_log_unique_prompts: True
 # beta: 0.1
