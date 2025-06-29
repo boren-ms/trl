@@ -70,9 +70,7 @@ def main(script_args, training_args, model_args):
     ################
     # Model & Tokenizer
     ###################
-    torch_dtype = (
-        model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
-    )
+    torch_dtype = model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
     quantization_config = get_quantization_config(model_args)
     model_kwargs = dict(
         revision=model_args.model_revision,
@@ -82,28 +80,20 @@ def main(script_args, training_args, model_args):
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
     )
-    model = AutoModelForCausalLM.from_pretrained(
-        model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs
-    )
+    model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs)
     peft_config = get_peft_config(model_args)
     if peft_config is None:
-        ref_model = AutoModelForCausalLM.from_pretrained(
-            model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs
-        )
+        ref_model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs)
     else:
         ref_model = None
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code
-    )
+    tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     if tokenizer.chat_template is None:
         tokenizer.chat_template = SIMPLE_CHAT_TEMPLATE
     if script_args.ignore_bias_buffers:
         # torch distributed hack
-        model._ddp_params_and_buffers_to_ignore = [
-            name for name, buffer in model.named_buffers() if buffer.dtype == torch.bool
-        ]
+        model._ddp_params_and_buffers_to_ignore = [name for name, buffer in model.named_buffers() if buffer.dtype == torch.bool]
 
     ################
     # Dataset
