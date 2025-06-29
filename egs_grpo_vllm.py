@@ -25,7 +25,9 @@ model_path="/home/boren/data//ckp/hf_models/Qwen2.5-0.5B-Instruct"
 # model_path="Qwen/Qwen2.5-7B",
 # Dummy reward function: count the number of unique characters in the completions
 def reward_num_unique_chars(completions, **kwargs):
-    return [len(set(c)) for c in completions]
+    for i, c in enumerate(completions):
+        print(i, c)
+    return [len(c) for c in completions]
 
 training_args = GRPOConfig(
     output_dir="my_test",
