@@ -1,3 +1,4 @@
+#%%
 from datasets import load_dataset
 from trl import GRPOTrainer, GRPOConfig
 
@@ -15,10 +16,11 @@ training_args = GRPOConfig(
 )
 
 trainer = GRPOTrainer(
-    model="Qwen/Qwen2.5-7B",
+    model="Qwen/Qwen2.5-0.5B",
     args=training_args,
     reward_funcs=reward_num_unique_chars,
     train_dataset=dataset,
 )
 
 trainer.train()
+#%%
