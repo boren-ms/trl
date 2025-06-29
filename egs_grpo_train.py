@@ -2,12 +2,16 @@
 
 # trl vllm-serve --model Qwen/Qwen2.5-0.5B --tensor-parallel-size 2 --data-parallel-size 
 # trl vllm-serve --model /home/boren/data//ckp/hf_models/Qwen2.5-0.5B-Instruct
+# trl vllm-serve --model /home/boren/data//ckp/hf_models/Qwen2.5-0.5B-Instruct --data-parallel-size 4 # for 4 GPUs
 
 # client/trainer
 # export WANDB_MODE=offline # disable wandb logging
 # cd ~/code # get out of the trl dir
 # cp trl/egs_grpo_vllm.py ~/code
+
+# wandb login --relogin --host=https://msaip.wandb.io
 # CUDA_VISIBLE_DEVICES=4 python  egs_grpo_vllm.py
+# CUDA_VISIBLE_DEVICES=4,5,6,7 accelerate launch egs_grpo_vllm.py
 #%%
 from datasets import load_dataset
 from trl import GRPOTrainer, GRPOConfig
