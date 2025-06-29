@@ -1,6 +1,9 @@
 # train_grpo.py
 # %%
+import sys
 import pytz
+import shortuuid
+from pathlib import Path
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
@@ -11,6 +14,10 @@ import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_dataset
 
+
+def uuid4():
+    short_id = shortuuid.ShortUUID().random(length=4)
+    return short_id
 
 def init_model(model_id=None):
     """Initialize the model and processor."""
@@ -63,14 +70,26 @@ def is_master():
     return local_rank == "0" and rank == "0"
 
 
-def init_wandb(name=None):
-    """Initialize wandb."""
-    wandb.login()
-    name = name or "grpo-bias"
+def get_job_name(jobname=None):
+    """Get a unique job name."""
+    if jobname:
+        return jobname
+    if "--config" in sys.argv:
+        # use config file name as job name
+        jobname = Path(sys.argv[sys.argv.index("--config") + 1]).stem
+        return f"{jobname}-{uuid4()}"
+    # use current time as job name 
     tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
-    log_name = f"{name}-{datetime.now(tz).strftime('%Y%m%d-%H%M%S')}"
-    wandb.init(entity="orangewandb", project=name, name=log_name)
-    return log_name
+    return datetime.now(tz).strftime('%Y%m%d-%H%M%S')
+
+DEFAULT_PROJECT = "grpo-bias"
+def init_wandb(job_name=None, project_name=None):
+    """Initialize wandb."""
+    project_name = project_name or DEFAULT_PROJECT
+    job_name = get_job_name(job_name)
+    print(f"Project Name: {project_name}, Job Name: {job_name}")
+    wandb.login()
+    wandb.init(project=project_name, name=job_name,resume="allow")
 
 
 def reward_functions(names=None):
@@ -92,7 +111,7 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(name=script_args.job_name)  # disabled for wandb for orange
+        init_wandb(job_name=script_args.job_name, project_name=script_args.project_name)  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 

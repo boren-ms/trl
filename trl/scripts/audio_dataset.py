@@ -2,8 +2,8 @@
 import os
 import ast
 import urllib
-from pathlib import Path
 import random
+from pathlib import Path
 from datasets import load_dataset, concatenate_datasets
 import blobfile as bf
 import soundfile as sf
@@ -93,7 +93,6 @@ def tsv_dataset(tsv_paths, **kwargs):
         ds = load_tsv(tsv_paths)
         
     ds = stream_shuffle(ds, **kwargs)
-re
 
     def load_sample(egs):
         """Process a single sample."""
@@ -157,7 +156,7 @@ def bias_sampling(ds, **kwargs):
         """Process a sample from the dataset."""
         context, text = bias_sampler.sample(sample["text"])
         side_prompt = (
-            f"Please pay attention to following words: {context}." if context else ""
+            f"Pay extra attention to the following phrases/words: {context}." if context else ""
         )
         return {
             "prompt": [

@@ -3,7 +3,7 @@ import re
 import random
 from collections import deque
 
-def text_norm(word, tn_prob):
+def text_norm(word, tn_prob=1.0):
     """Normalize the text by removing special characters and converting to lowercase."""
     if random.random() <= tn_prob:
         word = " ".join(re.findall(r"[\w'\-]+", word))
@@ -40,11 +40,22 @@ def rand_sample(lst, max_num, new=False):
     # print(f"Sampling {n} pieces from {len(lst)}[{max_num}]")
     return random.sample(lst, n)
 
+def read_words(file_path, N=None, tn_prob=1.0):
+    """Read the top N lines from a file."""
+    words = []
+    with open(file_path, "r") as f:
+        for i, line in enumerate(f):
+            if N is not None and i >= N:
+                break
+            word = line.split()[0]
+            words.append(text_norm(word, tn_prob))
+    return words
 
 class PieceSampler:
     """Sample segments from the text using instance parameters."""
 
-    def __init__(self, buffer_size=100000, bias_prob=1.0, hit_prob=0.5,  max_piece_len=1, new_sampling=False,  max_num=10, tag="*", tag_all=True, log_interval=None):
+    def __init__(self, buffer_size=100000, bias_prob=1.0, hit_prob=0.5,  max_piece_len=1, new_sampling=False, common_word_file=None, common_word_num=None,
+                 max_num=10, tag="*", tag_all=True, log_interval=None):
         """Initialize the PieceSampler with configuration parameters.
 
         Args:
@@ -63,8 +74,19 @@ class PieceSampler:
         self.tag_all = tag_all
         self.new_sampling = new_sampling
         self.log_interval = int(log_interval) if log_interval else None
+        self.common_words = set(read_words(common_word_file, common_word_num) if common_word_file else [])
         self.idx = 0
 
+    def filter_commons(self, examples):
+        """Filter out common words from the examples."""
+        if not self.common_words:
+            return examples
+        new_examples = []
+        for phrase in examples:
+            if all(text_norm(wd) in self.common_words for wd in phrase.split()):
+                continue
+            new_examples.append(phrase)
+        return new_examples
 
     def tag_pieces(self, pieces, specified=None):
         """Tag the pieces with a specified tag."""
@@ -83,7 +105,9 @@ class PieceSampler:
         if random.random() <= self.hit_prob:
             examples = rand_sample(pieces, num_pieces, new=self.new_sampling)
         examples += rand_sample(self.buffer, num_pieces - len(examples), new=self.new_sampling)
-        return examples
+        if self.common_words:
+            examples = [p for p in examples if text_norm(p) not in self.common_words]
+        return self.filter_commons(examples)
 
     def sample(self, text):
         """Sample segments from the text using instance parameters."""
@@ -101,6 +125,7 @@ class PieceSampler:
         if self.log_interval is not None and self.idx % self.log_interval == 0:
             print(f"[{self.idx}] biasing  list: {prompt}")
             print(f"[{self.idx}] transcription: {trans}")
+        
         return prompt, trans
 #%%
 if __name__ == "__main__":

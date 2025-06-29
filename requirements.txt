@@ -7,4 +7,3 @@ soundfile
 jiwer
 wandb
 backoff
-flash-attn --no-build-isolation

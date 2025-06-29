@@ -3,7 +3,8 @@
 description: speech-training
 target:
     service: sing
-    name: ast-sing-prod01-eus
+    name: genai-win-sa
+    workspace_name: Singularity-GenAI-WS-UKSouth
 environment:
     # registry: florencecontainerregistryeu.azurecr.io
     # image: haiping/h100-nvidia23.10-pytorch2.1.1-cuda12.2.2-deepspeed0.12.3-flashattn2.3.4:20231124
@@ -16,7 +17,6 @@ environment:
         - set -e -o xtrace
         - pip install -e . --no-deps
         - pip install rich
-        - pip install shortuuid
 
 storage:
     output:
@@ -30,18 +30,18 @@ storage:
     data_blob:
         container_name: data
         mount_dir: /datablob1
-        storage_account_name: highperf01eus
+        storage_account_name: tsstd01safn
         # storage_account_name: tsstd01uks
 
 code:
     local_dir: ./
 jobs:
-    - name: phi4_mm_grpo_bias
-      sku: 1x80G4-A100-NvLink
-      sla_tier: premium
+    - name: phi-omni-sqa
+      sku: 4x80G8-H100-IB-NvLink
+      sla_tier: Standard
       priority: high
       mpi: True
-      process_count_per_node: 4
+      process_count_per_node: 8
       command:
           - pwd
           - ls -hl
@@ -55,6 +55,7 @@ jobs:
               NCCL_TOPO_FILE: "topology.xml"
               NCCL_DEBUG_SUBSYS: "INIT,GRAPH"
               NCCL_DEBUG: "INFO"
-              _AZUREML_SINGULARITY_JOB_UAI: "/subscriptions/48b6cd5e-3ffe-4c2e-9e99-5760a42cd093/resourcegroups/ast-singularity-01/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ast-singularity-01-uai"
+              _AZUREML_SINGULARITY_JOB_UAI: "/subscriptions/d676d072-7cbf-4197-b2d6-17ecf38370d0/resourceGroups/Singularity-GenAI-GPU-UKSouth/providers/Microsoft.ManagedIdentity/userAssignedIdentities/genai-sing-uai"
+            #   _AZUREML_SINGULARITY_JOB_UAI: "/subscriptions/5c9e4789-4852-4ffe-8551-d682affcbd74/resourceGroups/genai-slm-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/genai-win-sa-uai"
 
       identity: managed

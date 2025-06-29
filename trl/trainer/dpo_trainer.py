@@ -1083,13 +1083,14 @@ class DPOTrainer(Trainer):
         if self.aux_loss_enabled:
             model_kwargs["output_router_logits"] = True
 
-        # Add the pixel values and attention masks for vision models
-        if "pixel_values" in concatenated_batch:
-            model_kwargs["pixel_values"] = concatenated_batch["pixel_values"]
-        if "pixel_attention_mask" in concatenated_batch:
-            model_kwargs["pixel_attention_mask"] = concatenated_batch["pixel_attention_mask"]
-        if "image_sizes" in concatenated_batch:
-            model_kwargs["image_sizes"] = concatenated_batch["image_sizes"]
+        if "input_audio_embeds" in concatenated_batch:
+            model_kwargs["input_audio_embeds"] = concatenated_batch["input_audio_embeds"]
+            model_kwargs["audio_embed_sizes"] = concatenated_batch["audio_embed_sizes"]
+            model_kwargs["input_mode"] = 2
+        
+        if "audio_attention_mask" in model_kwargs:
+            model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
+        model_kwargs.update(kwargs)
 
         prompt_attention_mask = concatenated_batch["prompt_attention_mask"]
         completion_attention_mask = concatenated_batch["completion_attention_mask"]
