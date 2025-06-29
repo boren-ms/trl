@@ -1,0 +1,17 @@
+job_name: dapo_bias
+dataset_name: ls_bias
+report_to: [wandb]
+learning_rate: 0.000005 # 5e-6
+lr_scheduler_type: cosine
+output_dir: ./output
+per_device_train_batch_size: 8
+num_generations: 4
+logging_steps: 1
+bf16: True
+gradient_checkpointing: True
+log_completions: True
+max_prompt_length: 1024
+max_completion_length: 512
+wandb_log_unique_prompts: True
+beta: 0.0 # KL set to 0
+epsilon_high: 0.28

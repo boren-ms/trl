@@ -1835,11 +1835,11 @@ def print_prompt_completions_sample(
             "`pip install rich`."
         )
     console = Console()
-    table = Table(show_header=True, header_style="bold white", expand=True)
+    table = Table(show_header=True,  expand=True)
 
     # Add columns
-    table.add_column("Prompt", style="bright_yellow")
-    table.add_column("Completion", style="bright_green")
+    table.add_column("Prompt" )
+    table.add_column("Completion" )
     for reward_name in rewards.keys():
         table.add_column(reward_name, style="bold cyan", justify="right")
     table.add_column("Advantage", style="bold magenta", justify="right")

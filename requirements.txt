@@ -1,3 +1,10 @@
 accelerate>=1.4.0
 datasets>=3.0.0
 transformers>=4.51.0
+rich
+librosa
+soundfile
+jiwer
+wandb
+backoff
+flash-attn --no-build-isolation

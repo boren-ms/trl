@@ -225,6 +225,10 @@ class DPOConfig(TrainingArguments):
         default=None,
         metadata={"help": "Name of the reference PEFT adapter, when using LoRA with multiple adapters."},
     )
+    ref_lora_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Name of the reference PEFT lora, when using LoRA with multiple loras."},
+    )
     force_use_ref_model: bool = field(
         default=False,
         metadata={
@@ -267,7 +271,7 @@ class DPOConfig(TrainingArguments):
         metadata={"help": "Maximum length of the completion."},
     )
     max_length: Optional[int] = field(
-        default=1024,
+        default=None,
         metadata={"help": "Maximum length of the full sequence (prompt + completion)."},
     )
     truncation_mode: str = field(
