@@ -93,7 +93,7 @@ def tsv_dataset(tsv_paths, **kwargs):
         ds = load_tsv(tsv_paths)
         
     ds = stream_shuffle(ds, **kwargs)
-
+re
 
     def load_sample(egs):
         """Process a single sample."""
