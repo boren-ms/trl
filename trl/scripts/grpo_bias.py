@@ -28,7 +28,9 @@ def init_model(model_id=None):
         torch_dtype="auto",
         _attn_implementation="flash_attention_2",
     )
-    model.set_lora_adapter("speech")
+    # lora_adpater=None
+    if "merged" not in model_id:
+        model.set_lora_adapter("speech")
     processor = AutoProcessor.from_pretrained(
         model_id,
         trust_remote_code=True,
