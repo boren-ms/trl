@@ -949,9 +949,11 @@ class GRPOTrainer(Trainer):
             if self._step % generate_every == 0 or self._buffered_inputs is None:
                 # self._buffered_inputs=None can occur when resuming from a checkpoint
                 generation_batch = self._generate_and_score_completions(generation_batch)
-                generation_batch = shuffle_tensor_dict(generation_batch)
-                self._buffered_inputs = split_tensor_dict(generation_batch, self.args.steps_per_generation)
-            inputs = self._buffered_inputs[self._step % self.args.steps_per_generation]
+                # TODO: revert to the original batching strategy
+                # generation_batch = shuffle_tensor_dict(generation_batch)
+                # self._buffered_inputs = split_tensor_dict(generation_batch, self.args.steps_per_generation)
+            # inputs = self._buffered_inputs[self._step % self.args.steps_per_generation]
+                inputs = generation_batch
             self._step += 1
         else:
             # In evaluation, there is neither batch grouping for generation, nor multiple iterations, hence
