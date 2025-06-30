@@ -43,10 +43,10 @@ from transformers import (
     TrainingArguments,
     is_comet_available,
 )
+from trl.import_utils import is_rich_available
 from transformers.utils import (
     ModelOutput,
     is_peft_available,
-    is_rich_available,
     is_torch_mlu_available,
     is_torch_npu_available,
     is_torch_xpu_available,
