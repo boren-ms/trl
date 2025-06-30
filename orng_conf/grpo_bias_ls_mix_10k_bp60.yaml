@@ -1,7 +1,7 @@
 dataset_name: tsv
 dataset_config:
     num_egs: 10000
-    tsv_paths: /datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/ls_20k_shuf.tsv
+    tsv_paths: az://orng${REGION_CODE}cresco/data/boren/data/LibriSpeech/ls_20k_shuf.tsv
     biasing:
         bias_prob: 0.6
         hit_prob: 0.8
