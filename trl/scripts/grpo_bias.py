@@ -45,6 +45,10 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Name of the script."},
     )
+    project_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Name of the project."},
+    )
     dataset_config: Optional[str] = field(
         default=None,
         metadata={"help": "Dataset config"},
