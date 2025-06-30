@@ -1,19 +1,18 @@
 dataset_name: tsv
 dataset_config:
-    num_egs: 2000
-    tsv_paths: /datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv
+    num_egs: 2000 # >24*8*8
+    tsv_paths: /root/${OPENAI_USER}/LibriSpeech/asr_train_h20k.tsv
     biasing:
         bias_prob: 0.8
         hit_prob: 0.8
         max_piece_len: 1
         max_num: 500
-
 reward_funcs: [reward_word_error,reward_bias_error]
 reward_weights: [1, 1]
-model_name_or_path: /uksblob/users/boren/data/hf_models/phi4_mm_bias
+model_name_or_path: ${HOME}/data/ckp/phi4_mm_bias
 # job_name: phi4_mm_bias_grpo
-report_to: [wandb]
-learning_rate: 5e-6
+report_to: [tensorboard]
+learning_rate: 1.5e-5
 lr_scheduler_type: cosine
 output_dir: ./output
 per_device_train_batch_size: 24
@@ -28,4 +27,3 @@ wandb_log_unique_prompts: True
 # beta: 0.1
 epsilon_high: 0.28
 save_steps: 100
-resume_from_checkpoint: True
