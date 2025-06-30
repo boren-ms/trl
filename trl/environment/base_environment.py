@@ -19,7 +19,7 @@ from typing import Optional
 import torch
 from accelerate.utils import extract_model_from_parallel
 from transformers import StoppingCriteria, StoppingCriteriaList
-from transformers.utils import is_rich_available
+from trl.import_utils import is_rich_available
 
 
 if is_rich_available():

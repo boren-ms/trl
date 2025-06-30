@@ -38,6 +38,7 @@ _uvicorn_available = _is_package_available("uvicorn")
 _vllm_available = _is_package_available("vllm")
 _vllm_ascend_available = _is_package_available("vllm_ascend")
 _joblib_available = _is_package_available("joblib")
+_rich_available = _is_package_available("rich")
 
 
 def is_deepspeed_available() -> bool:
@@ -92,6 +93,10 @@ def is_joblib_available() -> bool:
     return _joblib_available
 
 
+def is_rich_available() -> bool:
+    return _rich_available
+
+
 class _LazyModule(ModuleType):
     """
     Module class that surfaces all objects but only performs associated imports when the objects are requested.
@@ -143,10 +148,7 @@ class _LazyModule(ModuleType):
         try:
             return importlib.import_module("." + module_name, self.__name__)
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to import {self.__name__}.{module_name} because of the following error (look up to see its"
-                f" traceback):\n{e}"
-            ) from e
+            raise RuntimeError(f"Failed to import {self.__name__}.{module_name} because of the following error (look up to see its" f" traceback):\n{e}") from e
 
     def __reduce__(self):
         return (self.__class__, (self._name, self.__file__, self._import_structure))

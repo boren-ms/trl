@@ -26,7 +26,7 @@ from typing import Optional, Union
 import yaml
 from transformers import HfArgumentParser
 from transformers.hf_argparser import DataClass, DataClassType
-from transformers.utils import is_rich_available
+from trl.import_utils import is_rich_available
 
 
 logger = logging.getLogger(__name__)

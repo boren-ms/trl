@@ -44,7 +44,7 @@ from transformers import (
 from transformers.integrations import get_reporting_integration_callbacks
 from transformers.trainer import DEFAULT_CALLBACKS, DEFAULT_PROGRESS_CALLBACK
 from transformers.trainer_callback import CallbackHandler, ExportableState, PrinterCallback
-from transformers.utils import is_rich_available
+from trl.import_utils import is_rich_available
 
 from ..models.utils import unwrap_model_for_generation
 from ..trainer.utils import (

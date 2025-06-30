@@ -18,7 +18,7 @@ import unittest
 import torch
 from transformers import is_bitsandbytes_available, is_comet_available, is_sklearn_available, is_wandb_available
 from transformers.testing_utils import torch_device
-from transformers.utils import is_rich_available
+from trl.import_utils import is_rich_available
 
 from trl import BaseBinaryJudge, BasePairwiseJudge
 from trl.import_utils import (

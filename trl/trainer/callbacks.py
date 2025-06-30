@@ -31,7 +31,7 @@ from transformers import (
     TrainingArguments,
 )
 from transformers.trainer_utils import has_length
-from transformers.utils import is_rich_available
+from trl.import_utils import is_rich_available
 
 from ..data_utils import maybe_apply_chat_template
 from ..import_utils import is_mergekit_available
