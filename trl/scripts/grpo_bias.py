@@ -30,6 +30,7 @@ def init_model(model_id=None):
     )
     # lora_adpater=None
     if "merged" not in model_id:
+        print("loading speech lora adapter")
         model.set_lora_adapter("speech")
     processor = AutoProcessor.from_pretrained(
         model_id,
