@@ -433,7 +433,7 @@ class GRPOTrainer(Trainer):
         # Processing class
         if processing_class is None:
             processing_class = AutoTokenizer.from_pretrained(model.config._name_or_path, padding_side="left")
-        
+
         if hasattr(processing_class, "pad_token") and processing_class.pad_token is not None:
             processing_class.eos_token = processing_class.pad_token
         elif hasattr(processing_class, "tokenizer") and processing_class.tokenizer.pad_token is not None:
@@ -915,6 +915,8 @@ class GRPOTrainer(Trainer):
                 self._sync_fsdp_params_to_vllm(self.model)  # use memory-efficient post-order traversal for FSDP
             else:
                 for name, param in self.model.named_parameters():
+                    for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
+                        name = name.replace(extra, "")
                     with gather_if_zero3([param]):
                         if self.vllm_mode == "server" and self.accelerator.is_main_process:
                             self.vllm_client.update_named_param(name, param.data)
@@ -952,7 +954,7 @@ class GRPOTrainer(Trainer):
                 # TODO: revert to the original batching strategy
                 # generation_batch = shuffle_tensor_dict(generation_batch)
                 # self._buffered_inputs = split_tensor_dict(generation_batch, self.args.steps_per_generation)
-            # inputs = self._buffered_inputs[self._step % self.args.steps_per_generation]
+                # inputs = self._buffered_inputs[self._step % self.args.steps_per_generation]
                 inputs = generation_batch
             self._step += 1
         else:

@@ -277,7 +277,7 @@ class VLLMClient:
         response = self.session.post(url, json={"name": name, "dtype": dtype, "shape": shape})
         if response.status_code != 200:
             raise Exception(f"Request failed: {response.status_code}, {response.text}")
-
+        print("Update param:", name, weights.shape)
         # Broadcast the weights to the other processes
         self.pynccl_comm.broadcast(weights, src=self.rank)
         self.pynccl_comm.group.barrier()
