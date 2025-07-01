@@ -39,7 +39,7 @@ text = "Transcribe the audio clip into text."
 text = f"{text} Please pay attention to following words: {words_text}."
 inputs = []
 N = 10
-n_gen = 2
+n_gen = 4
 # %%
 for wav_path in wav_paths[:N]:
 
@@ -63,8 +63,7 @@ for wav_path in wav_paths[:N]:
         **inputs,
         max_new_tokens=512,
         do_sample=True,
-        pad_token_id=processor.tokenizer.pad_token_id,
-        eos_token_id=processor.tokenizer.eos_token_id,
+        temperature=0.9,        
         generation_config=generation_config,
     )
 
@@ -72,7 +71,7 @@ for wav_path in wav_paths[:N]:
     responses = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
     for i, res in enumerate(responses):
-        print(f">>> Response {i}\n{responses}")
+        print(f">>> Response {i}\n{res}")
 
 
 # %%
