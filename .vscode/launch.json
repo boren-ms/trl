@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "env": {
                 "WANDB_MODE": "offline",
-                "CUDA_VISIBLE_DEVICES":"0",
+                "CUDA_VISIBLE_DEVICES":"7",
             },
             "justMyCode": false,
             "args": [
