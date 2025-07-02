@@ -19,33 +19,29 @@ processor = AutoProcessor.from_pretrained(
 stop_tokens = ["<|end|>", processor.tokenizer.eos_token]
 stop_tokens_ids = processor.tokenizer(stop_tokens, add_special_tokens=False, padding="longest", return_tensors="pt").input_ids.flatten().tolist()
 
-# %%
-tsv_path = "/root/data/LibriSpeech/debug.tsv"
-wav_paths = load_wav_path(tsv_path)
 
 # %%
 wav_paths = ["/root/data/LibriSpeech/test-clean/2094/142345/2094-142345-0034.flac", "/root/data/LibriSpeech/train-clean-360/115/122944/115-122944-0026.flac"]
 words = ["cutlery", "utensils", "silverware", "TABLE", "CLOTHS", "Napkins", "Linen", "dining"]
 words_text = ", ".join([f"*{w}*" for w in words])
 text = "Transcribe the audio clip into text."
-text = f"{text} Please pay attention to following words: {words_text}."
+# text = f"{text} Please pay attention to following words: {words_text}."
 prompts = []
 audios = []
-for wav_path in wav_paths[:2]:
+wav_paths = load_wav_path("/root/data/LibriSpeech/debug.tsv")
+N=20
+for wav_path in wav_paths[:N]:
     prompts.append(f"<|user|><|audio_1|>{text}<|end|><|assistant|>")
     audios.append(wav_path)
-print("prompts:", prompts[0])
-print("audios:",  audios[0])
-# %%
-# Ensure that the vllm server is running, and ready to serve.
-# bash sampling/trl_serve_vllm.sh 
-client = VLLMClient()
+#%%
+client = VLLMClient(server_port=26500)
 # client.init_communicator()
+prompts = ["<|user|><|audio_1|>Transcribe the audio clip into text. <|end|><|assistant|>"]
+audios = ["/root/data/LibriSpeech/train-clean-360/115/122944/115-122944-0038.flac"]
+# prompts = ["Hello, AI!", "Tell me a joke"]
+# audios = None
 # %%
-prompts = ["Hello, AI!", "Tell me a joke"]
-audios = None
-# %%
-responses = client.generate(prompts, audios=audios, n=12, max_tokens=512, generation_kwargs={"stop_token_ids":stop_tokens_ids})
+responses = client.generate(prompts, audios=audios, n=4, repetition_penalty=1.0, temperature=0.9, top_p=1.0, top_k=-1, min_p=0.0, max_tokens=100, stop_token_ids=stop_tokens_ids)
 
 for res in responses["texts"]:
     print("Responses:", res)  # noqa

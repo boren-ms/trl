@@ -108,12 +108,16 @@ class WeightSyncWorkerExtension:
                 Total number of participating processes in the update group.
         """
         if self.pynccl_comm is not None:
-            raise RuntimeError("Weight update group already initialized. Call close_communicator first.")
+            print("Communicator is already initialized, but coming a new init request.")
+            print("Closing previous communicator, and re-init with new client.")
+            self.close_communicator()
+            # raise RuntimeError("Weight update group already initialized. Call close_communicator first.")
 
         # Get the rank of the current worker in the global world group.
         rank = get_world_group().rank
 
         # Create a stateless process group to manage communication between training processes and vLLM workers.
+        print(f"Init communicator: Rank: {rank}, world_size: {world_size}")
         pg = StatelessProcessGroup.create(host=host, port=port, rank=rank, world_size=world_size)
 
         # Initialize the NCCL-based communicator for weight synchronization.
@@ -429,6 +433,7 @@ def main(script_args: ScriptArguments):
         top_k: int = -1
         min_p: float = 0.0
         max_tokens: int = 16
+        stop_token_ids: Optional[list[int]] = None
         guided_decoding_regex: Optional[str] = None
         generation_kwargs: dict = field(default_factory=dict)
 
@@ -484,6 +489,7 @@ def main(script_args: ScriptArguments):
             "min_p": request.min_p,
             "max_tokens": request.max_tokens,
             "guided_decoding": guided_decoding,
+            "stop_token_ids": request.stop_token_ids,
         }
         generation_kwargs.update(request.generation_kwargs)
         sampling_params = SamplingParams(**generation_kwargs)

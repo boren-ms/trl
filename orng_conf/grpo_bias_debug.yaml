@@ -14,12 +14,12 @@ reward_weights: [1, 1]
 model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 # job_name: phi4_mm_bias_grpo
-report_to: [tensorboard]
+report_to: [wandb]
 learning_rate: 5e-6
 lr_scheduler_type: cosine
 output_dir: ./output
-per_device_train_batch_size: 2
-num_generations: 2
+per_device_train_batch_size: 24
+num_generations: 8
 logging_steps: 1
 bf16: True
 gradient_checkpointing: True
@@ -31,6 +31,7 @@ wandb_log_unique_prompts: True
 epsilon_high: 0.28
 save_steps: 100
 use_vllm: True
-vllm_server_host: 127.0.0.1 
-vllm_server_port: 8000
+vllm_update_steps: 10
+# vllm_server_host: 127.0.0.1 
+# vllm_server_port: 26500
 # resume_from_checkpoint: True

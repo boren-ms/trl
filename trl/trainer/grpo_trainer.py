@@ -200,7 +200,7 @@ def nanstd(tensor: torch.Tensor) -> torch.Tensor:
     return torch.sqrt(variance)
 
 
-def split_tensor_dict(tensor_dict: dict[str, Optional[torch.Tensor]], num_chunks: int) -> list[dict[str, Optional[torch.Tensor]]]:
+def split_tensor_dict(tensor_dict: dict[str, Optional[Union[torch.Tensor, dict]]], num_chunks: int) -> list[dict[str, Optional[Union[torch.Tensor, dict]]]]:
     """
     Splits a dictionary of tensors along the first dimension into `num_chunks` equal parts.
 
@@ -219,10 +219,23 @@ def split_tensor_dict(tensor_dict: dict[str, Optional[torch.Tensor]], num_chunks
     """
     first_tensor = next(tensor for tensor in tensor_dict.values() if tensor is not None)
     chunk_size = first_tensor.shape[0] // num_chunks
-    return [{key: tensor[i * chunk_size : (i + 1) * chunk_size] if tensor is not None else None for key, tensor in tensor_dict.items()} for i in range(num_chunks)]
+    chunks = [{} for _ in range(num_chunks)]
+    for key, tensor in tensor_dict.items():
+        if tensor is None:
+            vals = [None] * num_chunks
+        elif isinstance(tensor, torch.Tensor):  # TODO: need to fix when len(tensor) is short than chunk_sizes, the chunk number chould be different for keys.
+            vals = torch.split(tensor, chunk_size)
+        elif isinstance(tensor, dict):
+            vals = split_tensor_dict(tensor, chunk_size)
+        else:
+            raise RuntimeError("Unknow tensor type:", tensor)
+        for i, val in enumerate(vals):
+            chunks[i][key] = val
+
+    return chunks
 
 
-def shuffle_tensor_dict(tensor_dict: dict[str, Optional[torch.Tensor]]) -> dict[str, Optional[torch.Tensor]]:
+def shuffle_tensor_dict(tensor_dict: dict[str, Optional[Union[torch.Tensor, dict]]]) -> dict[str, Optional[Union[torch.Tensor, dict]]]:
     """
     Shuffles a dictionary of tensors along the first dimension in unison.
 
@@ -243,7 +256,19 @@ def shuffle_tensor_dict(tensor_dict: dict[str, Optional[torch.Tensor]]) -> dict[
     first_tensor = next(tensor for tensor in tensor_dict.values() if tensor is not None)
     batch_size = first_tensor.shape[0]
     permutation = torch.randperm(batch_size)
-    return {key: tensor[permutation] if tensor is not None else None for key, tensor in tensor_dict.items()}
+
+    new_tensor_dict = {}
+    for key, tensor in tensor_dict.items():
+        if tensor is None:
+            val = None
+        elif isinstance(tensor, torch.Tensor):
+            val = tensor[permutation]
+        elif isinstance(tensor, dict):
+            val = shuffle_tensor_dict(tensor)
+        else:
+            raise RuntimeError("Unknow tensor type:", tensor)
+        new_tensor_dict[key] = val
+    return new_tensor_dict
 
 
 def nanmin(tensor: torch.Tensor) -> torch.Tensor:
@@ -597,7 +622,7 @@ class GRPOTrainer(Trainer):
         # transformers if num_generations exceeds per_device_train_batch_size. We could skip it if we use vLLM, but
         # it's safer to set it in all cases.
         set_seed(args.seed, device_specific=True)
-
+        self.stop_tokens_ids = self.processing_class.tokenizer(["<|end|>", self.processing_class.tokenizer.eos_token], add_special_tokens=False, padding="longest", return_tensors="pt").input_ids
         if self.use_vllm:
             if not is_vllm_available():
                 raise ImportError("vLLM is not available and `use_vllm` is set to True. Please install vLLM with " "`pip install vllm` to use it.")
@@ -947,15 +972,15 @@ class GRPOTrainer(Trainer):
 
         mode = "train" if self.model.training else "eval"
         if mode == "train":
-            generate_every = self.args.steps_per_generation * self.num_iterations
-            if self._step % generate_every == 0 or self._buffered_inputs is None:
-                # self._buffered_inputs=None can occur when resuming from a checkpoint
-                generation_batch = self._generate_and_score_completions(generation_batch)
-                # TODO: revert to the original batching strategy
-                # generation_batch = shuffle_tensor_dict(generation_batch)
-                # self._buffered_inputs = split_tensor_dict(generation_batch, self.args.steps_per_generation)
-                # inputs = self._buffered_inputs[self._step % self.args.steps_per_generation]
-                inputs = generation_batch
+            # generate_every = self.args.steps_per_generation * self.num_iterations
+            # if self._step % generate_every == 0 or self._buffered_inputs is None:
+            #     # self._buffered_inputs=None can occur when resuming from a checkpoint
+            #     generation_batch = self._generate_and_score_completions(generation_batch)
+            #     # TODO: revert to the original batching strategy
+            #     generation_batch = shuffle_tensor_dict(generation_batch)
+            #     self._buffered_inputs = split_tensor_dict(generation_batch, self.args.steps_per_generation)
+            # inputs = self._buffered_inputs[self._step % self.args.steps_per_generation]
+            inputs = self._generate_and_score_completions(generation_batch)
             self._step += 1
         else:
             # In evaluation, there is neither batch grouping for generation, nor multiple iterations, hence
@@ -1022,6 +1047,7 @@ class GRPOTrainer(Trainer):
             for prompt in prompts
         ]
         audios = [(np.array(x["audio"]), x["sr"]) for x in inputs]
+        audio_paths = [x["audio_path"] for x in inputs]
         prompt_inputs = self.processing_class(
             text=prompts_text,
             audios=audios,
@@ -1037,26 +1063,30 @@ class GRPOTrainer(Trainer):
         if self.max_prompt_length is not None:
             prompt_ids = prompt_ids[:, -self.max_prompt_length :]
             prompt_mask = prompt_mask[:, -self.max_prompt_length :]
-            prompts_text = self.processing_class.batch_decode(prompt_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+            # disable this for vllm
+            # prompts_text = self.processing_class.batch_decode(prompt_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
         # Generate completions using either vLLM or regular generation
         if self.use_vllm:
             # First, update the vLLM weights if needed
-            if self.state.global_step != self._last_loaded_step:
+            if self.state.global_step % self.args.vllm_update_steps == 0 and self.state.global_step != self._last_loaded_step:
+                print(f"Update vllm weights @ {self.state.global_step} step")
                 self._move_model_to_vllm()
                 self._last_loaded_step = self.state.global_step
-
             # Generate completions using vLLM: gather all prompts and use them in a single call in the main process
             if self.vllm_mode == "server":
                 all_prompts_text = gather_object(prompts_text)
+                all_audio_paths = gather_object(audio_paths)
                 if self.accelerator.is_main_process:
                     # Since 'prompts' contains 'num_generations' duplicates, we first take unique prompts, and generate
                     # num_generations outputs for each one. This is faster than generating outputs for each duplicate
                     # prompt individually.
                     ordered_set_of_prompts = all_prompts_text[:: self.num_generations]
+                    ordered_set_of_audios = all_audio_paths[:: self.num_generations]
                     with profiling_context(self, "vLLM.generate"):
-                        completion_ids = self.vllm_client.generate(
+                        outputs = self.vllm_client.generate(
                             prompts=ordered_set_of_prompts,
+                            audios=ordered_set_of_audios,
                             n=self.num_generations,
                             repetition_penalty=self.repetition_penalty,
                             temperature=self.temperature,
@@ -1064,9 +1094,11 @@ class GRPOTrainer(Trainer):
                             top_k=-1 if self.top_k is None else self.top_k,
                             min_p=0.0 if self.min_p is None else self.min_p,
                             max_tokens=self.max_completion_length,
+                            stop_token_ids=self.stop_tokens_ids.flatten().tolist(),
                             guided_decoding_regex=self.guided_decoding_regex,
                             generation_kwargs=self.args.generation_kwargs,
                         )
+                        completion_ids = outputs["completion_ids"]
                 else:
                     completion_ids = [None] * len(all_prompts_text)
                 # Broadcast the completions from the main process to all processes, ensuring each process receives its
@@ -1136,10 +1168,8 @@ class GRPOTrainer(Trainer):
             completion_ids = prompt_completion_ids[:, prompt_length:]
 
         # Mask everything after the first EOS token
-        stop_tokens = ["<|end|>", self.processing_class.tokenizer.eos_token]
-        stop_tokens_ids = self.processing_class.tokenizer(stop_tokens, add_special_tokens=False, padding="longest", return_tensors="pt").input_ids.to(device)
         # is_eos = completion_ids == self.processing_class.tokenizer.eos_token_id
-        is_eos = torch.isin(completion_ids, stop_tokens_ids)
+        is_eos = torch.isin(completion_ids, self.stop_tokens_ids.to(device))
         eos_idx = torch.full((is_eos.size(0),), is_eos.size(1), dtype=torch.long, device=device)
         eos_idx[is_eos.any(dim=1)] = is_eos.int().argmax(dim=1)[is_eos.any(dim=1)]
         sequence_indices = torch.arange(is_eos.size(1), device=device).expand(is_eos.size(0), -1)

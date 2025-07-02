@@ -173,6 +173,7 @@ class VLLMClient:
         top_k: int = -1,
         min_p: float = 0.0,
         max_tokens: int = 16,
+        stop_token_ids: Optional[list[int]] = None,
         guided_decoding_regex: Optional[str] = None,
         generation_kwargs: Optional[dict] = None,
     ) -> dict:
@@ -222,6 +223,7 @@ class VLLMClient:
                 "top_k": top_k,
                 "min_p": min_p,
                 "max_tokens": max_tokens,
+                "stop_token_ids": stop_token_ids,
                 "guided_decoding_regex": guided_decoding_regex,
                 "generation_kwargs": generation_kwargs or {},
             },

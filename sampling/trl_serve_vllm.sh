@@ -12,6 +12,7 @@ set -x
 model_path=${HOME}/data/ckp/hf_models/phi4_mm_bias_merged
 # use sampling/merge_hf_lora.py to merge lora weights into the model.
 # model_path=${HOME}/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf_merged
+export CUDA_VISIBLE_DEVICES=4 
 trl vllm-serve --model ${model_path} --host 127.0.0.1 --port 8000 --tensor-parallel-size 1 --trust-remote-code --max-model-len 8192 
 # --load-format auto --limit-mm-per-prompt audio=10
 

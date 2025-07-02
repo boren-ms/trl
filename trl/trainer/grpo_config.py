@@ -407,7 +407,10 @@ class GRPOConfig(TrainingArguments):
             "launching the vLLM server via the `--vllm_tensor_parallel_size` flag."
         },
     )
-
+    vllm_update_steps: int = field(
+        default=1,
+        metadata={"help": "Number steps to update vllm weights."},
+    )
     # Parameters that control the training
     beta: float = field(
         default=0.0,

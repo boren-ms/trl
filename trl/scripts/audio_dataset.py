@@ -106,6 +106,7 @@ def tsv_dataset(tsv_paths, **kwargs):
                 "array": audio,
                 "sampling_rate": fs,
             },
+            "audio_path": audio_path,
             "text": messages[-1]["content"],
             "id": egs["id"],
         }
