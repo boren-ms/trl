@@ -22,6 +22,8 @@ from itertools import chain
 from multiprocessing import Pipe, Process
 from multiprocessing.connection import Connection
 from typing import Optional
+import blobfile as bf
+import soundfile as sf
 
 import torch
 
@@ -65,6 +67,16 @@ logger = logging.getLogger(__name__)
 # error: RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use
 # the 'spawn' start method
 os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
+
+
+def sf_read(file_path):
+    """Load audio from a file."""
+    # print("Audio file:", file_path)
+    if not bf.exists(file_path):
+        raise FileNotFoundError(f"File {file_path} does not exist.")
+    with bf.BlobFile(file_path, "rb") as f:
+        audio, sr = sf.read(f)
+    return audio, sr
 
 
 class WeightSyncWorkerExtension:
@@ -243,10 +255,7 @@ class ScriptArguments:
     )
     enable_prefix_caching: Optional[bool] = field(
         default=None,
-        metadata={
-            "help": "Whether to enable prefix caching in vLLM. If set to `True`, ensure that the model and the "
-            "hardware support this feature."
-        },
+        metadata={"help": "Whether to enable prefix caching in vLLM. If set to `True`, ensure that the model and the " "hardware support this feature."},
     )
     enforce_eager: Optional[bool] = field(
         default=False,
@@ -258,9 +267,7 @@ class ScriptArguments:
     )
     kv_cache_dtype: str = field(
         default="auto",
-        metadata={
-            "help": "Data type to use for KV cache. If set to 'auto', the dtype will default to the model data type."
-        },
+        metadata={"help": "Data type to use for KV cache. If set to 'auto', the dtype will default to the model data type."},
     )
     trust_remote_code: bool = field(
         default=False,
@@ -271,16 +278,11 @@ class ScriptArguments:
     )
     log_level: str = field(
         default="info",
-        metadata={
-            "help": "Log level for uvicorn. Possible choices: 'critical', 'error', 'warning', 'info', 'debug', "
-            "'trace'."
-        },
+        metadata={"help": "Log level for uvicorn. Possible choices: 'critical', 'error', 'warning', 'info', 'debug', " "'trace'."},
     )
 
 
-def llm_worker(
-    script_args: ScriptArguments, data_parallel_rank: int, master_port: int, connection: Connection
-) -> None:
+def llm_worker(script_args: ScriptArguments, data_parallel_rank: int, master_port: int, connection: Connection) -> None:
     # Set required environment variables for DP to work with vLLM
     os.environ["VLLM_DP_RANK"] = str(data_parallel_rank)
     os.environ["VLLM_DP_RANK_LOCAL"] = str(data_parallel_rank)
@@ -349,19 +351,13 @@ def chunk_list(lst: list, n: int) -> list[list]:
 
 def main(script_args: ScriptArguments):
     if not is_fastapi_available():
-        raise ImportError(
-            "FastAPI is required to run the vLLM serve script. Please install it using `pip install fastapi`."
-        )
+        raise ImportError("FastAPI is required to run the vLLM serve script. Please install it using `pip install fastapi`.")
 
     if not is_pydantic_available():
-        raise ImportError(
-            "Pydantic is required to run the vLLM serve script. Please install it using `pip install pydantic`."
-        )
+        raise ImportError("Pydantic is required to run the vLLM serve script. Please install it using `pip install pydantic`.")
 
     if not is_uvicorn_available():
-        raise ImportError(
-            "Uvicorn is required to run the vLLM serve script. Please install it using `pip install uvicorn`."
-        )
+        raise ImportError("Uvicorn is required to run the vLLM serve script. Please install it using `pip install uvicorn`.")
 
     if not is_vllm_available():
         raise ImportError("vLLM is required to run the vLLM serve script. Please install it using `pip install vllm`.")
@@ -425,6 +421,7 @@ def main(script_args: ScriptArguments):
 
     class GenerateRequest(BaseModel):
         prompts: list[str]
+        audios: Optional[list[str]] = None
         n: int = 1
         repetition_penalty: float = 1.0
         temperature: float = 1.0
@@ -437,6 +434,7 @@ def main(script_args: ScriptArguments):
 
     class GenerateResponse(BaseModel):
         completion_ids: list[list[int]]
+        texts: list[str]
 
     @app.post("/generate/", response_model=GenerateResponse)
     async def generate(request: GenerateRequest):
@@ -470,7 +468,7 @@ def main(script_args: ScriptArguments):
         {"completion_ids": [[101, 102, 103], [201, 202, 203]]}
         ```
         """
-
+        print("Request:\n", request)
         # Guided decoding, if enabled
         if request.guided_decoding_regex is not None:
             guided_decoding = GuidedDecodingParams(backend="outlines", regex=request.guided_decoding_regex)
@@ -490,8 +488,15 @@ def main(script_args: ScriptArguments):
         generation_kwargs.update(request.generation_kwargs)
         sampling_params = SamplingParams(**generation_kwargs)
 
+        if request.audios:
+            prompts = []
+            for prompt, audio in zip(request.prompts, request.audios):
+                prompts.append({"prompt": prompt, "multi_modal_data": {"audio": [sf_read(audio)]}} if audio else prompt)
+        else:
+            prompts = request.prompts
+
         # Evenly distribute prompts across DP ranks
-        chunked_prompts = chunk_list(request.prompts, script_args.data_parallel_size)
+        chunked_prompts = chunk_list(prompts, script_args.data_parallel_size)
 
         # Send the prompts to each worker
         for connection, prompts in zip(connections, chunked_prompts):
@@ -512,7 +517,10 @@ def main(script_args: ScriptArguments):
         # Flatten and combine all results
         all_outputs = list(chain.from_iterable(all_outputs))  # from list of list to single list
         completion_ids = [list(output.token_ids) for outputs in all_outputs for output in outputs.outputs]
-        return {"completion_ids": completion_ids}
+        texts = [output.text for outputs in all_outputs for output in outputs.outputs]
+        for i, text in enumerate(texts):
+            print(f"[{i}]:{text}")
+        return {"completion_ids": completion_ids, "texts": texts}
 
     class InitCommunicatorRequest(BaseModel):
         host: str

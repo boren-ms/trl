@@ -149,8 +149,7 @@ class VLLMClient:
                 elapsed_time = time.time() - start_time
                 if elapsed_time >= total_timeout:
                     raise ConnectionError(
-                        f"The vLLM server can't be reached at {self.base_url} after {total_timeout} seconds. Make "
-                        "sure the server is running by running `trl vllm-serve`."
+                        f"The vLLM server can't be reached at {self.base_url} after {total_timeout} seconds. Make " "sure the server is running by running `trl vllm-serve`."
                     ) from exc
             else:
                 if response.status_code == 200:
@@ -166,6 +165,7 @@ class VLLMClient:
     def generate(
         self,
         prompts: list[str],
+        audios: Optional[list[str]] = None,
         n: int = 1,
         repetition_penalty: float = 1.0,
         temperature: float = 1.0,
@@ -175,13 +175,15 @@ class VLLMClient:
         max_tokens: int = 16,
         guided_decoding_regex: Optional[str] = None,
         generation_kwargs: Optional[dict] = None,
-    ) -> list[list[int]]:
+    ) -> dict:
         """
         Generates model completions for the provided prompts.
 
         Args:
             prompts (`list[str]`):
                 List of text prompts for which the model will generate completions.
+            audios (`list[str]`):
+                List of audio paths for which the model will generate completions.
             n (`int`, *optional*, defaults to `1`):
                 Number of completions to generate for each prompt.
             repetition_penalty (`float`, *optional*, defaults to `1.0`):
@@ -212,6 +214,7 @@ class VLLMClient:
             url,
             json={
                 "prompts": prompts,
+                "audios": audios,
                 "n": n,
                 "repetition_penalty": repetition_penalty,
                 "temperature": temperature,
@@ -224,7 +227,7 @@ class VLLMClient:
             },
         )
         if response.status_code == 200:
-            return response.json()["completion_ids"]
+            return response.json()
         else:
             raise Exception(f"Request failed: {response.status_code}, {response.text}")
 
