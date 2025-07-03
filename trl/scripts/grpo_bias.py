@@ -109,7 +109,10 @@ def init_wandb(job_name=None, project_name=None):
     # key = os.environ.get("WANDB_API_KEY", "")
     # host = os.environ.get("WANDB_ORGANIZATION", "")
     # wandb.login(host=host, key=key, relogin=True)
-    run = wandb.init(entity="genai", project=project_name, name=job_name, resume="allow")
+    # entity="orangewandb"
+    # entity="boren"
+    entity="genai"
+    run = wandb.init(entity=entity, project=project_name, name=job_name, resume="allow")
     print("wandb offline: ", run.settings._offline)  # Should be True
     print("wandb mode: ", run.settings.mode)  # Should be "offline"
 
