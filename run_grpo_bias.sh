@@ -16,9 +16,14 @@ region_map=(
     ["uksouth"]="uks"
 )   
 export REGION_CODE=${region_map[$CLUSTER_REGION]}
-# update the ENV variables in the config file
-envsubst < ${config_file} > ${config_file}.yaml
 
+MAIN_NODE=${RCALL_JOB_NAME}-0
+# update the ENV variables in the config file
+new_config_file=${config_file}.tmp
+envsubst < ${config_file} > ${new_config_file}
+
+echo "syncing config file from main node ${MAIN_NODE} to local ${new_config_file}"
+rsync -avz ${MAIN_NODE}:${new_config_file} ${new_config_file}
 
 RANK=${RCALL_INSTANCE_INDEX}
 NNODES=${RCALL_INSTANCE_COUNT}
@@ -29,9 +34,9 @@ accelerate launch \
     --num_processes ${NGPUS} \
     --num_machines ${NNODES} \
     --machine_rank ${RANK} \
-    --main_process_ip ${RCALL_JOB_NAME}-0 \
+    --main_process_ip ${MAIN_NODE} \
     --main_process_port 12345 \
-    trl/scripts/grpo_bias.py --config ${config_file} 
+    trl/scripts/grpo_bias.py --config ${new_config_file} 
 "
 
 mkdir -p ${RCALL_LOGDIR}
