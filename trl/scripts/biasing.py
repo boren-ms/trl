@@ -2,6 +2,8 @@
 import re
 import random
 from collections import deque
+import blobfile as bf
+
 
 def text_norm(word, tn_prob=1.0):
     """Normalize the text by removing special characters and converting to lowercase."""
@@ -40,10 +42,11 @@ def rand_sample(lst, max_num, new=False):
     # print(f"Sampling {n} pieces from {len(lst)}[{max_num}]")
     return random.sample(lst, n)
 
+
 def read_words(file_path, N=None, tn_prob=1.0):
     """Read the top N lines from a file."""
     words = []
-    with open(file_path, "r") as f:
+    with bf.BlobFile(file_path, "r") as f:
         for i, line in enumerate(f):
             if N is not None and i >= N:
                 break
@@ -51,11 +54,24 @@ def read_words(file_path, N=None, tn_prob=1.0):
             words.append(text_norm(word, tn_prob))
     return words
 
+
 class PieceSampler:
     """Sample segments from the text using instance parameters."""
 
-    def __init__(self, buffer_size=100000, bias_prob=1.0, hit_prob=0.5,  max_piece_len=1, new_sampling=False, common_word_file=None, common_word_num=None,
-                 max_num=10, tag="*", tag_all=True, log_interval=None):
+    def __init__(
+        self,
+        buffer_size=100000,
+        bias_prob=1.0,
+        hit_prob=0.5,
+        max_piece_len=1,
+        new_sampling=False,
+        common_word_file=None,
+        common_word_num=None,
+        max_num=10,
+        tag="*",
+        tag_all=True,
+        log_interval=None,
+    ):
         """Initialize the PieceSampler with configuration parameters.
 
         Args:
@@ -94,7 +110,6 @@ class PieceSampler:
             return [tag_piece(p, self.tag) for p in pieces]
         return [tag_piece(p, self.tag) if p in specified else p for p in pieces]
 
-
     def _sample(self, pieces):
         """Sample segments from the positive pieces."""
         self.buffer.extend(pieces)
@@ -118,16 +133,18 @@ class PieceSampler:
         # Tag the pieces with shared tags
         shared = set(examples) & set(pieces)
         pieces = self.tag_pieces(pieces, shared)
-        if self.tag_all: # tag the input sample pieces as well
+        if self.tag_all:  # tag the input sample pieces as well
             examples = self.tag_pieces(examples)
         self.idx += 1
         prompt, trans = ", ".join(examples), " ".join(pieces)
         if self.log_interval is not None and self.idx % self.log_interval == 0:
             print(f"[{self.idx}] biasing  list: {prompt}")
             print(f"[{self.idx}] transcription: {trans}")
-        
+
         return prompt, trans
-#%%
+
+
+# %%
 if __name__ == "__main__":
     sample_utterances = [
         "Hello, how are you?",
@@ -154,11 +171,11 @@ if __name__ == "__main__":
         "Regular exercise is important for maintaining good health.",
         "The art exhibition features works from local artists.",
         "Natural language processing helps computers understand human language.",
-        "Don't forget to water the plants while I'm away."
+        "Don't forget to water the plants while I'm away.",
     ]
 
     # Create an instance of PieceSampler
-    sampler = PieceSampler(buffer_size=100, max_piece_len=3, bias_prob=1, max_num=100, hit_prob=0.9,log_interval=2)
+    sampler = PieceSampler(buffer_size=100, max_piece_len=3, bias_prob=1, max_num=100, hit_prob=0.9, log_interval=2)
     # Sample pieces from the utterances
     for text in sample_utterances:
         examples, trans = sampler.sample(text)
