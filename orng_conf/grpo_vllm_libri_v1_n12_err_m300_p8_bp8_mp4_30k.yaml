@@ -1,6 +1,6 @@
 dataset_name: tsv
 dataset_config:
-    # num_egs: 5000
+    num_egs: 5000
     # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
     tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     biasing:
