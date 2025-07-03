@@ -1,7 +1,7 @@
 dataset_name: tsv
 dataset_config:
-    num_egs: 5000
-    tsv_paths: az://orng${REGION_CODE}cresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    # num_egs: 5000
+    tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     biasing:
         buffer_size: 10000
         max_piece_len: 4
@@ -32,4 +32,8 @@ wandb_log_unique_prompts: True
 # beta: 0.1
 epsilon_high: 0.28
 save_steps: 100
+use_vllm: True
+vllm_update_steps: 10
+vllm_server_host: 10.142.82.238 # dev-n1-wus2-0
+# vllm_server_port: 26500
 # resume_from_checkpoint: True

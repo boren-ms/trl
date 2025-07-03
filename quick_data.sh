@@ -1,8 +1,17 @@
 #!/bin/bash
 
 set -x
+export CLUSTER_REGION=$(echo "$RCALL_KUBE_CLUSTER" | cut -d'-' -f2)
+declare -A region_map
+region_map=(
+    ["southcentralus"]="scus"
+    ["westus2"]="wus2"
+    ["uksouth"]="uks"
+)   
+export REGION_CODE=${region_map[$CLUSTER_REGION]}
 
-REMOTE_DIR="az://orngwus2cresco/data/boren/data"
+REMOTE_DIR="az://orng${REGION_CODE}cresco/data/boren/data"
+# REMOTE_DIR="az://orngwus2cresco/data/boren/data"
 LOCAL_DIR="${HOME}/data"
 
 
