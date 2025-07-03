@@ -5,7 +5,7 @@ dataset_config:
     tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     biasing:
         buffer_size: 10000
-        max_piece_len: 1
+        max_piece_len: 4
         max_num: 1000
         bias_prob: 0.8
         hit_prob: 0.8
