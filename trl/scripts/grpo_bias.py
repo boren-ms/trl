@@ -106,9 +106,9 @@ def init_wandb(job_name=None, project_name=None):
     project_name = project_name or DEFAULT_PROJECT
     job_name = get_job_name(job_name)
     print(f"Project Name: {project_name}, Job Name: {job_name}")
-    # key = os.environ.get("WANDB_API_KEY", "")
-    # host = os.environ.get("WANDB_ORGANIZATION", "")
-    # wandb.login(host=host, key=key, relogin=True)
+    key = os.environ.get("WANDB_API_KEY", "")
+    host = os.environ.get("WANDB_ORGANIZATION", "")
+    wandb.login(host=host, key=key, relogin=True)
     # entity="orangewandb"
     # entity="boren"
     entity="genai"

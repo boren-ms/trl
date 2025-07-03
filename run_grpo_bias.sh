@@ -62,8 +62,8 @@ echo "Logging to ${RANK_LOG_FILE}"
 echo "vLLM Server Host: ${VLLM_SERVER_HOST}" > ${RANK_LOG_FILE}
 echo "Running $cmd" >> $RANK_LOG_FILE
 # printenv >> $RANK_LOG_FILE
-export WANDB_MODE=offline
-echo "WANDB MODE: ${WANDB_MODE}"
+# export WANDB_MODE=offline
+# echo "WANDB MODE: ${WANDB_MODE}"
 $cmd >> $RANK_LOG_FILE 2>&1 
-echo "Sync wandb: ${WANDB_DIR}/wandb/offline-run* "
-wandb sync ${WANDB_DIR}/wandb/offline-run* |tee -a $RANK_LOG_FILE 
+# echo "Sync wandb: ${WANDB_DIR}/wandb/offline-run* "
+# wandb sync ${WANDB_DIR}/wandb/offline-run* |tee -a $RANK_LOG_FILE 
