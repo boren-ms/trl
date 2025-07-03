@@ -15,6 +15,7 @@ from peft.tuners.lora import LoraLayer
 for module in model.modules():
     if isinstance(module, LoraLayer):
         module.merge(adapter_names=["speech"])
+        module.unload_adapter(adapter_name="speech")
         
 #%%
 shutil.copytree(model_path, merged_model_path, dirs_exist_ok=True)

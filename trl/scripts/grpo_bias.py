@@ -97,14 +97,16 @@ def get_job_name(jobname=None):
     tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
     return datetime.now(tz).strftime('%Y%m%d-%H%M%S')
 
-DEFAULT_PROJECT = "grpo-bias"
+DEFAULT_PROJECT = "biasing"
 def init_wandb(job_name=None, project_name=None):
     """Initialize wandb."""
     project_name = project_name or DEFAULT_PROJECT
     job_name = get_job_name(job_name)
     print(f"Project Name: {project_name}, Job Name: {job_name}")
-    wandb.login()
-    wandb.init(project=project_name, name=job_name,resume="allow")
+    key = os.environ.get("WANDB_API_KEY", "")
+    host = os.environ.get("WANDB_ORGANIZATION", "")
+    wandb.login(host=host, key=key, relogin=True)
+    wandb.init(entity="genai", project=project_name, name=job_name,resume="allow")
 
 
 def reward_functions(names=None):
