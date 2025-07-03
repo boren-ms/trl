@@ -10,18 +10,7 @@ import soundfile as sf
 from functools import partial
 from error_simu import ErrorSimulator
 from biasing import PieceSampler
-# from trl.scripts.biasing import PieceSampler
-
-
-def sf_read(file_path):
-    """Load audio from a file."""
-    # print("Audio file:", file_path)
-    if not bf.exists(file_path):
-        raise FileNotFoundError(f"File {file_path} does not exist.")
-    with bf.BlobFile(file_path, "rb") as f:
-        audio, sr = sf.read(f)
-    return audio, sr
-
+from trl.data_utils import sf_read
 
 def bias_dataset(file_paths, ground_truth=True, **kwargs):
     """Create a dataset from the given split."""
@@ -100,12 +89,12 @@ def tsv_dataset(tsv_paths, **kwargs):
         if egs["dir"]:
             audio_path = audio_path.replace("/root/data/LibriSpeech", egs["dir"])
         messages = ast.literal_eval(egs["msgs"])[0]["messages"]
-        audio, fs = sf_read(audio_path)
+        # audio, fs = sf_read(audio_path)
         x = {
-            "audio": {
-                "array": audio,
-                "sampling_rate": fs,
-            },
+            # "audio": {
+            #     "array": audio,
+            #     "sampling_rate": fs,
+            # },
             "audio_path": audio_path,
             "text": messages[-1]["content"],
             "id": egs["id"],

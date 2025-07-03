@@ -24,10 +24,19 @@ import pyarrow.compute as pc
 import pyarrow.types
 from datasets import Dataset, DatasetDict
 from transformers import PreTrainedTokenizerBase
-
+import blobfile as bf
+import soundfile as sf
 
 DatasetType = TypeVar("DatasetType", Dataset, DatasetDict)
 
+def sf_read(file_path):
+    """Load audio from a file."""
+    # print("Audio file:", file_path)
+    if not bf.exists(file_path):
+        raise FileNotFoundError(f"File {file_path} does not exist.")
+    with bf.BlobFile(file_path, "rb") as f:
+        audio, sr = sf.read(f)
+    return audio, sr
 
 def is_conversational(example: dict[str, Any]) -> bool:
     r"""

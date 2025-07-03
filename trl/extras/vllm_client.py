@@ -103,7 +103,7 @@ class VLLMClient:
         self,
         base_url: Optional[str] = None,
         host: str = "0.0.0.0",
-        server_port: int = 8000,
+        server_port: int = 26400,  # Default port for vLLM server
         group_port: int = 51216,
         connection_timeout: float = 0.0,
     ):

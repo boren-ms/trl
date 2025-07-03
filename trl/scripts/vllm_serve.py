@@ -22,12 +22,11 @@ from itertools import chain
 from multiprocessing import Pipe, Process
 from multiprocessing.connection import Connection
 from typing import Optional
-import blobfile as bf
-import soundfile as sf
 
 import torch
 
 from trl import TrlParser
+from trl.data_utils import sf_read
 from trl.import_utils import (
     is_fastapi_available,
     is_pydantic_available,
@@ -67,16 +66,6 @@ logger = logging.getLogger(__name__)
 # error: RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use
 # the 'spawn' start method
 os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
-
-
-def sf_read(file_path):
-    """Load audio from a file."""
-    # print("Audio file:", file_path)
-    if not bf.exists(file_path):
-        raise FileNotFoundError(f"File {file_path} does not exist.")
-    with bf.BlobFile(file_path, "rb") as f:
-        audio, sr = sf.read(f)
-    return audio, sr
 
 
 class WeightSyncWorkerExtension:
@@ -230,7 +219,8 @@ class ScriptArguments:
         metadata={"help": "Host address to run the server on."},
     )
     port: int = field(
-        default=8000,
+        default=26400, # skip to use 8000 to avoid conflicts with other services
+        # default=8000,
         metadata={"help": "Port to run the server on."},
     )
     gpu_memory_utilization: float = field(

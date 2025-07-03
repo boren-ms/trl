@@ -19,6 +19,7 @@ def uuid4():
     short_id = shortuuid.ShortUUID().random(length=4)
     return short_id
 
+
 def init_model(model_id=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
@@ -32,6 +33,7 @@ def init_model(model_id=None):
     if "merged" in model_id:
         print("Lora merged, delete lora adapters")
         from peft.tuners.lora import LoraLayer
+
         for module in model.modules():
             if isinstance(module, LoraLayer):
                 module.delete_adapter("speech")
@@ -70,9 +72,7 @@ class GRPOScriptArguments:
     )
     reward_funcs: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Reward functions to use. Can be a list of functions or a single function."
-        },
+        metadata={"help": "Reward functions to use. Can be a list of functions or a single function."},
     )
 
 
@@ -93,20 +93,25 @@ def get_job_name(jobname=None):
         # use config file name as job name
         jobname = Path(sys.argv[sys.argv.index("--config") + 1]).stem
         return f"{jobname}-{uuid4()}"
-    # use current time as job name 
+    # use current time as job name
     tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
-    return datetime.now(tz).strftime('%Y%m%d-%H%M%S')
+    return datetime.now(tz).strftime("%Y%m%d-%H%M%S")
+
 
 DEFAULT_PROJECT = "biasing"
+
+
 def init_wandb(job_name=None, project_name=None):
     """Initialize wandb."""
     project_name = project_name or DEFAULT_PROJECT
     job_name = get_job_name(job_name)
     print(f"Project Name: {project_name}, Job Name: {job_name}")
-    key = os.environ.get("WANDB_API_KEY", "")
-    host = os.environ.get("WANDB_ORGANIZATION", "")
-    wandb.login(host=host, key=key, relogin=True)
-    wandb.init(entity="genai", project=project_name, name=job_name,resume="allow")
+    # key = os.environ.get("WANDB_API_KEY", "")
+    # host = os.environ.get("WANDB_ORGANIZATION", "")
+    # wandb.login(host=host, key=key, relogin=True)
+    run = wandb.init(entity="genai", project=project_name, name=job_name, resume="allow")
+    print("wandb offline: ", run.settings._offline)  # Should be True
+    print("wandb mode: ", run.settings.mode)  # Should be "offline"
 
 
 def reward_functions(names=None):
@@ -136,9 +141,7 @@ def main(script_args, training_args):
         model=model,
         reward_funcs=reward_functions(script_args.reward_funcs),
         args=training_args,
-        train_dataset=create_dataset(
-            dataset_name=script_args.dataset_name, **script_args.dataset_config
-        ),
+        train_dataset=create_dataset(dataset_name=script_args.dataset_name, **script_args.dataset_config),
         processing_class=processor,
     )
     print("Training...")
@@ -150,9 +153,7 @@ def make_parser(subparsers: argparse._SubParsersAction = None):
     """Create a parser for the GRPO training script."""
     dataclass_types = (GRPOScriptArguments, GRPOConfig)
     if subparsers is not None:
-        parser = subparsers.add_parser(
-            "grpo", help="Run the GRPO training script", dataclass_types=dataclass_types
-        )
+        parser = subparsers.add_parser("grpo", help="Run the GRPO training script", dataclass_types=dataclass_types)
     else:
         parser = TrlParser(dataclass_types)
     return parser
