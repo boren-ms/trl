@@ -1,7 +1,7 @@
 #! /bin/bash
 # run_accelerate.sh
-# set -euo pipefail
-set -x 
+set -euo pipefail
+# set -x 
 config_file=${1}
 if [[ -z "${config_file}" ]]; then
     echo "Usage: $0 <config_file>"

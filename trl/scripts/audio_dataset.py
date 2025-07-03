@@ -155,8 +155,8 @@ def bias_sampling(ds, **kwargs):
                     "content": f"<|audio_1|>Transcribe the audio clip into text. {side_prompt}",
                 }
             ],
-            "sr": sample["audio"]["sampling_rate"],
-            "audio": sample["audio"]["array"],
+            # "sr": sample["audio"]["sampling_rate"],
+            # "audio": sample["audio"]["array"],
             "text": text,
         }
 
