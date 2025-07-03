@@ -9,6 +9,7 @@ if [[ -z "${config_file}" ]]; then
     exit 1
 fi
 
+config_file=$(realpath "${config_file}")
 
 if [[ "${prepare}" == "true" ]]; then
     echo "Preparing the environment..."
@@ -27,4 +28,6 @@ echo "bash quick_vllm_serve.sh"
 
 # Run the GRPO bias experiment
 echo "Running multi-nodes jobs with ${config_file}"
+
+echo bash mpi_bash.sh bash run_grpo_bias.sh ${config_file}
 bash mpi_bash.sh bash run_grpo_bias.sh ${config_file}
