@@ -1,16 +1,16 @@
 #!/bin/bash
 
-set -x
+# set -x
 export CLUSTER_REGION=$(echo "$RCALL_KUBE_CLUSTER" | cut -d'-' -f2)
-declare -A region_map
-region_map=(
-    ["southcentralus"]="scus"
-    ["westus2"]="wus2"
-    ["uksouth"]="uks"
+declare -A region_storages
+region_storages=(
+    ["southcentralus"]="orngscuscresco"
+    ["westus2"]="orngwus2cresco"
+    ["uksouth"]="orngukscresco"
 )   
-export REGION_CODE=${region_map[$CLUSTER_REGION]}
+export DATA_STORAGE=${region_storages[$CLUSTER_REGION]}
 
-REMOTE_DIR="az://orng${REGION_CODE}cresco/data/boren/data"
+REMOTE_DIR="az://${DATA_STORAGE}/data/boren/data"
 # REMOTE_DIR="az://orngwus2cresco/data/boren/data"
 LOCAL_DIR="${HOME}/data"
 
@@ -25,6 +25,7 @@ rel_dirs=(
 )
 
 for rel_dir in "${rel_dirs[@]}"; do
+    echo "Syncing directory: $rel_dir"
     bbb sync --concurrency 64  "$REMOTE_DIR/$rel_dir" "$LOCAL_DIR/$rel_dir"
 done
 
@@ -33,5 +34,6 @@ rel_files=(
    LibriSpeech/debug.tsv
 )
 for rel_file in "${rel_files[@]}"; do
+    echo "Syncing file: $rel_file"
     bbb cp "$REMOTE_DIR/$rel_file" "$LOCAL_DIR/$rel_file"
 done
