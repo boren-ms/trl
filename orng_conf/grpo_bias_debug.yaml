@@ -1,14 +1,19 @@
 dataset_name: tsv
 dataset_config:
-    num_egs: 12
-    # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
-    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
+    # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
+    # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
+    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: /root/data/LibriSpeech/debug.tsv
     biasing:
         bias_prob: 0.8
         hit_prob: 0.8
         max_piece_len: 1
         max_num: 100
+        log_interval: 1000 # print biasing every 10000 samples
+        new_sampling: True
+        common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
+        common_word_num: 1000
 reward_funcs: [reward_word_error, reward_bias_error]
 reward_weights: [1, 1]
 # model_name_or_path: az://orngwus2cresco/data/boren/data/ckp/phi4_mm_bias
@@ -33,6 +38,7 @@ epsilon_high: 0.28
 save_steps: 100
 use_vllm: True
 vllm_update_steps: 10
-vllm_server_host: ${VLLM_SERVER_HOST}
+# vllm_server_host: ${VLLM_SERVER_HOST}
+vllm_server_host: 10.133.219.39
 # vllm_server_port: 26500
 # resume_from_checkpoint: True
