@@ -91,7 +91,8 @@ def get_job_name(jobname=None):
         return jobname
     if "--config" in sys.argv:
         # use config file name as job name
-        jobname = Path(sys.argv[sys.argv.index("--config") + 1]).stem
+        config_file = sys.argv[sys.argv.index("--config") + 1]
+        jobname = config_file.split(".")[0]
         return f"{jobname}-{uuid4()}"
     # use current time as job name
     tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
