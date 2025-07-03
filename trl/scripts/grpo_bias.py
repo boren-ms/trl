@@ -29,9 +29,17 @@ def init_model(model_id=None):
         _attn_implementation="flash_attention_2",
     )
     # lora_adpater=None
-    if "merged" not in model_id:
+    if "merged" in model_id:
+        print("Lora merged, delete lora adapters")
+        from peft.tuners.lora import LoraLayer
+        for module in model.modules():
+            if isinstance(module, LoraLayer):
+                module.delete_adapter("speech")
+                module.delete_adapter("vision")
+    else:
         print("loading speech lora adapter")
         model.set_lora_adapter("speech")
+
     processor = AutoProcessor.from_pretrained(
         model_id,
         trust_remote_code=True,
