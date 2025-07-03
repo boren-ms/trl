@@ -23,6 +23,8 @@ if [[ -z "${VLLM_SERVER_HOST}" ]]; then
     echo "Error: VLLM_SERVER_HOST environment variable is not set."
     echo "Please run the following command to start the vllm server in a separate node for vllm generation:"
     echo "bash quick_vllm_serve.sh"
+    echo "You can set it by running in terminal:"
+    echo "export VLLM_SERVER_HOST="
     exit 1
 fi
 
