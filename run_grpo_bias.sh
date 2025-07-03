@@ -17,7 +17,16 @@ region_storages=(
 )   
 # export REGION_CODE=${region_storages[$CLUSTER_REGION]}
 export DATA_STORAGE=${region_storages[$CLUSTER_REGION]}
-export VLLM_SERVER_HOST=10.142.82.238
+
+
+if [[ -z "${VLLM_SERVER_HOST}" ]]; then
+    echo "Error: VLLM_SERVER_HOST environment variable is not set."
+    echo "Please run the following command to start the vllm server in a separate node for vllm generation:"
+    echo "bash quick_vllm_serve.sh"
+    exit 1
+fi
+
+
 MAIN_NODE=${RCALL_JOB_NAME}-0
 # update the ENV variables in the config file
 new_config_file=${config_file}.tmp
@@ -48,7 +57,8 @@ accelerate launch \
 mkdir -p ${RCALL_LOGDIR}
 RANK_LOG_FILE=${RCALL_LOGDIR}/${CONFIG_NAME}_rank_${RANK}.log
 echo "Logging to ${RANK_LOG_FILE}"
-echo "Running $cmd" > $RANK_LOG_FILE
+echo "vLLM Server Host: ${VLLM_SERVER_HOST}" > ${RANK_LOG_FILE}
+echo "Running $cmd" >> $RANK_LOG_FILE
 # printenv >> $RANK_LOG_FILE
 export WANDB_MODE=offline
 echo "WANDB MODE: ${WANDB_MODE}"
