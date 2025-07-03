@@ -2,7 +2,8 @@ dataset_name: tsv
 dataset_config:
     num_egs: 12
     # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
-    tsv_paths: /root/data/LibriSpeech/debug.tsv
+    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
+    # tsv_paths: /root/data/LibriSpeech/debug.tsv
     biasing:
         bias_prob: 0.8
         hit_prob: 0.8
@@ -32,6 +33,6 @@ epsilon_high: 0.28
 save_steps: 100
 use_vllm: True
 vllm_update_steps: 10
-# vllm_server_host: 127.0.0.1 
+vllm_server_host: ${VLLM_SERVER_HOST}
 # vllm_server_port: 26500
 # resume_from_checkpoint: True

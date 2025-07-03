@@ -1,7 +1,7 @@
 #! /bin/bash
 # run_accelerate.sh
-set -euo pipefail
-
+# set -euo pipefail
+set -x 
 config_file=${1}
 if [[ -z "${config_file}" ]]; then
     echo "Usage: $0 <config_file>"
@@ -9,38 +9,40 @@ if [[ -z "${config_file}" ]]; then
 fi
 
 export CLUSTER_REGION=$(echo "$RCALL_KUBE_CLUSTER" | cut -d'-' -f2)
-declare -A region_map
-region_map=(
-    ["southcentralus"]="scus"
-    ["westus2"]="wus2"
-    ["uksouth"]="uks"
+declare -A region_storages
+region_storages=(
+    ["southcentralus"]="orngscuscresco"
+    ["westus2"]="orngwus2cresco"
+    ["uksouth"]="orngukscresco"
 )   
-export REGION_CODE=${region_map[$CLUSTER_REGION]}
-
+# export REGION_CODE=${region_storages[$CLUSTER_REGION]}
+export DATA_STORAGE=${region_storages[$CLUSTER_REGION]}
+export VLLM_SERVER_HOST=10.142.82.238
 MAIN_NODE=${RCALL_JOB_NAME}-0
 # update the ENV variables in the config file
 new_config_file=${config_file}.tmp
 envsubst < ${config_file} > ${new_config_file}
 
-echo "syncing config file from main node ${MAIN_NODE} to local ${new_config_file}"
+HOST=$(hostname)
+echo "syncing config: ${MAIN_NODE} -> ${HOST}"
 rsync -avz ${MAIN_NODE}:${new_config_file} ${new_config_file}
 
-RANK=${RCALL_INSTANCE_INDEX}
-NNODES=${RCALL_INSTANCE_COUNT}
-NGPUS=$(($RCALL_NUM_GPU*$NNODES))
+CONFIG_NAME=$(basename "$config_file" | sed 's/\.[^.]*$//')
+OUTPUT_DIR=outputs/${CONFIG_NAME}
+mkdir -p ${OUTPUT_DIR}
 
 cmd="
 accelerate launch \
-    --num_processes ${NGPUS} \
-    --num_machines ${NNODES} \
-    --machine_rank ${RANK} \
+    --num_processes $(($RCALL_NUM_GPU*$PMI_SIZE)) \
+    --num_machines ${PMI_SIZE} \
+    --machine_rank ${PMI_RANK} \
     --main_process_ip ${MAIN_NODE} \
     --main_process_port 12345 \
-    trl/scripts/grpo_bias.py --config ${new_config_file} 
+    trl/scripts/grpo_bias.py --config ${new_config_file} --output-dir ${OUTPUT_DIR}
 "
 
 mkdir -p ${RCALL_LOGDIR}
-RANK_LOG_FILE=${RCALL_LOGDIR}/rank_${RANK}.log
+RANK_LOG_FILE=${RCALL_LOGDIR}/${CONFIG_NAME}_rank_${PMI_RANK}.log
 echo "Logging to ${RANK_LOG_FILE}"
 echo "Running $cmd" > $RANK_LOG_FILE
 # printenv >> $RANK_LOG_FILE
