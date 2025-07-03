@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+# set -x
 
 config_file=${1}
 prepare=${2:-false}
