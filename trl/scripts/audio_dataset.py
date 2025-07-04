@@ -5,16 +5,13 @@ import urllib
 import random
 from pathlib import Path
 from datasets import load_dataset, concatenate_datasets
-import blobfile as bf
-import soundfile as sf
-from functools import partial
-from error_simu import ErrorSimulator
-from biasing import PieceSampler
-from trl.data_utils import sf_read
+from trl.scripts.error_simu import ErrorSimulator
+from trl.scripts.biasing import PieceSampler
 
-def bias_dataset(file_paths, ground_truth=True, **kwargs):
+
+def bias_dataset(file_paths, bias_key=None, tag=True, dir=None, **kwargs):
     """Create a dataset from the given split."""
-    # data_dir = Path("/datablob1/users/boren/data/SR/librispeech_biasing/ref")
+    # data_dir = Path("/home/boren/data/librispeech_biasing/ref")
     # jsonl_path = data_dir/"test-clean.biasing_100.jsonl"
     data_files = [file_paths] if isinstance(file_paths, str) else file_paths
     data_files = [str(file_path) for file_path in data_files]
@@ -24,23 +21,34 @@ def bias_dataset(file_paths, ground_truth=True, **kwargs):
         data_files=data_files,
         split="train",
     )
-    ds = stream_shuffle(ds, **kwargs)
-    ins_fmt = "Transcribe the audio clip into text. Please pay attention to following words: {words}."
 
-    def load_audio(example, ground_truth=False):
+    ds = stream_shuffle(ds, **kwargs)
+
+    def tag_word(word):
+        """Tag the word with *."""
+        if not tag:
+            return word
+        return f"*{word}*"
+
+    def load_sample(example):
         """Load audio from a file."""
-        audio, sr = sf_read(example["audio_path"])
-        words = example["ground_truth"] if ground_truth else example["distractors"]
-        instruct = ins_fmt.format(words=", ".join(words))
+
+        words = example.get(bias_key, [])
+        word_str = ", ".join([tag_word(wd) for wd in words])
+        instruct = "Transcribe the audio clip into text."
+        if word_str:
+            instruct += f" Pay extra attention to the following phrases/words: {word_str}."
+
+        audio_path = f"{dir}/{example['audio_path']}" if dir else example["audio_path"]
+        # audio, sr = sf_read(audio_path)
         x = {
             "prompt": [{"role": "user", "content": f"<|audio_1|>{instruct}"}],
-            "sr": sr,
-            "audio": audio,
+            "audio_path": audio_path,
             "text": example["text"],
         }
         return x
 
-    ds = ds.map(partial(load_audio, ground_truth=ground_truth))
+    ds = ds.map(load_sample)
     return ds
 
 
@@ -66,21 +74,19 @@ def load_tsv(tsv_file):
         column_names=["id", "paths", "msgs"],
         storage_options=options,
     )
-    
     dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
     print("DATA DIR:", dir_path)
     ds = ds.map(lambda x: {"dir": dir_path})
     return ds
 
+
 def tsv_dataset(tsv_paths, **kwargs):
     """Create a dataset from the given split."""
     if isinstance(tsv_paths, (list, tuple)):
-        ds = concatenate_datasets(
-            [load_tsv(tsv_path) for tsv_path in tsv_paths]
-        )
+        ds = concatenate_datasets([load_tsv(tsv_path) for tsv_path in tsv_paths])
     else:
         ds = load_tsv(tsv_paths)
-        
+
     ds = stream_shuffle(ds, **kwargs)
 
     def load_sample(egs):
@@ -145,9 +151,7 @@ def bias_sampling(ds, **kwargs):
     def proc_sample(sample):
         """Process a sample from the dataset."""
         context, text = bias_sampler.sample(sample["text"])
-        side_prompt = (
-            f"Pay extra attention to the following phrases/words: {context}." if context else ""
-        )
+        side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
         return {
             "prompt": [
                 {
