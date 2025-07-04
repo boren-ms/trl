@@ -24,7 +24,6 @@ rel_dirs=(
     # "ckp/hf_models/phi4_mm_bias"
     "librispeech_biasing/words"
     "librispeech_biasing/ref"
-    "librispeech_biasing/hyp"
     "LibriSpeech/test-clean"
     "LibriSpeech/train-clean-360/115/122944"
 )
