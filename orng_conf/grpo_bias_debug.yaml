@@ -38,7 +38,7 @@ epsilon_high: 0.28
 save_steps: 100
 use_vllm: True
 vllm_update_steps: 10
-# vllm_server_base_url: ${VLLM_SERVER_URL}
-vllm_server_base_url: 10.133.219.39
+# vllm_server_host: ${VLLM_SERVER_HOST}
+vllm_server_host: 10.133.219.39
 # vllm_server_port: 26500
 # resume_from_checkpoint: True
