@@ -8,6 +8,7 @@ if [[ -z "${config_file}" ]]; then
     exit 1
 fi
 
+config_file=$(realpath "${config_file}")
 export CLUSTER_REGION=$(echo "$RCALL_KUBE_CLUSTER" | cut -d'-' -f2)
 declare -A region_storages
 region_storages=(
