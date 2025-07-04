@@ -42,7 +42,7 @@ rsync -avz ${MAIN_NODE}:${new_config_file} ${new_config_file}
 echo "Working Dir: ${PWD}"
 
 CONFIG_NAME=$(basename "$config_file" | sed 's/\.[^.]*$//')
-OUTPUT_DIR=outputs/${CONFIG_NAME}
+OUTPUT_DIR=${HOME}/outputs/${CONFIG_NAME}
 mkdir -p ${OUTPUT_DIR}
 
 RANK=${PMI_RANK:-0}
