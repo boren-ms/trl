@@ -34,7 +34,7 @@ for wav_path in wav_paths[:N]:
     prompts.append(f"<|user|><|audio_1|>{text}<|end|><|assistant|>")
     audios.append(wav_path)
 #%%
-client = VLLMClient(server_port=26500)
+client = VLLMClient()
 # client.init_communicator()
 prompts = ["<|user|><|audio_1|>Transcribe the audio clip into text. <|end|><|assistant|>"]
 audios = ["/root/data/LibriSpeech/train-clean-360/115/122944/115-122944-0038.flac"]
