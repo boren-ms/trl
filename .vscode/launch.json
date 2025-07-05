@@ -19,6 +19,8 @@
             "program": "trl/scripts/grpo_bias.py",
             "console": "integratedTerminal",
             "env": {
+                "WANDB_ENTITY": "genai",
+                "WANDB_PROJECT": "biasing_debug",
                 "CUDA_VISIBLE_DEVICES": "7",
             },
             "justMyCode": false,

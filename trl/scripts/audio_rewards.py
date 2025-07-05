@@ -143,7 +143,7 @@ def compute_metrics(groups):
         "BWER_A": compute_match(groups, bias_match, 100).error_rate,
         "UWER": compute_match(groups, unbias_match, 1).error_rate,
         "UWER_A": compute_match(groups, unbias_match, 100).error_rate,
-        "num_egs": len(groups),
+        "num_examples": len(groups),
     }
 
 

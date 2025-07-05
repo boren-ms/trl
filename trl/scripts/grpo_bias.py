@@ -103,21 +103,17 @@ def get_job_name(jobname=None):
     return datetime.now(tz).strftime("%Y%m%d-%H%M%S")
 
 
-DEFAULT_PROJECT = "biasing"
 
-
-def init_wandb(job_name=None, project_name=None):
+def init_wandb(job_name=None, wandb_project=None):
     """Initialize wandb."""
-    project_name = project_name or DEFAULT_PROJECT
+    wandb_project = os.environ.get("WANDB_PROJECT", wandb_project or "biasing")
     job_name = get_job_name(job_name)
-    print(f"Project Name: {project_name}, Job Name: {job_name}")
+    print(f"Project Name: {wandb_project}, Job Name: {job_name}")
     key = os.environ.get("WANDB_API_KEY", "")
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
-    # entity="orangewandb"
-    # entity="boren"
-    entity = "genai"
-    run = wandb.init(entity=entity, project=project_name, name=job_name, resume="allow")
+    entity = os.environ.get("WANDB_ENTITY", "genai")
+    run = wandb.init(entity=entity, project=wandb_project, name=job_name, resume="allow")
     print("wandb offline: ", run.settings._offline)  # Should be True
     print("wandb mode: ", run.settings.mode)  # Should be "offline"
 
@@ -148,7 +144,7 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(job_name=script_args.job_name, project_name=script_args.project_name)  # disabled for wandb for orange
+        init_wandb(job_name=script_args.job_name, wandb_project=script_args.project_name)  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 
