@@ -7,7 +7,7 @@ train_data:
         buffer_size: 10000
         max_piece_len: 4
         max_num: 1000
-        bias_prob: 0.8
+        # bias_prob: 0.8
         hit_prob: 0.8
         log_interval: 1000 # print biasing every 10000 samples
         new_sampling: True
@@ -33,8 +33,7 @@ report_to: [wandb]
 learning_rate: 5e-6
 lr_scheduler_type: cosine
 output_dir: ./output
-per_device_train_batch_size: 24
-per_device_eval_batch_size: 60
+per_device_train_batch_size: 60
 num_generations: 12
 logging_steps: 10
 bf16: True
