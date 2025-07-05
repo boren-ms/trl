@@ -45,10 +45,11 @@ OUTPUT_DIR=${HOME}/outputs/${CONFIG_NAME}
 mkdir -p ${OUTPUT_DIR}
 
 GPUs=$(seq ${VLLM_GPU_NUM} 7 | paste -sd, -)
-cmd="CUDA_VISIBLE_DEVICES=${GPUs} accelerate launch --num_processes 1 \
+export CUDA_VISIBLE_DEVICES=${GPUs}
+cmd="accelerate launch --num_processes 1 \
 trl/scripts/grpo_bias.py --config ${new_config_file} --output-dir ${OUTPUT_DIR}
 "
-
+export RANK=0
 mkdir -p ${RCALL_LOGDIR}
 RANK_LOG_FILE=${RCALL_LOGDIR}/${CONFIG_NAME}_rank_${RANK}.log
 echo "Logging to ${RANK_LOG_FILE}"

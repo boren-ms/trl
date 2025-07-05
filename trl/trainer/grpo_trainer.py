@@ -21,7 +21,7 @@ from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
-from more_itertools import chunked
+from more_itertools import chunked, unique_everseen
 
 import datasets
 import torch
@@ -897,6 +897,8 @@ class GRPOTrainer(Trainer):
 
     @profiling_decorator
     def _move_model_to_vllm(self):
+        if self.accelerator.is_main_process:
+            print(f"[0] Update vllm weights @ {self.state.global_step} step")
         # For DeepSpeed ZeRO-3 and FSDP, we need to gather all parameters before operations
         deepspeed_plugin = self.accelerator.state.deepspeed_plugin
         zero_stage_3 = deepspeed_plugin is not None and deepspeed_plugin.zero_stage == 3
@@ -1076,7 +1078,6 @@ class GRPOTrainer(Trainer):
         if self.use_vllm:
             # First, update the vLLM weights if needed
             if self.state.global_step % self.args.vllm_update_steps == 0 and self.state.global_step != self._last_loaded_step:
-                print(f"Update vllm weights @ {self.state.global_step} step")
                 self._move_model_to_vllm()
                 self._last_loaded_step = self.state.global_step
             # Generate completions using vLLM: gather all prompts and use them in a single call in the main process
@@ -1455,16 +1456,17 @@ class GRPOTrainer(Trainer):
         for idx, inputs in enumerate(dataloader):
             print(f"[{rank}] Processing batch {idx + 1}/{n_batch}, batch size = {len(inputs)}")
             outputs = self._prepare_inputs(inputs)
-            results = [{**input_dict, "completions": output} for input_dict, output in zip(inputs, outputs["completions"])]
+            results += [{**input_dict, "completions": output} for input_dict, output in zip(inputs, outputs["completions"])]
 
         results = list(chunked(results, self.num_eval_generations))
-        print(f"[{rank}] Evaluation got {len(results)}x{self.num_eval_generations} results")
+        print(f"[{rank}] Evaluation got {len(results)} results with {self.num_eval_generations} best hyps")
         gathered_results = gather_object(results)
-        gathered_results = [item for sublist in gathered_results for item in sublist]  # flatten the list of lists
         print(f"[{rank}] Gathered {len(gathered_results)} results from all processes")
-        if self.compute_metrics and len(gathered_results) > 0:
-            metrics = self.compute_metrics(gathered_results)
-        print(f"[{rank}] Evaluation metrics: {metrics}")
+        uniq_results = list(unique_everseen((result for result in gathered_results), key=lambda x: x[0].get("id", "")))
+        print(f"[{rank}] Get unique {len(uniq_results)} results from gathered results")
+        if self.compute_metrics and len(uniq_results) > 0:
+            metrics = self.compute_metrics(uniq_results)
+        # print(f"[{rank}] Evaluation metrics: {metrics}")
         # Prefix all keys with metric_key_prefix + '_'
         for key in list(metrics.keys()):
             if not key.startswith(f"{metric_key_prefix}_"):
