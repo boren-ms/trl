@@ -137,7 +137,15 @@ def create_dataset(config):
     """create dataset"""
     if config is None:
         return None
-    return create_audio_dataset(**config)
+    if isinstance(config, (list, tuple)):
+        datasets ={}
+        for i, cfg in enumerate(config):
+            nickname = cfg.pop("nickname", f"dataset_{i}")
+            datasets[nickname] = create_audio_dataset(**cfg)
+        return datasets
+    elif isinstance(config, dict):
+        return create_audio_dataset(**config)
+    raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
 
 
 def main(script_args, training_args):

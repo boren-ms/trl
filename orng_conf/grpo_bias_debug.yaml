@@ -18,12 +18,47 @@ eval_strategy: steps
 eval_on_start: True
 eval_steps: 1 
 eval_data:
-    num_egs: 100
-    name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    bias_key: distractors # distractors
-    # data_dir: az://${DATA_STORAGE}/data/boren/data
-    data_dir: az://orngscuscresco/data/boren/data
+    - nickname: clean_no
+      jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    #   bias_key: null # null
+      # data_dir: az://${DATA_STORAGE}/data/boren/data
+      data_dir: az://orngscuscresco/data/boren/data
+    - nickname: other_no
+      jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+    #   bias_key: null # distractors
+      # data_dir: az://${DATA_STORAGE}/data/boren/data
+      data_dir: az://orngscuscresco/data/boren/data
+    # - nickname: clean_100
+    #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    #   bias_key: distractors # distractors
+    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
+    # - nickname: other_100
+    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+    #   bias_key: distractors # distractors
+    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
+    # - nickname: clean_500
+    #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
+    #   bias_key: distractors # distractors
+    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
+    # - nickname: other_500
+    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
+    #   bias_key: distractors # distractors
+    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
+    # - nickname: clean_1000
+    #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
+    #   bias_key: distractors # distractors
+    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
+    # - nickname: other_1000
+    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
+    #   bias_key: distractors # distractors
+    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
+
 
 reward_funcs: [reward_word_error, reward_bias_error]
 reward_weights: [1, 10]
