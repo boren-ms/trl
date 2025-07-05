@@ -1449,16 +1449,17 @@ class GRPOTrainer(Trainer):
             self.optimizer.eval()
 
         # Initialize containers
-        pairs = []
+        results = []
         metrics = {}
         for inputs in dataloader:
             outputs = self._prepare_inputs(inputs)
             for input_dict, output in zip(inputs, outputs["completions"]):
-                pairs.append({**input_dict, "completions": output})
-        pairs = list(chunked(pairs, self.num_eval_generations))
-        if self.compute_metrics and len(pairs) > 0:
-            metrics = self.compute_metrics(pairs)
-
+                results.append({**input_dict, "completions": output})
+        results = list(chunked(results, self.num_eval_generations))
+        print(f"[{rank}] Evaluation got {len(results)}x{self.num_eval_generations} results")
+        if self.compute_metrics and len(results) > 0:
+            metrics = self.compute_metrics(results)
+        print(f"[{rank}] Evaluation metrics: {metrics}")
         # Prefix all keys with metric_key_prefix + '_'
         for key in list(metrics.keys()):
             if not key.startswith(f"{metric_key_prefix}_"):
