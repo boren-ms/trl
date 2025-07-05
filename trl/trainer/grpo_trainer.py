@@ -1037,7 +1037,7 @@ class GRPOTrainer(Trainer):
     def _generate_and_score_completions(self, inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> dict[str, Union[torch.Tensor, Any]]:
         device = self.accelerator.device
         mode = "train" if self.model.training else "eval"
-        num_generations = self.num_generations if mode =="train" else self.num_eval_generations
+        num_generations = self.num_generations if mode == "train" else self.num_eval_generations
         prompts = [x["prompt"] for x in inputs]
         # prompts_text = [
         #     maybe_apply_chat_template(example, self.processing_class)["prompt"]
@@ -1087,8 +1087,8 @@ class GRPOTrainer(Trainer):
                     # Since 'prompts' contains 'num_generations' duplicates, we first take unique prompts, and generate
                     # num_generations outputs for each one. This is faster than generating outputs for each duplicate
                     # prompt individually.
-                    ordered_set_of_prompts = all_prompts_text[:: num_generations]
-                    ordered_set_of_audios = all_audio_paths[:: num_generations]
+                    ordered_set_of_prompts = all_prompts_text[::num_generations]
+                    ordered_set_of_audios = all_audio_paths[::num_generations]
                     with profiling_context(self, "vLLM.generate"):
                         outputs = self.vllm_client.generate(
                             prompts=ordered_set_of_prompts,
@@ -1451,14 +1451,19 @@ class GRPOTrainer(Trainer):
         # Initialize containers
         results = []
         metrics = {}
-        for inputs in dataloader:
+        n_batch = len(dataloader)
+        for idx, inputs in enumerate(dataloader):
+            print(f"[{rank}] Processing batch {idx + 1}/{n_batch}, batch size = {len(inputs)}")
             outputs = self._prepare_inputs(inputs)
-            for input_dict, output in zip(inputs, outputs["completions"]):
-                results.append({**input_dict, "completions": output})
+            results = [{**input_dict, "completions": output} for input_dict, output in zip(inputs, outputs["completions"])]
+
         results = list(chunked(results, self.num_eval_generations))
         print(f"[{rank}] Evaluation got {len(results)}x{self.num_eval_generations} results")
-        if self.compute_metrics and len(results) > 0:
-            metrics = self.compute_metrics(results)
+        gathered_results = gather_object(results)
+        gathered_results = [item for sublist in gathered_results for item in sublist]  # flatten the list of lists
+        print(f"[{rank}] Gathered {len(gathered_results)} results from all processes")
+        if self.compute_metrics and len(gathered_results) > 0:
+            metrics = self.compute_metrics(gathered_results)
         print(f"[{rank}] Evaluation metrics: {metrics}")
         # Prefix all keys with metric_key_prefix + '_'
         for key in list(metrics.keys()):
