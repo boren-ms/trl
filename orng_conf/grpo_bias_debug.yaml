@@ -1,5 +1,5 @@
-dataset_name: tsv
-dataset_config:
+train_data:
+    name: tsv
     # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
@@ -14,8 +14,18 @@ dataset_config:
         new_sampling: True
         common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 1000
+eval_strategy: steps
+eval_steps: 2 
+eval_data:
+    num_egs: 10
+    name: ls_bias
+    jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    bias_key: ground_truth # distractors
+    # data_dir: az://${DATA_STORAGE}/data/boren/data
+    data_dir: az://orngscuscresco/data/boren/data
+
 reward_funcs: [reward_word_error, reward_bias_error]
-reward_weights: [1, 1]
+reward_weights: [1, 10]
 # model_name_or_path: az://orngwus2cresco/data/boren/data/ckp/phi4_mm_bias
 model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
@@ -25,6 +35,7 @@ learning_rate: 5e-6
 lr_scheduler_type: cosine
 output_dir: ./output
 per_device_train_batch_size: 24
+per_device_eval_batch_size: 80
 num_generations: 8
 logging_steps: 1
 bf16: True
@@ -39,6 +50,6 @@ save_steps: 100
 use_vllm: True
 vllm_update_steps: 10
 # vllm_server_host: ${VLLM_SERVER_HOST}
-vllm_server_host: 10.133.219.39
+# vllm_server_host: 10.133.219.39
 # vllm_server_port: 26500
 # resume_from_checkpoint: True

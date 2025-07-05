@@ -8,7 +8,7 @@ from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 import wandb
 from trl import DPOConfig, DPOTrainer, TrlParser
-from trl.scripts.audio_dataset import create_dataset
+from trl.scripts.audio_dataset import create_audio_dataset
 
 from peft import LoraConfig, get_peft_model
 from peft.tuners.lora.layer import LoraLayer
@@ -105,7 +105,7 @@ def main(script_args, training_args):
     trainer = DPOTrainer(
         model,
         args=training_args,
-        train_dataset=create_dataset(
+        train_dataset=create_audio_dataset(
             dataset_name=script_args.dataset_name, **script_args.dataset_config
         ),
         eval_dataset=None,

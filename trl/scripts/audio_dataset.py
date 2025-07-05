@@ -9,11 +9,11 @@ from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler
 
 
-def bias_dataset(file_paths, bias_key=None, tag=True, dir=None, **kwargs):
+def ls_bias_dataset(jsonl_path, bias_key=None, tag=True, data_dir=None, **kwargs):
     """Create a dataset from the given split."""
     # data_dir = Path("/home/boren/data/librispeech_biasing/ref")
     # jsonl_path = data_dir/"test-clean.biasing_100.jsonl"
-    data_files = [file_paths] if isinstance(file_paths, str) else file_paths
+    data_files = [jsonl_path] if isinstance(jsonl_path, str) else jsonl_path
     data_files = [str(file_path) for file_path in data_files]
 
     ds = load_dataset(
@@ -38,15 +38,13 @@ def bias_dataset(file_paths, bias_key=None, tag=True, dir=None, **kwargs):
         instruct = "Transcribe the audio clip into text."
         if word_str:
             instruct += f" Pay extra attention to the following phrases/words: {word_str}."
-
-        audio_path = f"{dir}/{example['audio_path']}" if dir else example["audio_path"]
+        audio_path = example["audio_path"].replace("/root/data", data_dir) if data_dir else example["audio_path"]
         # audio, sr = sf_read(audio_path)
-        x = {
+        return {
             "prompt": [{"role": "user", "content": f"<|audio_1|>{instruct}"}],
             "audio_path": audio_path,
             "text": example["text"],
         }
-        return x
 
     ds = ds.map(load_sample)
     return ds
@@ -200,27 +198,21 @@ def simulate_perference(ds, **kwargs):
     # return concatenate_datasets(datasets)
 
 
-def create_dataset(dataset_name="openasr", **kwargs):
+def create_audio_dataset(name="openasr", **kwargs):
     """Create a dataset from the given split."""
-    if dataset_name == "ls_bias":
-        data_dir = Path("/datablob1/users/boren/data/SR/librispeech_biasing/ref")
-        data_paths = [
-            data_dir / "test-clean.biasing_100.jsonl",
-            data_dir / "test-clean.biasing_500.jsonl",
-            # data_dir / "test-clean.biasing_1000.jsonl",
-        ]
-        return bias_dataset(data_paths, **kwargs)
-    elif dataset_name == "openasr":
+    if name == "ls_bias":
+        return ls_bias_dataset(**kwargs)
+    elif name == "openasr":
         ds = openasr_dataset(**kwargs)
         ds = bias_sampling(ds, **kwargs.get("biasing", {}))
         ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
         return ds
-    elif dataset_name == "tsv":
+    elif name == "tsv":
         ds = tsv_dataset(**kwargs)
         ds = bias_sampling(ds, **kwargs.get("biasing", {}))
         ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
         return ds
-    raise ValueError(f"Unknown dataset name: {dataset_name}")
+    raise ValueError(f"Unknown dataset name: {name}")
 
 
 # %%
@@ -230,7 +222,7 @@ if __name__ == "__main__":
     # print(dataset)
     # print(dataset[0]["text"])
     tsv_path = "/datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv"
-    dataset = create_dataset(dataset_name="tsv", num_egs=2, tsv_paths=[tsv_path])
+    dataset = create_audio_dataset(name="tsv", num_egs=2, tsv_paths=[tsv_path])
     print(dataset)
     print(next(iter(dataset)))
 

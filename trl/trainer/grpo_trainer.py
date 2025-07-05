@@ -21,7 +21,7 @@ from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
-import numpy as np
+from more_itertools import chunked
 
 import datasets
 import torch
@@ -44,10 +44,10 @@ from transformers import (
     TrainerCallback,
     is_wandb_available,
 )
-from transformers.trainer_utils import seed_worker
-from transformers.utils import is_datasets_available, is_peft_available
+from transformers.trainer_utils import seed_worker, EvalLoopOutput, has_length
+from transformers.utils import is_datasets_available, is_peft_available, logging
 
-from ..data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template, sf_read
+from ..data_utils import apply_chat_template, is_conversational, sf_read
 from ..extras.profiling import profiling_context, profiling_decorator
 from ..extras.vllm_client import VLLMClient
 from ..import_utils import is_liger_kernel_available, is_vllm_available, is_rich_available
@@ -77,6 +77,8 @@ if is_vllm_available():
 
 if is_wandb_available():
     import wandb
+
+logger = logging.get_logger(__name__)
 
 # What we call a reward function is a callable that takes a list of prompts and completions and returns a list of
 # rewards. When it's a string, it's a model ID, so it's loaded as a pretrained model.
@@ -418,6 +420,7 @@ class GRPOTrainer(Trainer):
         callbacks: Optional[list[TrainerCallback]] = None,
         optimizers: tuple[Optional[torch.optim.Optimizer], Optional[torch.optim.lr_scheduler.LambdaLR]] = (None, None),
         peft_config: Optional["PeftConfig"] = None,
+        compute_metrics=None,
     ):
         # Args
         if args is None:
@@ -512,6 +515,7 @@ class GRPOTrainer(Trainer):
         self.max_prompt_length = args.max_prompt_length
         self.max_completion_length = args.max_completion_length  # = |o_i| in the GRPO paper
         self.num_generations = args.num_generations  # = G in the GRPO paper
+        self.eval_num_generations = args.eval_num_generations or args.num_generations
         self.temperature = args.temperature
         self.top_p = args.top_p
         self.top_k = args.top_k
@@ -564,6 +568,7 @@ class GRPOTrainer(Trainer):
             processing_class=processing_class,
             callbacks=callbacks,
             optimizers=optimizers,
+            compute_metrics=compute_metrics,
         )
 
         # Reference model
@@ -805,7 +810,7 @@ class GRPOTrainer(Trainer):
         # See _get_train_sampler for an explanation of the sampler.
         return RepeatSampler(
             data_source=eval_dataset,
-            mini_repeat_count=self.num_generations,
+            mini_repeat_count=self.eval_num_generations,
             seed=self.args.seed,
         )
 
@@ -1048,7 +1053,7 @@ class GRPOTrainer(Trainer):
         ]
         # audios = [(np.array(x["audio"]), x["sr"]) for x in inputs]
         audio_paths = [x["audio_path"] for x in inputs]
-        audios = [sf_read(p) for p in audio_paths] # delay the audio read here.
+        audios = [sf_read(p) for p in audio_paths]  # delay the audio read here.
         prompt_inputs = self.processing_class(
             text=prompts_text,
             audios=audios,
@@ -1295,6 +1300,7 @@ class GRPOTrainer(Trainer):
             "prompt_ids": prompt_ids,
             "prompt_mask": prompt_mask,
             "prompt_inputs": prompt_inputs,
+            "completions": completions,
             "completion_ids": completion_ids,
             "completion_mask": completion_mask,
             "advantages": advantages,
@@ -1417,6 +1423,48 @@ class GRPOTrainer(Trainer):
         gathered_clip_ratio = self.accelerator.gather(clip_ratio)
         self._metrics[mode]["clip_ratio/region_mean"].append(gathered_clip_ratio.nanmean().item())
         return loss
+
+    def evaluation_loop(
+        self,
+        dataloader: DataLoader,
+        description: str,
+        prediction_loss_only: Optional[bool] = None,
+        ignore_keys: Optional[list[str]] = None,
+        metric_key_prefix: str = "eval",
+    ) -> EvalLoopOutput:
+        """
+        Prediction/evaluation loop, shared by `Trainer.evaluate()` and `Trainer.predict()`.
+        Works both with or without labels.
+        """
+        model = self._wrap_model(self.model, training=False, dataloader=dataloader)
+
+        logger.info(f"\n***** Running {description} *****")
+        eval_dataset = getattr(dataloader, "dataset", None)
+        if has_length(eval_dataset):
+            num_samples = len(eval_dataset)
+            logger.info(f"  Num examples = {self.num_examples(dataloader)}")
+
+        model.eval()
+        if hasattr(self.optimizer, "eval") and callable(self.optimizer.eval):
+            self.optimizer.eval()
+
+        # Initialize containers
+        pairs = []
+        metrics = {}
+        for inputs in dataloader:
+            outputs = self._prepare_inputs(inputs)
+            for input_dict, output in zip(inputs, outputs["completions"]):
+                pairs.append({**input_dict, "completions": output} )
+        pairs = list(chunked(pairs, self.eval_num_generations))
+        if self.compute_metrics and len(pairs) > 0 :
+            metrics = self.compute_metrics(pairs)
+
+        # Prefix all keys with metric_key_prefix + '_'
+        for key in list(metrics.keys()):
+            if not key.startswith(f"{metric_key_prefix}_"):
+                metrics[f"{metric_key_prefix}_{key}"] = metrics.pop(key)
+
+        return EvalLoopOutput(predictions=None, label_ids=None, metrics=metrics, num_samples=num_samples)
 
     def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys: Optional[list[str]] = None):
         inputs = self._prepare_inputs(inputs)

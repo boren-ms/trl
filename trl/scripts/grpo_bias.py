@@ -1,5 +1,6 @@
 # train_grpo.py
 # %%
+import os
 import sys
 import pytz
 import shortuuid
@@ -9,10 +10,10 @@ from dataclasses import dataclass, field
 from typing import Optional
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
-import os
 import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
-from trl.scripts.audio_dataset import create_dataset
+from trl.scripts.audio_dataset import create_audio_dataset
+from trl.scripts.audio_rewards import compute_metrics
 
 
 def uuid4():
@@ -53,7 +54,6 @@ def init_model(model_id=None):
 class GRPOScriptArguments:
     """Script arguments for the GRPO training script."""
 
-    dataset_name: str = field(metadata={"help": "Dataset name."})
     job_name: Optional[str] = field(
         default=None,
         metadata={"help": "Name of the script."},
@@ -62,9 +62,13 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Name of the project."},
     )
-    dataset_config: Optional[str] = field(
+    train_data: Optional[dict] = field(
         default=None,
-        metadata={"help": "Dataset config"},
+        metadata={"help": "Training dataset config"},
+    )
+    eval_data: Optional[dict] = field(
+        default=None,
+        metadata={"help": "Evalution dataset config"},
     )
     model_name_or_path: Optional[str] = field(
         default=None,
@@ -112,7 +116,7 @@ def init_wandb(job_name=None, project_name=None):
     wandb.login(host=host, key=key, relogin=True)
     # entity="orangewandb"
     # entity="boren"
-    entity="genai"
+    entity = "genai"
     run = wandb.init(entity=entity, project=project_name, name=job_name, resume="allow")
     print("wandb offline: ", run.settings._offline)  # Should be True
     print("wandb mode: ", run.settings.mode)  # Should be "offline"
@@ -133,6 +137,13 @@ def reward_functions(names=None):
     return funcs
 
 
+def create_dataset(config):
+    """create dataset"""
+    if config is None:
+        return None
+    return create_audio_dataset(**config)
+
+
 def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
@@ -145,8 +156,10 @@ def main(script_args, training_args):
         model=model,
         reward_funcs=reward_functions(script_args.reward_funcs),
         args=training_args,
-        train_dataset=create_dataset(dataset_name=script_args.dataset_name, **script_args.dataset_config),
+        train_dataset=create_dataset(script_args.train_data),
+        eval_dataset=create_dataset(script_args.eval_data),
         processing_class=processor,
+        compute_metrics=compute_metrics,
     )
     print("Training...")
     trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
@@ -167,3 +180,5 @@ if __name__ == "__main__":
     parser = make_parser()
     script_args, training_args = parser.parse_args_and_config()
     main(script_args, training_args)
+
+# %%

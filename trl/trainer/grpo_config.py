@@ -53,6 +53,8 @@ class GRPOConfig(TrainingArguments):
         num_generations (`int` or `None`, *optional*, defaults to `8`):
             Number of generations per prompt to sample. The effective batch size (num_processes * per_device_batch_size
             * gradient_accumulation_steps) must be evenly divisible by this value.
+        eval_num_generations (`int` or `None`, *optional*, defaults to None):
+            Number of generations per prompt to sample for evaluation. Default to use the num_generations
         max_completion_length (`int` or `None`, *optional*, defaults to `256`):
             Maximum length of the generated completion.
         ds3_gather_for_generation (`bool`, *optional*, defaults to `True`):
@@ -211,10 +213,7 @@ class GRPOConfig(TrainingArguments):
     )
     logging_steps: float = field(
         default=10,
-        metadata={
-            "help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, "
-            "will be interpreted as ratio of total training steps."
-        },
+        metadata={"help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, " "will be interpreted as ratio of total training steps."},
     )
     bf16: Optional[bool] = field(
         default=None,
@@ -228,16 +227,12 @@ class GRPOConfig(TrainingArguments):
     # Parameters that control the model and reference model
     model_init_kwargs: Optional[Union[dict, str]] = field(
         default=None,
-        metadata={
-            "help": "Keyword arguments for `transformers.AutoModelForCausalLM.from_pretrained`, used when the `model` "
-            "argument of the `GRPOTrainer` is provided as a string."
-        },
+        metadata={"help": "Keyword arguments for `transformers.AutoModelForCausalLM.from_pretrained`, used when the `model` " "argument of the `GRPOTrainer` is provided as a string."},
     )
     disable_dropout: bool = field(
         default=False,
         metadata={
-            "help": "Whether to disable dropout in the model. This is useful for training with a reference model, as "
-            "it prevents the model from generating different logprobs for the same input."
+            "help": "Whether to disable dropout in the model. This is useful for training with a reference model, as " "it prevents the model from generating different logprobs for the same input."
         },
     )
 
@@ -253,16 +248,15 @@ class GRPOConfig(TrainingArguments):
     )
     max_prompt_length: Optional[int] = field(
         default=512,
-        metadata={
-            "help": "Maximum length of the prompt. If the prompt is longer than this value, it will be truncated left."
-        },
+        metadata={"help": "Maximum length of the prompt. If the prompt is longer than this value, it will be truncated left."},
     )
     num_generations: Optional[int] = field(
         default=8,
-        metadata={
-            "help": "Number of generations to sample. The effective batch size (num_processes * per_device_batch_size "
-            "* gradient_accumulation_steps) must be evenly divisible by this value."
-        },
+        metadata={"help": "Number of generations to sample. The effective batch size (num_processes * per_device_batch_size " "* gradient_accumulation_steps) must be evenly divisible by this value."},
+    )
+    eval_num_generations: Optional[int] = field(
+        default=None,
+        metadata={"help": "Number of generations to sample for evaluation."},
     )
     max_completion_length: Optional[int] = field(
         default=256,
@@ -286,15 +280,12 @@ class GRPOConfig(TrainingArguments):
     generation_batch_size: Optional[int] = field(
         default=None,
         metadata={
-            "help": "Batch size to use for generation. If `None`, it defaults to the effective training batch size: "
-            "`per_device_train_batch_size * num_processes * gradient_accumulation_steps`."
+            "help": "Batch size to use for generation. If `None`, it defaults to the effective training batch size: " "`per_device_train_batch_size * num_processes * gradient_accumulation_steps`."
         },
     )
     steps_per_generation: Optional[int] = field(
         default=None,
-        metadata={
-            "help": "Number of optimization steps per generation. If `None`, it defaults to gradient_accumulation_steps."
-        },
+        metadata={"help": "Number of optimization steps per generation. If `None`, it defaults to gradient_accumulation_steps."},
     )
     temperature: float = field(
         default=1.0,
@@ -302,23 +293,16 @@ class GRPOConfig(TrainingArguments):
     )
     top_p: float = field(
         default=1.0,
-        metadata={
-            "help": "Float that controls the cumulative probability of the top tokens to consider. Must be in (0, 1]. "
-            "Set to 1.0 to consider all tokens."
-        },
+        metadata={"help": "Float that controls the cumulative probability of the top tokens to consider. Must be in (0, 1]. " "Set to 1.0 to consider all tokens."},
     )
     top_k: Optional[int] = field(
         default=None,
-        metadata={
-            "help": "Number of highest probability vocabulary tokens to keep for top-k-filtering. If `None`, "
-            "top-k-filtering is disabled and all tokens are considered."
-        },
+        metadata={"help": "Number of highest probability vocabulary tokens to keep for top-k-filtering. If `None`, " "top-k-filtering is disabled and all tokens are considered."},
     )
     min_p: Optional[float] = field(
         default=None,
         metadata={
-            "help": "Minimum token probability, which will be scaled by the probability of the most likely token. It "
-            "must be a value between 0.0 and 1.0. Typical values are in the 0.01-0.2 range."
+            "help": "Minimum token probability, which will be scaled by the probability of the most likely token. It " "must be a value between 0.0 and 1.0. Typical values are in the 0.01-0.2 range."
         },
     )
     generation_kwargs: Optional[dict] = field(
@@ -353,10 +337,7 @@ class GRPOConfig(TrainingArguments):
     )
     vllm_server_base_url: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Base URL for the vLLM server (e.g., 'http://localhost:8000'). If provided, `vllm_server_host` "
-            "and `vllm_server_port` are ignored."
-        },
+        metadata={"help": "Base URL for the vLLM server (e.g., 'http://localhost:8000'). If provided, `vllm_server_host` " "and `vllm_server_port` are ignored."},
     )
     vllm_mode: str = field(
         default="server",
@@ -384,10 +365,7 @@ class GRPOConfig(TrainingArguments):
     )
     vllm_server_timeout: float = field(
         default=240.0,
-        metadata={
-            "help": "Total timeout duration in seconds to wait for the vLLM server to be up. If the server is not up "
-            "after the timeout, a `ConnectionError` is raised."
-        },
+        metadata={"help": "Total timeout duration in seconds to wait for the vLLM server to be up. If the server is not up " "after the timeout, a `ConnectionError` is raised."},
     )
 
     # Parameters that control colocated vLLM execution (only used when `vllm_mode` is `"colocate"`)
@@ -414,10 +392,7 @@ class GRPOConfig(TrainingArguments):
     # Parameters that control the training
     beta: float = field(
         default=0.0,
-        metadata={
-            "help": "KL coefficient. If `0.0` (default), the reference model is not loaded, reducing memory usage and "
-            "improving training speed."
-        },
+        metadata={"help": "KL coefficient. If `0.0` (default), the reference model is not loaded, reducing memory usage and " "improving training speed."},
     )
     num_iterations: int = field(
         default=1,
@@ -438,16 +413,12 @@ class GRPOConfig(TrainingArguments):
     epsilon_high: Optional[float] = field(
         default=None,
         metadata={
-            "help": "Upper-bound epsilon value for clipping. If not specified, it defaults to the same value as the "
-            "lower-bound specified in argument `epsilon`. Paper DAPO recommends `0.28`."
+            "help": "Upper-bound epsilon value for clipping. If not specified, it defaults to the same value as the " "lower-bound specified in argument `epsilon`. Paper DAPO recommends `0.28`."
         },
     )
     reward_weights: Optional[list[float]] = field(
         default=None,
-        metadata={
-            "help": "Weights for each reward function. Must match the number of reward functions. If `None`, all "
-            "rewards are weighted equally with weight `1.0`."
-        },
+        metadata={"help": "Weights for each reward function. Must match the number of reward functions. If `None`, all " "rewards are weighted equally with weight `1.0`."},
     )
     scale_rewards: bool = field(
         default=True,
@@ -484,10 +455,7 @@ class GRPOConfig(TrainingArguments):
     )
     sync_ref_model: bool = field(
         default=False,
-        metadata={
-            "help": "Whether to synchronize the reference model with the active model every `ref_model_sync_steps` "
-            "steps, using the `ref_model_mixup_alpha` parameter."
-        },
+        metadata={"help": "Whether to synchronize the reference model with the active model every `ref_model_sync_steps` " "steps, using the `ref_model_mixup_alpha` parameter."},
     )
     ref_model_mixup_alpha: float = field(
         default=0.6,
@@ -523,10 +491,7 @@ class GRPOConfig(TrainingArguments):
     )
     wandb_log_unique_prompts: Optional[bool] = field(
         default=False,
-        metadata={
-            "help": "Whether to log unique prompts in wandb. If `True`, only unique prompts are logged. If `False`, "
-            "all prompts are logged."
-        },
+        metadata={"help": "Whether to log unique prompts in wandb. If `True`, only unique prompts are logged. If `False`, " "all prompts are logged."},
     )
 
     def __post_init__(self):
@@ -537,9 +502,7 @@ class GRPOConfig(TrainingArguments):
         num_processes = self.world_size
         # The current default effective batch size
         if self.generation_batch_size is not None and self.steps_per_generation is not None:
-            raise ValueError(
-                "'generation_batch_size' and 'steps_per_generation' can not be both configured at the same time"
-            )
+            raise ValueError("'generation_batch_size' and 'steps_per_generation' can not be both configured at the same time")
 
         if self.steps_per_generation is None:
             self.steps_per_generation = self.gradient_accumulation_steps
@@ -548,22 +511,14 @@ class GRPOConfig(TrainingArguments):
             self.generation_batch_size = self.per_device_train_batch_size * num_processes * self.steps_per_generation
 
         if self.generation_batch_size % self.per_device_train_batch_size * num_processes != 0:
-            raise ValueError(
-                f"generation_batch_size ({self.generation_batch_size}) must be divisible by the global batch size "
-                f"({self.per_device_train_batch_size * num_processes})."
-            )
+            raise ValueError(f"generation_batch_size ({self.generation_batch_size}) must be divisible by the global batch size " f"({self.per_device_train_batch_size * num_processes}).")
 
         self.steps_per_generation = self.generation_batch_size // (self.per_device_train_batch_size * num_processes)
 
         # Check if the effective batch size can be divided by the number of generations
         if self.num_generations < 2:
-            raise ValueError(
-                "GRPO requires at least 2 generations per prompt to calculate the advantages. You provided "
-                f"{self.num_generations}, which is less than the minimum required."
-            )
-        possible_values = [
-            n_gen for n_gen in range(2, self.generation_batch_size + 1) if (self.generation_batch_size) % n_gen == 0
-        ]
+            raise ValueError("GRPO requires at least 2 generations per prompt to calculate the advantages. You provided " f"{self.num_generations}, which is less than the minimum required.")
+        possible_values = [n_gen for n_gen in range(2, self.generation_batch_size + 1) if (self.generation_batch_size) % n_gen == 0]
 
         if self.num_generations not in possible_values:
             raise ValueError(
@@ -574,9 +529,7 @@ class GRPOConfig(TrainingArguments):
             )
         if self.eval_strategy != "no":
             global_eval_batch_size = self.per_device_eval_batch_size * num_processes
-            possible_values = [
-                n_gen for n_gen in range(2, global_eval_batch_size + 1) if (global_eval_batch_size) % n_gen == 0
-            ]
+            possible_values = [n_gen for n_gen in range(2, global_eval_batch_size + 1) if (global_eval_batch_size) % n_gen == 0]
             if self.num_generations not in possible_values:
                 raise ValueError(
                     f"The global eval batch size ({num_processes} x {self.per_device_eval_batch_size}) must be "
