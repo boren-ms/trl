@@ -515,7 +515,7 @@ class GRPOTrainer(Trainer):
         self.max_prompt_length = args.max_prompt_length
         self.max_completion_length = args.max_completion_length  # = |o_i| in the GRPO paper
         self.num_generations = args.num_generations  # = G in the GRPO paper
-        self.eval_num_generations = args.eval_num_generations or args.num_generations
+        self.num_eval_generations = args.num_eval_generations or args.num_generations
         self.temperature = args.temperature
         self.top_p = args.top_p
         self.top_k = args.top_k
@@ -810,7 +810,7 @@ class GRPOTrainer(Trainer):
         # See _get_train_sampler for an explanation of the sampler.
         return RepeatSampler(
             data_source=eval_dataset,
-            mini_repeat_count=self.eval_num_generations,
+            mini_repeat_count=self.num_eval_generations,
             seed=self.args.seed,
         )
 
@@ -1037,7 +1037,7 @@ class GRPOTrainer(Trainer):
     def _generate_and_score_completions(self, inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> dict[str, Union[torch.Tensor, Any]]:
         device = self.accelerator.device
         mode = "train" if self.model.training else "eval"
-
+        num_generations = self.num_generations if mode =="train" else self.num_eval_generations
         prompts = [x["prompt"] for x in inputs]
         # prompts_text = [
         #     maybe_apply_chat_template(example, self.processing_class)["prompt"]
@@ -1087,13 +1087,13 @@ class GRPOTrainer(Trainer):
                     # Since 'prompts' contains 'num_generations' duplicates, we first take unique prompts, and generate
                     # num_generations outputs for each one. This is faster than generating outputs for each duplicate
                     # prompt individually.
-                    ordered_set_of_prompts = all_prompts_text[:: self.num_generations]
-                    ordered_set_of_audios = all_audio_paths[:: self.num_generations]
+                    ordered_set_of_prompts = all_prompts_text[:: num_generations]
+                    ordered_set_of_audios = all_audio_paths[:: num_generations]
                     with profiling_context(self, "vLLM.generate"):
                         outputs = self.vllm_client.generate(
                             prompts=ordered_set_of_prompts,
                             audios=ordered_set_of_audios,
-                            n=self.num_generations,
+                            n=num_generations,
                             repetition_penalty=self.repetition_penalty,
                             temperature=self.temperature,
                             top_p=self.top_p,
@@ -1238,13 +1238,13 @@ class GRPOTrainer(Trainer):
         rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
 
         # Compute grouped-wise rewards
-        mean_grouped_rewards = rewards.view(-1, self.num_generations).mean(dim=1)
-        std_grouped_rewards = rewards.view(-1, self.num_generations).std(dim=1)
+        mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
+        std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
         is_std_zero = torch.isclose(std_grouped_rewards, torch.zeros_like(std_grouped_rewards))
 
         # Normalize the rewards to compute the advantages
-        mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(self.num_generations, dim=0)
-        std_grouped_rewards = std_grouped_rewards.repeat_interleave(self.num_generations, dim=0)
+        mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(num_generations, dim=0)
+        std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
         advantages = rewards - mean_grouped_rewards
         if self.scale_rewards:
             advantages = advantages / (std_grouped_rewards + 1e-4)
@@ -1437,13 +1437,13 @@ class GRPOTrainer(Trainer):
         Works both with or without labels.
         """
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
-
-        logger.info(f"\n***** Running {description} *****")
+        rank = self.accelerator.process_index
+        print(f"[{rank}] \n***** Running {description} *****")
+        print(f"[{rank}] Dataloader example size = {self.num_examples(dataloader)}")
         eval_dataset = getattr(dataloader, "dataset", None)
         if has_length(eval_dataset):
             num_samples = len(eval_dataset)
-            logger.info(f"  Num examples = {self.num_examples(dataloader)}")
-
+            print(f"[{rank}] Dataset example size = {num_samples}")
         model.eval()
         if hasattr(self.optimizer, "eval") and callable(self.optimizer.eval):
             self.optimizer.eval()
@@ -1454,9 +1454,9 @@ class GRPOTrainer(Trainer):
         for inputs in dataloader:
             outputs = self._prepare_inputs(inputs)
             for input_dict, output in zip(inputs, outputs["completions"]):
-                pairs.append({**input_dict, "completions": output} )
-        pairs = list(chunked(pairs, self.eval_num_generations))
-        if self.compute_metrics and len(pairs) > 0 :
+                pairs.append({**input_dict, "completions": output})
+        pairs = list(chunked(pairs, self.num_eval_generations))
+        if self.compute_metrics and len(pairs) > 0:
             metrics = self.compute_metrics(pairs)
 
         # Prefix all keys with metric_key_prefix + '_'

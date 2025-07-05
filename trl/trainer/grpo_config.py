@@ -53,7 +53,7 @@ class GRPOConfig(TrainingArguments):
         num_generations (`int` or `None`, *optional*, defaults to `8`):
             Number of generations per prompt to sample. The effective batch size (num_processes * per_device_batch_size
             * gradient_accumulation_steps) must be evenly divisible by this value.
-        eval_num_generations (`int` or `None`, *optional*, defaults to None):
+        num_eval_generations (`int` or `None`, *optional*, defaults to None):
             Number of generations per prompt to sample for evaluation. Default to use the num_generations
         max_completion_length (`int` or `None`, *optional*, defaults to `256`):
             Maximum length of the generated completion.
@@ -254,7 +254,7 @@ class GRPOConfig(TrainingArguments):
         default=8,
         metadata={"help": "Number of generations to sample. The effective batch size (num_processes * per_device_batch_size " "* gradient_accumulation_steps) must be evenly divisible by this value."},
     )
-    eval_num_generations: Optional[int] = field(
+    num_eval_generations: Optional[int] = field(
         default=None,
         metadata={"help": "Number of generations to sample for evaluation."},
     )

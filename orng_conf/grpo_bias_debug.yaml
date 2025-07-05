@@ -15,12 +15,13 @@ train_data:
         common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 1000
 eval_strategy: steps
-eval_steps: 2 
+eval_on_start: True
+eval_steps: 1 
 eval_data:
-    num_egs: 10
+    num_egs: 100
     name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    bias_key: ground_truth # distractors
+    bias_key: distractors # distractors
     # data_dir: az://${DATA_STORAGE}/data/boren/data
     data_dir: az://orngscuscresco/data/boren/data
 
@@ -35,12 +36,14 @@ learning_rate: 5e-6
 lr_scheduler_type: cosine
 output_dir: ./output
 per_device_train_batch_size: 24
-per_device_eval_batch_size: 60
-num_generations: 8
+num_generations: 4
+# dataloader_drop_last: True
+per_device_eval_batch_size: 80
+num_eval_generations: 2
 logging_steps: 1
 bf16: True
 gradient_checkpointing: True
-log_completions: True
+log_completions: False
 max_prompt_length: 2048
 max_completion_length: 512
 wandb_log_unique_prompts: True
