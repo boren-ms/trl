@@ -195,21 +195,21 @@ def simulate_perference(ds, **kwargs):
     # return concatenate_datasets(datasets)
 
 
-def create_audio_dataset(name="openasr", **kwargs):
+def create_audio_dataset(dataset_name="openasr", **kwargs):
     """Create a dataset from the given split."""
-    if name == "ls_bias":
+    if dataset_name == "ls_bias":
         return ls_bias_dataset(**kwargs)
-    elif name == "openasr":
+    elif dataset_name == "openasr":
         ds = openasr_dataset(**kwargs)
         ds = bias_sampling(ds, **kwargs.get("biasing", {}))
         ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
         return ds
-    elif name == "tsv":
+    elif dataset_name == "tsv":
         ds = tsv_dataset(**kwargs)
         ds = bias_sampling(ds, **kwargs.get("biasing", {}))
         ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
         return ds
-    raise ValueError(f"Unknown dataset name: {name}")
+    raise ValueError(f"Unknown dataset name: {dataset_name}")
 
 
 # %%
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     # print(dataset)
     # print(dataset[0]["text"])
     tsv_path = "/datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv"
-    dataset = create_audio_dataset(name="tsv", num_egs=2, tsv_paths=[tsv_path])
+    dataset = create_audio_dataset(dataset_name="tsv", num_egs=2, tsv_paths=[tsv_path])
     print(dataset)
     print(next(iter(dataset)))
 
