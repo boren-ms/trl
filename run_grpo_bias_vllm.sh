@@ -34,10 +34,6 @@ MAIN_NODE=${RCALL_JOB_NAME}-0
 new_config_file=${config_file}.tmp
 envsubst < ${config_file} > ${new_config_file}
 
-HOST=$(hostname)
-echo "syncing config: ${MAIN_NODE} -> ${HOST}"
-rsync -avz ${MAIN_NODE}:${new_config_file} ${new_config_file}
-
 echo "Working Dir: ${PWD}"
 
 CONFIG_NAME=$(basename "$config_file" | sed 's/\.[^.]*$//')
