@@ -6,7 +6,7 @@ import random
 from pathlib import Path
 from datasets import load_dataset, concatenate_datasets
 from trl.scripts.error_simu import ErrorSimulator
-from trl.scripts.biasing import PieceSampler
+from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
 
 
 def ls_bias_dataset(jsonl_path, bias_key=None, tag=True, data_dir=None, **kwargs):
@@ -24,26 +24,23 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag=True, data_dir=None, **kwargs
 
     ds = stream_shuffle(ds, **kwargs)
 
-    def tag_word(word):
-        """Tag the word with *."""
-        if not tag:
-            return word
-        return f"*{word}*"
-
     def load_sample(example):
         """Load audio from a file."""
 
-        words = example.get(bias_key, [])
-        word_str = ", ".join([tag_word(wd) for wd in words])
+        bias_words = example.get(bias_key, [])
+        bias_str = ", ".join(tag_pieces(bias_words))
         instruct = "Transcribe the audio clip into text."
-        if word_str:
-            instruct += f" Pay extra attention to the following phrases/words: {word_str}."
+        if bias_str:
+            instruct += f" Pay extra attention to the following phrases/words: {bias_str}."
         audio_path = example["audio_path"].replace("/root/data", data_dir) if data_dir else example["audio_path"]
+        words = example.get("text", "").strip().split()
+        gt_words = example.get("ground_truth", [])
+        words = tag_pieces(words, specified=gt_words, norm=text_norm)
         # audio, sr = sf_read(audio_path)
         return {
             "prompt": [{"role": "user", "content": f"<|audio_1|>{instruct}"}],
             "audio_path": audio_path,
-            "text": example["text"],
+            "text": " ".join(words),
         }
 
     ds = ds.map(load_sample)

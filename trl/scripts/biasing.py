@@ -30,6 +30,13 @@ def tag_piece(piece, tag="*"):
     """Tag the piece with a specified tag."""
     return f"{tag}{piece}{tag}"
 
+def tag_pieces(pieces, tag="*", specified=None, norm=None):
+    """Tag the pieces with a specified tag."""
+    if specified is None:
+        return [tag_piece(p, tag) for p in pieces]
+    norm = norm if norm is not None else lambda x: x
+    specified = {norm(p) for p in specified}
+    return [tag_piece(p, tag) if norm(p) in specified else p for p in pieces]
 
 def rand_sample(lst, max_num, new=False):
     """Randomly sample random num <max_num elements from the list."""
@@ -104,11 +111,6 @@ class PieceSampler:
             new_examples.append(phrase)
         return new_examples
 
-    def tag_pieces(self, pieces, specified=None):
-        """Tag the pieces with a specified tag."""
-        if specified is None:
-            return [tag_piece(p, self.tag) for p in pieces]
-        return [tag_piece(p, self.tag) if p in specified else p for p in pieces]
 
     def _sample(self, pieces):
         """Sample segments from the positive pieces."""
@@ -132,9 +134,9 @@ class PieceSampler:
         random.shuffle(examples)
         # Tag the pieces with shared tags
         shared = set(examples) & set(pieces)
-        pieces = self.tag_pieces(pieces, shared)
+        pieces = tag_pieces(pieces, self.tag, shared)
         if self.tag_all:  # tag the input sample pieces as well
-            examples = self.tag_pieces(examples)
+            examples = tag_pieces(examples, self.tag)
         self.idx += 1
         prompt, trans = ", ".join(examples), " ".join(pieces)
         if self.log_interval is not None and self.idx % self.log_interval == 0:

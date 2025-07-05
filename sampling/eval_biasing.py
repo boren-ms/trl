@@ -3,6 +3,7 @@ from transformers import AutoProcessor
 from trl.extras.vllm_client import VLLMClient
 from trl.scripts.audio_dataset import ls_bias_dataset
 from pathlib import Path
+import blobfile as bf
 
 home_dir = Path.home()
 # %%
@@ -31,9 +32,8 @@ data_paths = [
     # data_dir / "test-clean.biasing_500.jsonl",
     # data_dir / "test-clean.biasing_1000.jsonl",
 ]
-import blobfile as bf
 REMOTE_DIR="az://orngscuscresco/data/boren/data"
-ds = ls_bias_dataset(data_paths, bias_key="ground_truth", tag=True, num_egs=10, data_dir=REMOTE_DIR)
+ds = ls_bias_dataset(data_paths, bias_key="distractors", tag=True, num_egs=10, data_dir=REMOTE_DIR)
 prompts = []
 audios = []
 fmt = "<|user|>{}<|end|><|assistant|>"

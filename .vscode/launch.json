@@ -8,6 +8,14 @@
             "name": "Python Debugger: Current File",
             "type": "debugpy",
             "request": "launch",
+            "program": "${file}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "grpo_bias",
+            "type": "debugpy",
+            "request": "launch",
             "program": "trl/scripts/grpo_bias.py",
             "console": "integratedTerminal",
             "env": {
