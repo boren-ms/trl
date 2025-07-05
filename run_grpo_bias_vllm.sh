@@ -18,8 +18,6 @@ region_storages=(
 )
 # export REGION_CODE=${region_storages[$CLUSTER_REGION]}
 export DATA_STORAGE=${region_storages[$CLUSTER_REGION]}
-#!/bin/bash
-set -x
 
 # model_path=${HOME}/data/ckp/hf_models/phi4_mm_bias_merged/
 # echo "Running trl-vllm with ${model_path} with ${VLLM_GPU_NUM} GPUs"
