@@ -1,5 +1,5 @@
 train_data:
-    name: tsv
+    dataset_name: tsv
     # num_egs: 5000
     # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
     tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
@@ -19,7 +19,7 @@ eval_steps: 100
 eval_on_start: True
 eval_data:
     # num_egs: 10
-    name: ls_bias
+    dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     bias_key: distractors # distractors
     # data_dir: az://${DATA_STORAGE}/data/boren/data
