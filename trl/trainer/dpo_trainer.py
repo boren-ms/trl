@@ -43,10 +43,13 @@ from transformers import (
     PreTrainedTokenizerBase,
     ProcessorMixin,
     Trainer,
-    is_comet_available,
-    is_wandb_available,
 )
 from transformers.data.data_collator import DataCollatorMixin
+from transformers.integrations import (
+    is_comet_available,
+    is_mlflow_available,
+    is_wandb_available,
+)
 from transformers.models.auto.modeling_auto import MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES
 from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_utils import EvalLoopOutput
@@ -75,7 +78,12 @@ from .utils import (
 
 
 if is_peft_available():
-    from peft import PeftConfig, PeftModel, get_peft_model, prepare_model_for_kbit_training
+    from peft import (
+        PeftConfig,
+        PeftModel,
+        get_peft_model,
+        prepare_model_for_kbit_training,
+    )
 
 if is_liger_kernel_available():
     from liger_kernel.chunked_loss import LigerFusedLinearDPOLoss
@@ -83,6 +91,9 @@ if is_liger_kernel_available():
 
 if is_wandb_available():
     import wandb
+
+if is_mlflow_available():
+    import mlflow
 
 
 def shift_tokens_right(input_ids: torch.Tensor, decoder_start_token_id: int) -> torch.Tensor:
@@ -295,8 +306,11 @@ class DPOTrainer(Trainer):
         # PEFT configuration and model wrapping
         model = self._prepare_peft_model(model, ref_model, peft_config, args)
 
-        if args.generate_during_eval and not (is_wandb_available() or is_comet_available()):
-            raise ValueError("`generate_during_eval=True` requires Weights and Biases or Comet to be installed." " Please install `wandb` or `comet-ml` to resolve.")
+        if args.generate_during_eval and not (is_wandb_available() or is_comet_available() or is_mlflow_available()):
+            raise ValueError(
+                "`generate_during_eval=True` requires Weights and Biases, MLFlow or Comet to be installed."
+                " Please install `wandb`, `mlflow` or `comet-ml` to resolve."
+            )
 
         self.is_encoder_decoder = model.config.is_encoder_decoder
         # self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
@@ -1244,7 +1258,6 @@ class DPOTrainer(Trainer):
                 with self.null_ref_context():
                     ref_outputs = ref_base_model(
                         input_ids,
-                        attention_mask=attention_mask,
                         use_cache=False,
                         **model_kwargs,
                     )
@@ -1710,6 +1723,9 @@ class DPOTrainer(Trainer):
                     name="game_log.csv",
                     table=table,
                 )
+
+            if "mlflow" in self.args.report_to and self.accelerator.is_main_process:
+                mlflow.log_table(data=table, artifact_file="game_log.json")
 
         # Base evaluation
         initial_output = super().evaluation_loop(dataloader, description, prediction_loss_only, ignore_keys, metric_key_prefix)
