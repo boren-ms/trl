@@ -1174,7 +1174,9 @@ class GRPOTrainer(Trainer):
                     torch.distributed.all_gather_object(gathered_prompts, prompts_text, group=self.tp_group)
                     all_prompts_text = [p for sublist in gathered_prompts for p in sublist]
                 else:
-                    all_prompts_text = prompts_text
+                    all_prompts_text = []
+                    for prompt, audio in zip(prompts_text, audios):
+                        all_prompts_text.append({"prompt": prompt, "multi_modal_data": {"audio": [sf_read(audio)]}} if audio else prompt)
 
                 with profiling_context(self, "vLLM.generate"):
                     all_outputs = self.llm.generate(all_prompts_text, sampling_params=sampling_params, use_tqdm=False)
