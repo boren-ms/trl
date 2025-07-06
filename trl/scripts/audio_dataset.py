@@ -32,14 +32,18 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag=True, data_dir=None, **kwargs
         instruct = "Transcribe the audio clip into text."
         if bias_str:
             instruct += f" Pay extra attention to the following phrases/words: {bias_str}."
-        audio_path = example["audio_path"].replace("/root/data", data_dir) if data_dir else example["audio_path"]
+        audio_path = Path(example["audio_path"])
+        if data_dir:
+            if audio_path.is_absolute():
+                audio_path= audio_path.relative_to("/root/data")
+            audio_path = f"{data_dir}/{audio_path}" # not use Path here, since it may be a remote path
         words = example.get("text", "").strip().split()
         gt_words = example.get("ground_truth", [])
         words = tag_pieces(words, specified=gt_words, norm=text_norm)
         # audio, sr = sf_read(audio_path)
         return {
             "prompt": [{"role": "user", "content": f"<|audio_1|>{instruct}"}],
-            "audio_path": audio_path,
+            "audio_path": str(audio_path),
             "text": " ".join(words),
         }
 
