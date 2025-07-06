@@ -21,7 +21,7 @@ export DATA_STORAGE=${region_storages[$CLUSTER_REGION]}
 
 MAIN_NODE=${RCALL_JOB_NAME}-0
 # update the ENV variables in the config file
-new_config_file=${config_file}.tmp
+new_config_file="${config_file%.*}.tmp.yaml"
 envsubst < ${config_file} > ${new_config_file}
 
 HOST=$(hostname)
