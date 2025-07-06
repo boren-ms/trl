@@ -49,6 +49,6 @@ accelerate launch \
 mkdir -p ${RCALL_LOGDIR}
 RANK_LOG_FILE=${RCALL_LOGDIR}/${CONFIG_NAME}_rank_${RANK}.log
 echo "Logging to ${RANK_LOG_FILE}"
-echo "Running $cmd" >> $RANK_LOG_FILE
+echo "Running $cmd" > $RANK_LOG_FILE
 # printenv >> $RANK_LOG_FILE
 $cmd >> $RANK_LOG_FILE 2>&1 
