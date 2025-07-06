@@ -538,9 +538,7 @@ class GRPOTrainer(Trainer):
         self.mask_truncated_completions = args.mask_truncated_completions
         self.token_entropy_percentile_threshold = args.token_entropy_percentile_threshold
         if self.use_liger_loss and self.token_entropy_percentile_threshold > 0.0:
-            raise NotImplementedError(
-                "Liger Kernels don't currently support masking token positions based on entropy."
-            )
+            raise NotImplementedError("Liger Kernels don't currently support masking token positions based on entropy.")
 
         # Datasets
         self.shuffle_dataset = args.shuffle_dataset
@@ -676,6 +674,7 @@ class GRPOTrainer(Trainer):
                     seed=self.accelerator.process_index // self.vllm_tensor_parallel_size,
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
                     max_num_batched_tokens=4096,
+                    trust_remote_code=True,
                 )
 
             # vLLM specific sampling arguments
@@ -857,9 +856,7 @@ class GRPOTrainer(Trainer):
         return last_hidden_state
 
     @profiling_decorator
-    def _get_per_token_logps_and_entropies(
-        self, model, input_ids, attention_mask, logits_to_keep, batch_size=None,  compute_entropy=False, **kwargs
-    ) -> dict[str, Optional[torch.Tensor]]:
+    def _get_per_token_logps_and_entropies(self, model, input_ids, attention_mask, logits_to_keep, batch_size=None, compute_entropy=False, **kwargs) -> dict[str, Optional[torch.Tensor]]:
         """Compute log‐probs and (optionally) entropies for each token."""
         batch_size = batch_size or input_ids.size(0)  # Chunk inputs into smaller batches to reduce memory peak
         all_logps = []
@@ -1030,9 +1027,7 @@ class GRPOTrainer(Trainer):
         # This allows for dynamic reward shaping based on training progress.
         reward_kwargs["trainer_state"] = self.state
 
-        for i, (reward_func, reward_processing_class, reward_func_name) in enumerate(
-            zip(self.reward_funcs, self.reward_processing_classes, self.reward_func_names)
-        ):
+        for i, (reward_func, reward_processing_class, reward_func_name) in enumerate(zip(self.reward_funcs, self.reward_processing_classes, self.reward_func_names)):
             with profiling_context(self, reward_func_name):
                 if isinstance(reward_func, nn.Module):  # Module (no PretrainedModel) for compat with compiled models
                     if is_conversational(inputs[0]):
@@ -1172,14 +1167,19 @@ class GRPOTrainer(Trainer):
                     orig_size = len(prompts_text)
                     gathered_prompts = [None for _ in range(self.vllm_tensor_parallel_size)]
                     torch.distributed.all_gather_object(gathered_prompts, prompts_text, group=self.tp_group)
-                    all_prompts_text = [p for sublist in gathered_prompts for p in sublist]
+                    all_prompts = [p for sublist in gathered_prompts for p in sublist]
                 else:
-                    all_prompts_text = []
+                    all_prompts = []
                     for prompt, audio in zip(prompts_text, audios):
-                        all_prompts_text.append({"prompt": prompt, "multi_modal_data": {"audio": [sf_read(audio)]}} if audio else prompt)
+                        all_prompts.append(
+                            {
+                                "prompt": prompt,
+                                "multi_modal_data": {"audio": [audio]},
+                            }
+                        )
 
                 with profiling_context(self, "vLLM.generate"):
-                    all_outputs = self.llm.generate(all_prompts_text, sampling_params=sampling_params, use_tqdm=False)
+                    all_outputs = self.llm.generate(all_prompts, sampling_params=sampling_params, use_tqdm=False)
 
                 completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
 
@@ -1194,7 +1194,7 @@ class GRPOTrainer(Trainer):
             completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
             completion_ids = pad(completion_ids, padding_value=self.processing_class.tokenizer.pad_token_id)
             prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-        
+
         elif self.use_transformers_paged:
             prompt_inputs = self.processing_class(text=prompts_text)
             self.generation_config.max_batch_tokens = 512
@@ -1208,9 +1208,7 @@ class GRPOTrainer(Trainer):
                 self.model_wrapped.config._attn_implementation = "sdpa_paged"
             with (
                 profiling_context(self, "transformers.generate_batch"),
-                unwrap_model_for_generation(
-                    self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
-                ) as unwrapped_model,
+                unwrap_model_for_generation(self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model,
                 torch.no_grad(),
                 FSDP.summon_full_params(self.model_wrapped, recurse=False) if self.is_fsdp_enabled else nullcontext(),
             ):
@@ -1220,9 +1218,7 @@ class GRPOTrainer(Trainer):
                 elif self.args.fp16:
                     unwrapped_model.to(torch.float16)
                 with torch.inference_mode():
-                    all_outputs = unwrapped_model.generate_batch(
-                        prompt_inputs.input_ids, generation_config=self.generation_config
-                    )
+                    all_outputs = unwrapped_model.generate_batch(prompt_inputs.input_ids, generation_config=self.generation_config)
             completion_ids = [output.generated_tokens for output in all_outputs.values()]
             completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
             completion_ids = pad(completion_ids, padding_value=self.processing_class.pad_token_id)
@@ -1233,17 +1229,9 @@ class GRPOTrainer(Trainer):
             self.model_wrapped.config._attn_implementation = previous_attn
         else:
             # Regular generation path
-            with unwrap_model_for_generation(
-                self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
-            ) as unwrapped_model:
-                with (
-                    FSDP.summon_full_params(self.model_wrapped, recurse=False)
-                    if self.is_fsdp_enabled
-                    else nullcontext()
-                ):
-                    prompt_completion_ids = unwrapped_model.generate(
-                        prompt_ids, attention_mask=prompt_mask, generation_config=self.generation_config
-                    )
+            with unwrap_model_for_generation(self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model:
+                with FSDP.summon_full_params(self.model_wrapped, recurse=False) if self.is_fsdp_enabled else nullcontext():
+                    prompt_completion_ids = unwrapped_model.generate(prompt_ids, attention_mask=prompt_mask, generation_config=self.generation_config)
 
             # Compute prompt length and extract completion ids
             prompt_length = prompt_ids.size(1)
@@ -1281,23 +1269,17 @@ class GRPOTrainer(Trainer):
             # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
             # per_token_logps.detach() instead.
             if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps:
-                old_per_token_logps = self._get_per_token_logps_and_entropies(
-                    self.model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size
-                )["logps"]
+                old_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size)["logps"]
             else:
                 old_per_token_logps = None
 
             # Compute the per-token log probabilities for the reference model
             if self.beta != 0.0:
                 if self.ref_model is not None:
-                    ref_per_token_logps = self._get_per_token_logps_and_entropies(
-                        self.ref_model, prompt_completion_ids, attention_mask, logits_to_keep
-                    )["logps"]
+                    ref_per_token_logps = self._get_per_token_logps_and_entropies(self.ref_model, prompt_completion_ids, attention_mask, logits_to_keep)["logps"]
                 else:
                     with self.accelerator.unwrap_model(self.model).disable_adapter():
-                        ref_per_token_logps = self._get_per_token_logps_and_entropies(
-                            self.model, prompt_completion_ids, attention_mask, logits_to_keep
-                        )["logps"]
+                        ref_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep)["logps"]
             else:
                 ref_per_token_logps = None
 
@@ -1448,9 +1430,7 @@ class GRPOTrainer(Trainer):
 
         # Compute the entropy at each position in the completion
         if self.token_entropy_percentile_threshold > 0.0:
-            logps_and_entropies = self._get_per_token_logps_and_entropies(
-                model, input_ids, attention_mask, logits_to_keep, compute_entropy=True
-            )
+            logps_and_entropies = self._get_per_token_logps_and_entropies(model, input_ids, attention_mask, logits_to_keep, compute_entropy=True)
             per_token_logps = logps_and_entropies["logps"]
             entropies = logps_and_entropies["entropies"]
             # compute the entropy threshold across all tokens in the batch
@@ -1458,9 +1438,7 @@ class GRPOTrainer(Trainer):
             entropy_threshold = torch.quantile(entropies.flatten().float(), self.token_entropy_percentile_threshold)
             entropy_mask = entropies >= entropy_threshold
         else:
-            per_token_logps = self._get_per_token_logps_and_entropies(
-                model, input_ids, attention_mask, logits_to_keep, **prompt_inputs
-            )["logps"]
+            per_token_logps = self._get_per_token_logps_and_entropies(model, input_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
             entropy_mask = None
 
         # Compute the KL divergence between the model and the reference model
