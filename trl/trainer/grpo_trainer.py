@@ -1155,6 +1155,7 @@ class GRPOTrainer(Trainer):
                     "top_k": -1 if self.top_k is None else self.top_k,
                     "min_p": 0.0 if self.min_p is None else self.min_p,
                     "max_tokens": self.max_completion_length,
+                    "stop_token_ids": self.stop_tokens_ids.flatten().tolist(),
                     "guided_decoding": guided_decoding,
                 }
                 if self.args.generation_kwargs is not None:
