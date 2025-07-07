@@ -15,7 +15,7 @@ train_data:
         common_word_num: 1000
 
 eval_strategy: steps
-eval_steps: 100 
+eval_steps: 400 
 # eval_on_start: True
 eval_data:
     # num_egs: 10

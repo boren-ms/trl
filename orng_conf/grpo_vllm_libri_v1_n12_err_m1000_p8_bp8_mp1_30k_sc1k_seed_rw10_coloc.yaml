@@ -46,7 +46,7 @@ vllm_gpu_memory_utilization: 0.3
 
 eval_strategy: steps
 # eval_on_start: True
-eval_steps: 100 
+eval_steps: 400 
 per_device_eval_batch_size: 800
 num_eval_generations: 2
 eval_data:
