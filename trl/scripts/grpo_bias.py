@@ -13,7 +13,7 @@ from transformers import AutoModelForCausalLM, AutoProcessor
 import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_audio_dataset
-from trl.scripts.audio_rewards import compute_metrics
+from trl.scripts.audio_rewards import eval_biasing_metrics
 
 
 def uuid4():
@@ -163,7 +163,7 @@ def main(script_args, training_args):
         train_dataset=create_dataset(script_args.train_data),
         eval_dataset=create_dataset(script_args.eval_data),
         processing_class=processor,
-        compute_metrics=compute_metrics,
+        compute_metrics=eval_biasing_metrics,
     )
     print("Training...")
     trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)

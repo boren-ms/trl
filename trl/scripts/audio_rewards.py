@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from jiwer import process_words
 import jiwer.transforms as tr
-
+from whisper_normalizer.english import EnglishTextNormalizer
 
 
 class RemovePunctuationExclude(tr.RemovePunctuation):
@@ -71,25 +71,29 @@ def word_match(ref, hyp):
             tr.RemoveMultipleSpaces(),
             tr.Strip(),
             tr.ReduceToSingleSentence(),
-            tr.ReduceToListOfListOfWords(),
+            # tr.ReduceToListOfListOfWords(),
         ]
     )
-    output = process_words(ref, hyp, norm, norm)
+    norm = EnglishTextNormalizer()
+    ref = norm(ref)
+    hyp = norm(hyp)
+    output = process_words(ref, hyp)
     hit = output.hits
     total = output.hits + output.substitutions + output.deletions
     miss = output.substitutions + output.deletions + output.insertions
     return Match(hit, miss, total)
 
 
-def count_tagged(text, tagged=True):
-    """Count the number of tagged phrases in the text."""
-    tagged_piece = re.findall(r"\*.*?\*", text)
-    n_tagged_word = sum([len(x.strip().split()) for x in tagged_piece])
-    return n_tagged_word if tagged else len(text.split()) - n_tagged_word
-
 def unbias_match(ref, hyp):
     """Compute the unbias match for a list of completions."""
     return bias_match(ref, hyp, bias=False)
+
+
+def tagged_words(text):
+    """Extract keywords from the text based on biasing words."""
+    tagged_pieces = re.findall(r"\*.*?\*", text)
+    return [wd for piece in tagged_pieces for wd in piece.strip("*").split()]
+
 
 def bias_match(ref, hyp, bias=True):
     """Compute the bias match for a list of completions."""
@@ -97,23 +101,28 @@ def bias_match(ref, hyp, bias=True):
         [
             tr.ToLowerCase(),
             tr.ExpandCommonEnglishContractions(),
-            RemovePunctuationExclude(exclude=["*"]),
+            # RemovePunctuationExclude(exclude=["*"]),
+            tr.RemovePunctuation(),
             tr.RemoveWhiteSpace(replace_by_space=True),
             tr.RemoveMultipleSpaces(),
             tr.Strip(),
             tr.ReduceToSingleSentence(),
         ]
     )
+    norm = EnglishTextNormalizer()
+    biasing_words = [wd for wd in map(norm, tagged_words(ref)) if wd.strip()]
     ref = norm(ref)
     hyp = norm(hyp)
-    total = count_tagged(ref, bias)
+    total = len(biasing_words) if bias else len(ref.strip().split()) - len(biasing_words)
     if total == 0:
         return Match(0, 0, 0)
     hit = 0
     ins = 0
     for tag, ref_part, hyp_part in get_align(ref, hyp):
+        ref_words = ref_part.strip().split()
+        bias_cnt = len([wd for wd in ref_words if wd in biasing_words])
         if tag == "equal":
-            hit += count_tagged(ref_part, bias)
+            hit += bias_cnt if bias else len(ref_words) - bias_cnt
         elif tag == "insert":
             ins += 0 if bias else len(hyp_part.strip().split())
     return Match(hit, total - hit + ins, total)
@@ -125,7 +134,7 @@ def compute_match(groups, match_func=word_match, nbest=1):
     for group in groups:
         best = Match(0, 100, 100)
         for sample in group[:nbest]:
-            cur = match_func(sample["text"], sample["completions"][-1]["content"])
+            cur = match_func(sample["ref"], sample["hyp"])
             if cur.error_rate <= best.error_rate:
                 best = cur
         total.n_err += best.n_err
@@ -134,8 +143,10 @@ def compute_match(groups, match_func=word_match, nbest=1):
     return total
 
 
-def compute_metrics(groups):
-    """compute eval metrics"""
+def compute_biasing_metrics(groups):
+    """compute biasing metrics"""
+    # Extract reference and hypothesis pairs from groups
+
     return {
         "WER": compute_match(groups, word_match, 1).error_rate,
         "WER_A": compute_match(groups, word_match, 100).error_rate,
@@ -145,6 +156,13 @@ def compute_metrics(groups):
         "UWER_A": compute_match(groups, unbias_match, 100).error_rate,
         "num_examples": len(groups),
     }
+
+
+def eval_biasing_metrics(groups):
+    """compute eval metrics"""
+    # Extract reference and hypothesis pairs from groups
+    extracted_groups = [[{"ref": egs["text"], "hyp": egs["completions"][-1]["content"]} for egs in g] for g in groups]
+    return compute_biasing_metrics(extracted_groups)
 
 
 def reward_bias_accuracy(completions, **kwargs):
@@ -188,7 +206,10 @@ def reward_word_error_rate(completions, **kwargs):
 if __name__ == "__main__":
     hyp_text = "have you hi not met it ,are you show"
     ref_text = "*have* *you* *not* *met them* *anywhere*"
+    hyp_text= "It was silent and gloomy, *beeing* *tenanted* *solely* by the *captive* and lighted by the dying *embers* of a fire which had been used for the purpose of *cookery*"
+    ref_text= "it was silent and gloomy being *tenanted* *solely* by the *captive* and lighted by the dying *embers* of a fire which had been used for the *purposed* of *cookery*"
     print("Bias error:", bias_match(ref_text, hyp_text))
+    print("Unbias error:", unbias_match(ref_text, hyp_text))
     print("Word error:", word_match(ref_text, hyp_text))
 
 # %%
