@@ -13,7 +13,7 @@ from transformers import AutoModelForCausalLM, AutoProcessor
 import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_audio_dataset
-from trl.scripts.audio_rewards import eval_biasing_metrics
+from trl.scripts.audio_metrics import eval_biasing_metrics
 
 
 def uuid4():
@@ -126,7 +126,7 @@ def reward_functions(names=None):
     funcs = []
     for name in names:
         try:
-            module = __import__("trl.scripts.audio_rewards", fromlist=[name])
+            module = __import__("trl.scripts.audio_metrics", fromlist=[name])
             funcs.append(getattr(module, name))
         except (ImportError, AttributeError) as e:
             raise ValueError(f"Reward function '{name}' not found.") from e
