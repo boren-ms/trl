@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from ray_utils import run_nodes, run_cmd, init_ray
 import os
 import ray
