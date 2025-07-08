@@ -6,12 +6,20 @@ import os
 import importlib
 from pathlib import Path
 import fire
+import time
+
 
 def run(cmd):
     print(f"Running: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
-    
+
+def head_hostname():
+    """Get the head node hostname from environment variables."""
+    job_name = os.environ.get("RCALL_JOB_NAME", None)
+    assert job_name is not None, "RCALL_JOB_NAME must be set"
+    return f"{job_name}-0"  # head node IP
+
 
 def run_nodes(fun, *args, **kwargs):
     nodes = ray.nodes()
@@ -28,29 +36,64 @@ def run_nodes(fun, *args, **kwargs):
     return ray.get(results)
 
 
+@ray.remote
+class OutputWatcher:
+    def __init__(self, local_dir, remote_dir, interval=600):
+        self.local_dir = local_dir
+        self.remote_dir = remote_dir
+        self.interval = interval
+        self._running = True
+
+    def start(self):
+        print(f"Watcher started with interval {self.interval} seconds.")
+        print("Watching for output changes, and syncing if necessary.")
+        print(f"Local directory: {self.local_dir}")
+        print(f"Remote directory: {self.remote_dir}")
+        while self._running:
+            # Place your watched logic here
+            print("Watcher tick!")
+            cmd = [
+                "bbb",
+                "sync",
+                "--concurrency",
+                "64",
+                f"{self.local_dir}/",
+                f"{self.remote_dir}/",
+            ]
+            run(cmd)
+            print("Sync completed.")
+            time.sleep(self.interval)
+
+    def stop(self):
+        self._running = False
+        print("Watcher stopped.")
+
+
 REGION_STORAGES = {
     "southcentralus": "orngscuscresco",
     "westus2": "orngwus2cresco",
     "uksouth": "orngukscresco",
 }
 
+
 def get_region_storage():
-    """ Get the storage path based on the region of the Kubernetes cluster."""
+    """Get the storage path based on the region of the Kubernetes cluster."""
     rcall_kube_cluster = os.environ.get("RCALL_KUBE_CLUSTER", "")
     cluster_region = rcall_kube_cluster.split("-")[1] if "-" in rcall_kube_cluster else ""
     data_storage = REGION_STORAGES.get(cluster_region, "orngscuscresco")
     return data_storage
 
+
 def get_remote_data_dir():
-    """ Get the storage path based on the region of the Kubernetes cluster."""
+    """Get the storage path based on the region of the Kubernetes cluster."""
     data_storage = get_region_storage()
     user = os.environ.get("RCALL_USER", "boren")
     return f"az://{data_storage}/data/{user}/data"
 
-#%%
+
 @ray.remote
 def prepare_environment():
-    """ Prepare the environment on each node by installing necessary packages."""
+    """Prepare the environment on each node by installing necessary packages."""
     hostname = os.uname().nodename
     print(f"Preparing environment on node: {hostname}")
     try:
@@ -59,7 +102,7 @@ def prepare_environment():
         if trl_path.startswith("/root/code/trl"):
             print("trl is installed from /root/code/trl")
             print("Environment is already prepared, skipping reinstallation.")
-            return 
+            return
     except ImportError as e:
         print("Could not determine trl installation path:", e)
     run("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
@@ -68,12 +111,13 @@ def prepare_environment():
     run("pip uninstall -y trl")
     print("Environment preparation completed.")
 
+
 @ray.remote
 def prepare_data():
-    """ Prepare data on each node by syncing from the remote storage."""
+    """Prepare data on each node by syncing from the remote storage."""
     hostname = os.uname().nodename
     print(f"Preparing data on node: {hostname}")
-    local_dir = Path.home() / "data" 
+    local_dir = Path.home() / "data"
     done_tag = local_dir / "data_preparation_done"
     if done_tag.exists():
         print(f"Data preparation already done on {hostname}, skipping.")
@@ -95,10 +139,7 @@ def prepare_data():
 
     for rel_dir in rel_dirs:
         print(f"Syncing directory: {rel_dir}")
-        cmd = [
-            "bbb", "sync", "--concurrency", "64",
-            f"{remote_dir}/{rel_dir}", f"{local_dir}/{rel_dir}"
-        ]
+        cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/{rel_dir}", f"{local_dir}/{rel_dir}"]
         subprocess.run(cmd, check=True)
 
     rel_files = [
@@ -107,26 +148,39 @@ def prepare_data():
     ]
     for rel_file in rel_files:
         print(f"Syncing file: {rel_file}")
-        cmd = [
-            "bbb", "cp",
-            f"{remote_dir}/{rel_file}", f"{local_dir}/{rel_file}"
-        ]
+        cmd = ["bbb", "cp", f"{remote_dir}/{rel_file}", f"{local_dir}/{rel_file}"]
         subprocess.run(cmd, check=True)
     print("Data preparation completed.")
     done_tag.touch()
 
+
+@ray.remote
+def sync_outputs(output_dir):
+    """Sync the output files from the remote storage."""
+    head_node = head_hostname()
+    cur_node = os.uname().nodename
+    if cur_node == head_node:
+        print(f"Skipping checkpoint sync on head node: {cur_node}")
+        return
+    print(f"Syncing checkpoints from head node: {head_node} to current node: {cur_node}")
+    cmd = ["rsync", "-avz", f"{head_node}:{output_dir}/", f"{output_dir}/"]
+    print(f"Running command: {' '.join(cmd)}")
+    subprocess.run(cmd, check=True)
+    print("Output syncing completed.")
+
+
 def update_envs(yaml_path):
-    """ Reads a YAML file, substitutes environment variables in its content """
+    """Reads a YAML file, substitutes environment variables in its content"""
     print(f"Updating variables in {yaml_path}")
     os.environ["DATA_STORAGE"] = get_region_storage()
     content = Path(yaml_path).read_text()
     expanded_content = os.path.expandvars(content)
     Path(yaml_path).write_text(expanded_content)
-    
+
 
 @ray.remote
 def launch_training(config_file):
-    """ Launch training using the specified YAML config file. """
+    """Launch training using the specified YAML config file."""
     config_file = Path(config_file).absolute()
     update_envs(config_file)
 
@@ -140,24 +194,32 @@ def launch_training(config_file):
     num_gpu = int(os.environ.get("RCALL_NUM_GPU", "8"))
     job_name = os.environ.get("RCALL_JOB_NAME", None)
     assert job_name is not None, "RCALL_JOB_NAME must be set"
-    main_process_ip = f"{job_name}-0" # head node IP
+    main_process_ip = f"{job_name}-0"  # head node IP
     main_process_port = 12345
 
     cmd = [
-        "accelerate", "launch",
-        "--num_processes", str(num_gpu * rank_size),
-        "--num_machines", str(rank_size),
-        "--machine_rank", str(rank),
-        "--main_process_ip", str(main_process_ip),
-        "--main_process_port", str(main_process_port),
+        "accelerate",
+        "launch",
+        "--num_processes",
+        str(num_gpu * rank_size),
+        "--num_machines",
+        str(rank_size),
+        "--machine_rank",
+        str(rank),
+        "--main_process_ip",
+        str(main_process_ip),
+        "--main_process_port",
+        str(main_process_port),
         "trl/scripts/grpo_bias.py",
-        "--config", str(config_file),
-        "--output-dir", str(output_dir)
+        "--config",
+        str(config_file),
+        "--output-dir",
+        str(output_dir),
     ]
 
     rcall_logdir = os.environ.get("RCALL_LOGDIR", os.path.expanduser("~/logs"))
     os.makedirs(rcall_logdir, exist_ok=True)
-    
+
     rank_log_file = os.path.join(rcall_logdir, f"{config_file.stem}_rank_{rank}.log")
     print(f"Logging to {rank_log_file}")
     with open(rank_log_file, "w") as logf:
@@ -171,17 +233,37 @@ def launch_training(config_file):
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
 
+def run_output_watcher():
+    """Start the output watcher to sync outputs periodically."""
+    output_dir = Path.home() / "outputs"
+    remote_output_dir = f"{get_remote_data_dir()}/outputs/{os.environ.get('RCALL_JOB_NAME', 'UnknownJob')}"
+    watcher = OutputWatcher.options(resources={f"hostname:{head_hostname()}": 0.01}).remote(
+        local_dir=output_dir,
+        remote_dir=remote_output_dir,
+        interval=1800,  # changed from 600 to 1800 (30min)
+    )
+    print("Starting output watcher...")
+    watcher.start.remote()
+
+
 def main(config_file):
-    """ Launch the job on all nodes by preparing the environment and data."""
+    """Launch the job on all nodes by preparing the environment and data."""
     print("Preparing environment on all nodes...")
     run_nodes(prepare_environment)
     print("Preparing data on all nodes...")
     run_nodes(prepare_data)
+    print("Syncing outputs on all nodes...")
+    run_nodes(sync_outputs, str(Path.home() / "outputs"))
+    
+    print("Starting output watcher on head node...")
+    run_output_watcher()
+    
     config_file = Path(config_file).absolute()
     print(f"Launch training with {config_file}...")
     run_nodes(launch_training, str(config_file))
     print("Job completed on all nodes.")
-    
+
+
 if __name__ == "__main__":
     ray.init(address="auto")  # Connect to the running cluster
     fire.Fire(main)
