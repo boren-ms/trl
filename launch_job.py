@@ -264,8 +264,8 @@ def release_gpus():
     """Release GPUs on the current node."""
     hostname = os.uname().nodename
     print(f"Releasing GPUs on node: {hostname}")
-    list_cmd = " lsof /dev/nvidia* | awk '{print $2}' | grep -E '^[0-9]+$' | sort -u"
-    kill_cmd = "sudo lsof /dev/nvidia* | awk '{print $2}' | grep -E '^[0-9]+$' | sort -u | xargs kill -9"
+    list_cmd = "lsof /dev/nvidia* | awk '{print $2}' | grep -E '^[0-9]+$' | sort -u"
+    kill_cmd = "lsof /dev/nvidia* | awk '{print $2}' | grep -E '^[0-9]+$' | sort -u | xargs -I {} kill -9 {}"
     print("Listing processes using NVIDIA devices:")
     run_cmd(list_cmd, check=False)
     print("Killing processes using NVIDIA devices:")
