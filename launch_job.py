@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import subprocess
-import nvidia
 import ray
 import os
 import importlib
@@ -183,7 +182,6 @@ def sync_outputs(output_dir):
     print(f"Syncing checkpoints from head node: {head_node} to current node: {cur_node}")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     cmd = ["rsync", "-avz", f"{head_node}:{output_dir}/", f"{output_dir}/"]
-    run_cmd(f"Running command: {' '.join(cmd)}")
     run_cmd(cmd)
     print("Output syncing completed.")
 
