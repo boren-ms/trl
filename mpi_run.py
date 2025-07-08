@@ -43,7 +43,6 @@ def main(*cmd, skip_head=False):
         print("No nodes found. Please check your environment variables.")
         exit(1)
     
-    cmd = sys.argv[1:]
     if not cmd:
         print("Usage: python mpi_run.py <command> [args...]")
         exit(1)
