@@ -11,8 +11,13 @@ import time
 import importlib.metadata
 
 def run_cmd(cmd, check=True):
+    """Run a shell command and print it."""
+    if isinstance(cmd, (list, tuple)):
+        cmd = " ".join(cmd)
     print(f"Running: {cmd}")
-    subprocess.run(cmd, shell=True, check=check)
+    ret = subprocess.run(cmd, shell=True, check=check)
+    print(f"Command completed: {ret.returncode}")
+    return ret
 
 
 def head_hostname():
