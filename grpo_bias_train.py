@@ -175,15 +175,17 @@ def prepare_data(forced=False):
 
 
 @ray.remote
-def sync_outputs(output_dir):
+def sync_output_dir(output_dir):
     """Sync the output files from the remote storage."""
     head_node = head_hostname()
     cur_node = os.uname().nodename
+    # Ensure the output directory exists for each node
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    
     if cur_node == head_node:
         print(f"Skipping checkpoint sync on head node: {cur_node}")
         return
     print(f"Syncing checkpoints from head node: {head_node} to current node: {cur_node}")
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
     cmd = ["rsync", "-avz", f"{head_node}:{output_dir}/", f"{output_dir}/"]
     run_cmd(cmd)
     print("Output syncing completed.")
@@ -199,7 +201,7 @@ def update_envs(yaml_path):
 
 
 @ray.remote
-def launch_training(config_file):
+def launch_training(config_file, output_dir=None):
     """Launch training using the specified YAML config file."""
     config_file = Path(config_file).absolute()
     update_envs(config_file)
@@ -207,8 +209,11 @@ def launch_training(config_file):
     cur_dir = Path(__file__).parent
     os.chdir(cur_dir)
     print(f"Working Dir: {os.getcwd()}")
-    output_dir = Path().home() / "outputs"
+    
+    output_dir = output_dir or Path().home() / "outputs"
     os.makedirs(output_dir, exist_ok=True)
+    print(f"Using config file: {config_file}")
+    print(f"Output directory: {output_dir}")
 
     rank = int(os.environ.get("RCALL_INSTANCE_INDEX", "0"))
     rank_size = int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
@@ -231,7 +236,7 @@ def launch_training(config_file):
         str(main_process_ip),
         "--main_process_port",
         str(main_process_port),
-        "trl/scripts/grpo_bias.py",
+        str(script_path),
         "--config",
         str(config_file),
         "--output-dir",
@@ -240,7 +245,6 @@ def launch_training(config_file):
 
     rcall_logdir = os.environ.get("RCALL_LOGDIR", os.path.expanduser("~/logs"))
     os.makedirs(rcall_logdir, exist_ok=True)
-
     rank_log_file = os.path.join(rcall_logdir, f"{config_file.stem}_rank_{rank}.log")
     print(f"Logging to {rank_log_file}")
     with open(rank_log_file, "w") as logf:
@@ -292,8 +296,9 @@ def main(config_file, forced=False):
     results += run_nodes(prepare_data, forced=forced, waiting=False)
 
     print("Syncing outputs on all nodes...")
-    results += run_nodes(sync_outputs, str(Path.home() / "outputs"), waiting=False)
-    
+    output_dir = Path.home() / "outputs"
+    results += run_nodes(sync_output_dir, str(output_dir), waiting=False)
+
     print("Releasing GPUs on all nodes...")
     results += run_nodes(release_gpus, waiting=False)
     
@@ -304,7 +309,7 @@ def main(config_file, forced=False):
     
     config_file = Path(config_file).absolute()
     print(f"Launch training with {config_file}...")
-    run_nodes(launch_training, str(config_file))
+    run_nodes(launch_training, str(config_file), output_dir=str(output_dir))
     print("Job completed on all nodes.")
 
 
