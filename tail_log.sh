@@ -2,4 +2,4 @@
 
 # set -x
 echo "Tail all logs : ${RCALL_LOGDIR}"
-bash mpi_bash.sh 'tail -n 100 -f ${RCALL_LOGDIR}/*.log'
+python mpi_run.py 'tail -n 100 -f ${RCALL_LOGDIR}/*.log'
