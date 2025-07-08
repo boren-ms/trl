@@ -294,6 +294,8 @@ def main(config_file, forced=False):
 
 
 if __name__ == "__main__":
+    """Main entry point for launching the job on a Ray cluster."""
+    print("Connecting to Ray cluster...")
     ray.init(address="auto")  # Connect to the running cluster
     nodes = ray.nodes()
     print(f"Found {len(nodes)} nodes in the cluster:")
