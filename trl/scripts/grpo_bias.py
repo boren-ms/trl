@@ -103,8 +103,7 @@ def get_job_name(jobname=None):
     return datetime.now(tz).strftime("%Y%m%d-%H%M%S")
 
 
-
-def init_wandb(job_name=None, wandb_project=None):
+def init_wandb(job_name=None, wandb_project=None, config=None):
     """Initialize wandb."""
     wandb_project = os.environ.get("WANDB_PROJECT", wandb_project or "biasing")
     job_name = get_job_name(job_name)
@@ -113,7 +112,13 @@ def init_wandb(job_name=None, wandb_project=None):
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
     entity = os.environ.get("WANDB_ENTITY", "genai")
-    run = wandb.init(entity=entity, project=wandb_project, name=job_name, resume="allow")
+    run = wandb.init(
+        entity=entity,
+        project=wandb_project,
+        name=job_name,
+        resume="allow",
+        config=config,
+    )
     print("wandb offline: ", run.settings._offline)  # Should be True
     print("wandb mode: ", run.settings.mode)  # Should be "offline"
 
@@ -138,7 +143,7 @@ def create_dataset(config):
     if config is None:
         return None
     if isinstance(config, (list, tuple)):
-        datasets ={}
+        datasets = {}
         for i, cfg in enumerate(config):
             nickname = cfg.pop("nickname", f"dataset_{i}")
             datasets[nickname] = create_audio_dataset(**cfg)
