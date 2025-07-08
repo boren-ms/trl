@@ -9,9 +9,9 @@ import fire
 import time
 
 
-def run(cmd):
+def run(cmd, check=True):
     print(f"Running: {cmd}")
-    subprocess.run(cmd, shell=True, check=True)
+    subprocess.run(cmd, shell=True, check=check)
 
 
 def head_hostname():
@@ -140,7 +140,7 @@ def prepare_data():
     for rel_dir in rel_dirs:
         print(f"Syncing directory: {rel_dir}")
         cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/{rel_dir}", f"{local_dir}/{rel_dir}"]
-        subprocess.run(cmd, check=True)
+        run(cmd, check=True)
 
     rel_files = [
         "LibriSpeech/ls_30k_shuf.tsv",
@@ -149,7 +149,7 @@ def prepare_data():
     for rel_file in rel_files:
         print(f"Syncing file: {rel_file}")
         cmd = ["bbb", "cp", f"{remote_dir}/{rel_file}", f"{local_dir}/{rel_file}"]
-        subprocess.run(cmd, check=True)
+        run(cmd, check=True)
     print("Data preparation completed.")
     done_tag.touch()
 
@@ -163,9 +163,10 @@ def sync_outputs(output_dir):
         print(f"Skipping checkpoint sync on head node: {cur_node}")
         return
     print(f"Syncing checkpoints from head node: {head_node} to current node: {cur_node}")
-    cmd = ["rsync", "-avz", f"{head_node}:{output_dir}/", f"{output_dir}/"]
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    cmd = ["rsync", "-avz", f"{head_node}:{output_dir}/*", f"{output_dir}/"]
     print(f"Running command: {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    run(cmd, check=False)
     print("Output syncing completed.")
 
 
