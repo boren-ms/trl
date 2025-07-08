@@ -118,16 +118,17 @@ def prepare_environment(forced=False):
         "torch==2.6.0",
         "ray==2.36.1",
         "transformers==4.51.3",
+        "vllm==0.8.5.post1",
     ]
     if all(is_package_version(*package.split("==")) for package in packages) and not forced:
         print(f"Required packages already installed on {hostname}, skipping installation.")
         return
     run_cmd("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
-    run_cmd("uv pip install --system torch==2.6.0 ray==2.36.1 torchvision torchaudio transformers==4.51.3  trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
+    run_cmd("uv pip install --system torch==2.6.0 torchvision torchaudio transformers==4.51.3 vllm==0.8.5.post1 trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
     run_cmd("pip install torch==2.6.0 flash-attn ")
-    run_cmd("pip install torch==2.6.0 vllm==0.8.5.post1 --no-deps")
     run_cmd("pip uninstall -y trl")
     run_cmd("pip install -e /root/code/trl --no-deps")
+    run_cmd("pip install torch==2.6.0 ray==2.36.1")
     print("Environment preparation completed.")
 
 
@@ -203,7 +204,8 @@ def launch_training(config_file):
     config_file = Path(config_file).absolute()
     update_envs(config_file)
 
-    os.chdir(Path(__file__).parent)
+    cur_dir = Path(__file__).parent
+    os.chdir(cur_dir)
     print(f"Working Dir: {os.getcwd()}")
     output_dir = Path().home() / "outputs"
     os.makedirs(output_dir, exist_ok=True)
@@ -215,7 +217,7 @@ def launch_training(config_file):
     assert job_name is not None, "RCALL_JOB_NAME must be set"
     main_process_ip = f"{job_name}-0"  # head node IP
     main_process_port = 12345
-
+    script_path = cur_dir/"trl/scripts/grpo_bias.py"
     cmd = [
         "accelerate",
         "launch",
