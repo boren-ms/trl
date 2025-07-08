@@ -96,9 +96,9 @@ def list_gpus():
     print("GPUs listed.")
 
 @ray.remote
-def tail_logs(n=100, log_dir=None):
+def job_log(cmd="tail", n=100, log_dir=None):
     log_dir = str(log_dir or os.environ.get("RCALL_LOGDIR", Path.home() / "results/*"))
-    cmd = f'tail -n {n}  {log_dir}/*.log'
+    cmd = f'{cmd} -n {n}  {log_dir}/*.log'
     print(f"Tailing logs in {log_dir} with command: {cmd}")
     run_cmd(cmd)
 
@@ -116,10 +116,7 @@ class RayTool:
         """List available GPUs on the current node."""
         run_nodes(list_gpus)
         
-    def tail_logs(self, n=100, log_dir=None):
-        """Tail logs from all Ray nodes."""
-        run_nodes(tail_logs, n, log_dir)
-    
+
     def release_gpus(self):
         """Release GPUs on all Ray nodes."""
         run_nodes(release_gpus)  
@@ -132,12 +129,16 @@ class RayTool:
     def list_nodes(self):
         """List all nodes in the Ray cluster."""
         list_nodes()
-    
-    def run_cmd(self, cmd):
+
+    def log(self, cmd="tail", n=100, log_dir=None):
+        """Tail logs from all Ray nodes."""
+        run_nodes(job_log, cmd, n, log_dir)
+    def run(self, *args, **kwargs):
         """Run a command on all Ray nodes."""
-        if isinstance(cmd, (list, tuple)):
-            cmd = " ".join(cmd)
-        print(f"Running command on all nodes: {cmd}")
+        cmd = " ".join(args)
+        for k, v in kwargs.items():
+            cmd += f" --{k} {v}"
+        print(f"Running: {cmd}")
         run_nodes(ray.remote(run_cmd), cmd)
 
 if __name__ == "__main__":
