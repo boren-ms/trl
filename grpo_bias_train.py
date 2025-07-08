@@ -10,6 +10,7 @@ import time
 import importlib.metadata
 from ray_tool import run_nodes, run_cmd, head_hostname, init_ray, release_gpus, sync_folder
 
+
 @ray.remote
 class OutputWatcher:
     def __init__(self, local_dir, remote_dir, interval=600):
@@ -50,7 +51,6 @@ REGION_STORAGES = {
 }
 
 
-
 def is_package_version(package_name, target_version):
     """Check if the specified package is installed with the target version."""
     try:
@@ -59,7 +59,7 @@ def is_package_version(package_name, target_version):
     except importlib.metadata.PackageNotFoundError:
         return False
 
-    
+
 def get_region_storage():
     """Get the storage path based on the region of the Kubernetes cluster."""
     rcall_kube_cluster = os.environ.get("RCALL_KUBE_CLUSTER", "")
@@ -139,6 +139,17 @@ def prepare_data(forced=False):
     print("Data preparation completed.")
     done_tag.touch()
 
+@ray.remote
+def prepare_output():
+    """Prepare output on each node by syncing from the remote storage."""
+    hostname = os.uname().nodename
+    print(f"Sync remote output on node: {hostname}")
+    local_output_dir, remote_output_dir = get_output_dirs()
+    print(f"Remote output directory: {remote_output_dir}")
+    print(f"Local output directory: {local_output_dir}")
+    cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_output_dir}/", f"{local_output_dir}/"]
+    run_cmd(cmd)
+    print("Data preparation completed.")
 
 
 def update_envs(yaml_path):
@@ -151,7 +162,7 @@ def update_envs(yaml_path):
 
 
 @ray.remote
-def launch_training(config_file, output_dir=None):
+def launch_training(config_file, output_dir):
     """Launch training using the specified YAML config file."""
     config_file = Path(config_file).absolute()
     update_envs(config_file)
@@ -159,8 +170,7 @@ def launch_training(config_file, output_dir=None):
     cur_dir = Path(__file__).parent
     os.chdir(cur_dir)
     print(f"Working Dir: {os.getcwd()}")
-    
-    output_dir = output_dir or Path().home() / "outputs"
+
     os.makedirs(output_dir, exist_ok=True)
     print(f"Using config file: {config_file}")
     print(f"Output directory: {output_dir}")
@@ -172,7 +182,7 @@ def launch_training(config_file, output_dir=None):
     assert job_name is not None, "RCALL_JOB_NAME must be set"
     main_process_ip = f"{job_name}-0"  # head node IP
     main_process_port = 12345
-    script_path = cur_dir/"trl/scripts/grpo_bias.py"
+    script_path = cur_dir / "trl/scripts/grpo_bias.py"
     cmd = [
         "accelerate",
         "launch",
@@ -208,18 +218,27 @@ def launch_training(config_file, output_dir=None):
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
 
+def get_output_dirs():
+    """Get the remote output directory based on the job name."""
+    job_name = os.environ.get("RCALL_JOB_NAME", "UnknownJob")
+    remote_output_dir = f"{get_remote_data_dir()}/outputs/{job_name}"
+    local_output_dir = Path.home() / "outputs" 
+    return local_output_dir, remote_output_dir
+
+
 def run_output_watcher():
     """Start the output watcher to sync outputs periodically."""
-    output_dir = Path.home() / "outputs"
-    remote_output_dir = f"{get_remote_data_dir()}/outputs/{os.environ.get('RCALL_JOB_NAME', 'UnknownJob')}"
+    local_output_dir, remote_output_dir = get_output_dirs()
+    print(f"Local output directory: {local_output_dir}")
+    print(f"Remote output directory: {remote_output_dir}")
     watcher = OutputWatcher.options(resources={f"hostname:{head_hostname()}": 0.01}).remote(
-        local_dir=output_dir,
+        local_dir=local_output_dir,
         remote_dir=remote_output_dir,
         interval=1800,  # changed from 600 to 1800 (30min)
     )
     print("Starting output watcher...")
     watcher.start.remote()
-
+    return watcher
 
 
 def main(config_file, forced=False):
@@ -227,29 +246,35 @@ def main(config_file, forced=False):
     init_ray()
     print("Ray cluster initialized.")
     results = []
-    
+
     print("Preparing environment on all nodes...")
     results += run_nodes(prepare_environment, forced=forced, waiting=False)
-    
+
     print("Preparing data on all nodes...")
     results += run_nodes(prepare_data, forced=forced, waiting=False)
 
-    print("Syncing outputs on all nodes...")
-    output_dir = Path.home() / "outputs"
-    results += run_nodes(sync_folder, str(output_dir), waiting=False)
-
     print("Releasing GPUs on all nodes...")
     results += run_nodes(release_gpus, waiting=False)
-    
+
+    print("Preparing output on all nodes...")
+    results += run_nodes(prepare_output, waiting=False)
+
     # Ensure all tasks are completed before proceeding
     ray.get(results)
-    print("Starting output watcher on head node...")
-    run_output_watcher()
     
+    print("Syncing outputs from head to other nodes...")
+    output_dir, _ = get_output_dirs()
+    run_nodes(sync_folder, str(output_dir))
+    
+    print("Starting output watcher on head node...")
+    watcher = run_output_watcher()
+
     config_file = Path(config_file).absolute()
     print(f"Launch training with {config_file}...")
     run_nodes(launch_training, str(config_file), output_dir=str(output_dir))
     print("Job completed on all nodes.")
+    ray.get(watcher.stop.remote())
+    print("All tasks completed, stopping watcher.")
 
 
 if __name__ == "__main__":
