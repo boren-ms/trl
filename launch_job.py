@@ -8,10 +8,10 @@ import fire
 def run(cmd):
     print(f"Running: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
+
     
 
-def run_nodes(fun):
-    ray.init(address="auto")  # Connect to the running cluster
+def run_nodes(fun, *args, **kwargs):
     nodes = ray.nodes()
     node_ips = [node["NodeManagerAddress"] for node in nodes if node["Alive"]]
 
@@ -21,7 +21,7 @@ def run_nodes(fun):
         # Use custom resource label to ensure the function runs on this node
         # Each node has a resource label 'node:<ip>'
         node_label = f"node:{node_ip}"
-        result = fun.options(resources={node_label: 0.01}).remote(node_ip)
+        result = fun.options(resources={node_label: 0.01}).remote(*args, **kwargs)
         results.append(result)
     return ray.get(results)
 
@@ -40,7 +40,7 @@ def get_region_storage():
     return f"az://{data_storage}/data/{user}/data"
 
 #%%
-@ray.remote()
+@ray.remote
 def prepare_environment():
     """ Prepare the environment on each node by installing necessary packages."""
     try:
@@ -60,15 +60,18 @@ def prepare_environment():
     run("pip uninstall -y trl")
     print("Environment preparation completed.")
 
-@ray.remote()
+@ray.remote
 def prepare_data():
     """ Prepare data on each node by syncing from the remote storage."""
     hostname = os.uname().nodename
     print(f"Preparing data on node: {hostname}")
+    local_dir = Path.home() / "data" 
+    done_tag = local_dir / "data_preparation_done"
+    if done_tag.exists():
+        print(f"Data preparation already done on {hostname}, skipping.")
+        return
     remote_dir = get_region_storage()
     print(f"Remote directory: {remote_dir}")
-    # Use a local directory for syncing
-    local_dir = Path.home() / "data" 
 
     rel_dirs = [
         # "gsm8k",
@@ -102,8 +105,7 @@ def prepare_data():
         ]
         subprocess.run(cmd, check=True)
     print("Data preparation completed.")
-
-
+    done_tag.touch()
 
 def update_env_in_yaml(src_yaml_path, dst_yaml_path):
     """
@@ -116,7 +118,7 @@ def update_env_in_yaml(src_yaml_path, dst_yaml_path):
     with open(dst_yaml_path, "w") as f:
         f.write(new_content)
 
-
+@ray.remote
 def launch_training(config_file):
     """
     Launch training using the specified YAML config file.
@@ -125,8 +127,10 @@ def launch_training(config_file):
     config_file = Path(config_file).expanduser().resolve()
     new_config_file = config_file.with_suffix(".tmp.yaml")
     update_env_in_yaml(config_file, new_config_file)
-
+    
+    os.chdir(Path(__file__).parent)
     print(f"Working Dir: {os.getcwd()}")
+    
 
     output_dir = Path().home() / "outputs"
     os.makedirs(output_dir, exist_ok=True)
@@ -147,8 +151,8 @@ def launch_training(config_file):
         "--main_process_ip", str(main_process_ip),
         "--main_process_port", str(main_process_port),
         "trl/scripts/grpo_bias.py",
-        "--config", new_config_file,
-        "--output-dir", output_dir
+        "--config", str(new_config_file),
+        "--output-dir", str(output_dir)
     ]
 
     rcall_logdir = os.environ.get("RCALL_LOGDIR", os.path.expanduser("~/logs"))
@@ -173,10 +177,12 @@ def main(config_file):
     run_nodes(prepare_environment)
     print("Preparing data on all nodes...")
     run_nodes(prepare_data)
-    print("Running the main function on all nodes...")
-    run_nodes(launch_training, config_file)
+    config_file = Path(config_file).absolute()
+    print(f"Launch training with {config_file}...")
+    run_nodes(launch_training, str(config_file))
     print("Job completed on all nodes.")
     
 if __name__ == "__main__":
+    ray.init(address="auto")  # Connect to the running cluster
     fire.Fire(main)
-    # Example usage: python lauch_job.py --config_file="path/to/config.yaml"
+    # Example usage: python launch_job.py --config_file="path/to/config.yaml"
