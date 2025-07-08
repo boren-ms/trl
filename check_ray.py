@@ -2,6 +2,23 @@
 # -*- coding: utf-8 -*-
 import ray
 import fire
+import subprocess
+
+
+def restart_node(node):
+    """Attempt to restart a Ray node if it's local."""
+    addr = node['NodeManagerAddress']
+    # Only attempt restart if the node is local
+    if addr == "127.0.0.1" or addr == "localhost":
+        print(f"   Attempting to restart local node at {addr}...")
+        try:
+            subprocess.run(["ray", "stop"], check=True)
+            subprocess.run(["ray", "start", "--head"], check=True)
+            print("   Node restart command issued.")
+        except Exception as e:
+            print(f"   Failed to restart node: {e}")
+    else:
+        print(f"   Node at {addr} is not local. Please restart it manually.")
 
 
 def check_ray():
@@ -12,6 +29,9 @@ def check_ray():
     print(f"Found {len(nodes)} nodes in the cluster:")
     for node in nodes:
         print(f" - {node['NodeName']}[{node['NodeManagerAddress']}] (Alive: {node['Alive']})")
+        # if not node['Alive']:
+        #     print(f"   Resources: {node['Resources']}")
+        #     restart_node(node)
 
 
 if __name__ == "__main__":
