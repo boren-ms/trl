@@ -51,6 +51,7 @@ def get_remote_data_dir():
 @ray.remote
 def prepare_environment():
     """ Prepare the environment on each node by installing necessary packages."""
+    print(f"Preparing environment on node: {hostname}")
     try:
         trl_mod = importlib.import_module("trl")
         trl_path = trl_mod.__file__
@@ -61,7 +62,6 @@ def prepare_environment():
     except ImportError as e:
         print("Could not determine trl installation path:", e)
     hostname = os.uname().nodename
-    print(f"Preparing environment on node: {hostname}")
     run("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
     run("uv pip install --system torch==2.6.0 ray==2.36.1 torchvision torchaudio transformers==4.51.3 vllm trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
     run("pip install torch==2.6.0 flash-attn")
