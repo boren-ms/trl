@@ -33,11 +33,17 @@ REGION_STORAGES = {
     "westus2": "orngwus2cresco",
     "uksouth": "orngukscresco",
 }
+
 def get_region_storage():
     """ Get the storage path based on the region of the Kubernetes cluster."""
     rcall_kube_cluster = os.environ.get("RCALL_KUBE_CLUSTER", "")
     cluster_region = rcall_kube_cluster.split("-")[1] if "-" in rcall_kube_cluster else ""
     data_storage = REGION_STORAGES.get(cluster_region, "orngscuscresco")
+    return data_storage
+
+def get_remote_data_dir():
+    """ Get the storage path based on the region of the Kubernetes cluster."""
+    data_storage = get_region_storage()
     user = os.environ.get("RCALL_USER", "boren")
     return f"az://{data_storage}/data/{user}/data"
 
@@ -72,7 +78,7 @@ def prepare_data():
     if done_tag.exists():
         print(f"Data preparation already done on {hostname}, skipping.")
         return
-    remote_dir = get_region_storage()
+    remote_dir = get_remote_data_dir()
     print(f"Remote directory: {remote_dir}")
 
     rel_dirs = [
@@ -109,31 +115,23 @@ def prepare_data():
     print("Data preparation completed.")
     done_tag.touch()
 
-def update_env_in_yaml(src_yaml_path, dst_yaml_path):
-    """
-    Reads a YAML file, substitutes environment variables in its content,
-    and writes the result to a new YAML file.
-    """
-    with open(src_yaml_path, "r") as f:
-        content = f.read()
-    new_content = os.path.expandvars(content)
-    with open(dst_yaml_path, "w") as f:
-        f.write(new_content)
+def update_envs(yaml_path):
+    """ Reads a YAML file, substitutes environment variables in its content """
+    print(f"Updating variables in {yaml_path}")
+    os.environ["DATA_STORAGE"] = get_region_storage()
+    content = Path(yaml_path).read_text()
+    expanded_content = os.path.expandvars(content)
+    Path(yaml_path).write_text(expanded_content)
+    
 
 @ray.remote
 def launch_training(config_file):
-    """
-    Launch training using the specified YAML config file.
-    This function replicates the logic of the original shell script.
-    """
-    config_file = Path(config_file).expanduser().resolve()
-    new_config_file = config_file.with_suffix(".tmp.yaml")
-    update_env_in_yaml(config_file, new_config_file)
-    
+    """ Launch training using the specified YAML config file. """
+    config_file = Path(config_file).absolute()
+    update_envs(config_file)
+
     os.chdir(Path(__file__).parent)
     print(f"Working Dir: {os.getcwd()}")
-    
-
     output_dir = Path().home() / "outputs"
     os.makedirs(output_dir, exist_ok=True)
 
