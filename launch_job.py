@@ -151,7 +151,7 @@ def launch_training(config_file):
         "--main_process_ip", str(main_process_ip),
         "--main_process_port", str(main_process_port),
         "trl/scripts/grpo_bias.py",
-        "--config", str(new_config_file),
+        "--config", str(config_file),
         "--output-dir", str(output_dir)
     ]
 
