@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import fire
 
+
 def run_cmd(cmd, check=True):
     """Run a shell command and print it."""
     if isinstance(cmd, (list, tuple)):
@@ -40,6 +41,7 @@ def run_nodes(fun, *args, waiting=True, **kwargs):
         results = ray.get(results)
     return results
 
+
 def list_nodes():
     """List all nodes in the Ray cluster."""
     nodes = ray.nodes()
@@ -47,6 +49,7 @@ def list_nodes():
     for node in nodes:
         print(f" - {node['NodeName']}[{node['NodeManagerAddress']}] (Alive: {node['Alive']})")
     return nodes
+
 
 def init_ray():
     """Check the connection to a Ray cluster and print the status of nodes."""
@@ -62,7 +65,7 @@ def sync_folder(folder):
     cur_node = os.uname().nodename
     # Ensure the Folder exists for each node
     Path(folder).mkdir(parents=True, exist_ok=True)
-    
+
     if cur_node == head_node:
         print(f"Skipping checkpoint sync on head node: {cur_node}")
         return
@@ -70,8 +73,8 @@ def sync_folder(folder):
     cmd = ["rsync", "-avz", f"{head_node}:{folder}/", f"{folder}/"]
     run_cmd(cmd)
     print("Folder syncing completed.")
-    
-    
+
+
 @ray.remote
 def release_gpus():
     """Release GPUs on the current node."""
@@ -86,7 +89,8 @@ def release_gpus():
     print("List processes using NVIDIA devices again:")
     run_cmd(list_cmd)
     print("GPUs released.")
-    
+
+
 @ray.remote
 def list_gpus():
     """List available GPUs on the current node."""
@@ -95,32 +99,31 @@ def list_gpus():
     run_cmd(cmd)
     print("GPUs listed.")
 
+
 @ray.remote
 def job_log(cmd="tail", n=100, log_dir=None):
     log_dir = str(log_dir or os.environ.get("RCALL_LOGDIR", Path.home() / "results/*"))
-    cmd = f'{cmd} -n {n}  {log_dir}/*.log'
+    cmd = f"{cmd} -n {n}  {log_dir}/*.log"
     print(f"Tailing logs in {log_dir} with command: {cmd}")
     run_cmd(cmd)
 
 
-    
 class RayTool:
     """A command-line tool for managing Ray clusters and nodes."""
-    
+
     def __init__(self):
         """Initialize the RayTool class."""
         init_ray()
         print("Ray cluster initialized.")
-    
+
     def list_gpus(self):
         """List available GPUs on the current node."""
         run_nodes(list_gpus)
-        
 
     def release_gpus(self):
         """Release GPUs on all Ray nodes."""
-        run_nodes(release_gpus)  
-        
+        run_nodes(release_gpus)
+
     def sync_folder(self, folder):
         """Sync output directories across all Ray nodes."""
         folder = str(folder or Path.home() / "outputs")
@@ -133,6 +136,7 @@ class RayTool:
     def log(self, cmd="tail", n=100, log_dir=None):
         """Tail logs from all Ray nodes."""
         run_nodes(job_log, cmd, n, log_dir)
+
     def run(self, *args, **kwargs):
         """Run a command on all Ray nodes."""
         cmd = " ".join(args)
@@ -140,6 +144,7 @@ class RayTool:
             cmd += f" --{k} {v}"
         print(f"Running: {cmd}")
         run_nodes(ray.remote(run_cmd), cmd)
+
 
 if __name__ == "__main__":
     """Main entry point for the RayTool."""
