@@ -7,7 +7,7 @@ import importlib
 from pathlib import Path
 import fire
 import time
-
+import importlib.metadata
 
 def run(cmd, check=True):
     print(f"Running: {cmd}")
@@ -76,6 +76,16 @@ REGION_STORAGES = {
 }
 
 
+
+def is_package_version(package_name, target_version):
+    """Check if the specified package is installed with the target version."""
+    try:
+        version = importlib.metadata.version(package_name)
+        return version == target_version
+    except importlib.metadata.PackageNotFoundError:
+        return False
+
+    
 def get_region_storage():
     """Get the storage path based on the region of the Kubernetes cluster."""
     rcall_kube_cluster = os.environ.get("RCALL_KUBE_CLUSTER", "")
@@ -96,19 +106,20 @@ def prepare_environment():
     """Prepare the environment on each node by installing necessary packages."""
     hostname = os.uname().nodename
     print(f"Preparing environment on node: {hostname}")
-    try:
-        trl_mod = importlib.import_module("trl")
-        trl_path = trl_mod.__file__
-        if trl_path.startswith("/root/code/trl"):
-            print("trl is installed from /root/code/trl")
-            print("Environment is already prepared, skipping reinstallation.")
-            return
-    except ImportError as e:
-        print("Could not determine trl installation path:", e)
+    packages = [
+        "torch==2.6.0",
+        "ray==2.36.1",
+        "transformers==4.51.3",
+    ]
+    if all(is_package_version(*package.split("==")) for package in packages):
+        print(f"Required packages already installed on {hostname}, skipping installation.")
+        return
+    
     run("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
     run("uv pip install --system torch==2.6.0 ray==2.36.1 torchvision torchaudio transformers==4.51.3 vllm trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
     run("pip install torch==2.6.0 flash-attn")
     run("pip uninstall -y trl")
+    run("pip install -e /root/code/trl --no-deps")
     print("Environment preparation completed.")
 
 
@@ -255,10 +266,10 @@ def main(config_file):
     run_nodes(prepare_data)
     print("Syncing outputs on all nodes...")
     run_nodes(sync_outputs, str(Path.home() / "outputs"))
-    
+
     print("Starting output watcher on head node...")
     run_output_watcher()
-    
+
     config_file = Path(config_file).absolute()
     print(f"Launch training with {config_file}...")
     run_nodes(launch_training, str(config_file))
@@ -267,5 +278,10 @@ def main(config_file):
 
 if __name__ == "__main__":
     ray.init(address="auto")  # Connect to the running cluster
+    nodes = ray.nodes()
+    print(f"Found {len(nodes)} nodes in the cluster:")
+    for node in nodes:
+        print(f" - {node['NodeManagerAddress']} (Alive: {node['Alive']})")
+    # Launch one task per node, each pinned to a specific node
     fire.Fire(main)
     # Example usage: python launch_job.py --config_file="path/to/config.yaml"
