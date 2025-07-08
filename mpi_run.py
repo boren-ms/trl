@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import fire
 
 def launch_mpirun(nodes, cmd):
     """
@@ -22,23 +23,38 @@ def launch_mpirun(nodes, cmd):
     print("Running:", " ".join(mpi_cmd))
     subprocess.run(mpi_cmd)
 
-def find_nodes():
+def find_nodes(skip_head=False):
     """
     Find the nodes in the current environment.
     This function assumes that the node names are in the format '{job_name}-{i}'.
     """
     n = int(os.environ["RCALL_INSTANCE_COUNT"])
     job_name = os.environ["RCALL_JOB_NAME"]
-    return [f"{job_name}-{i}" for i in range(n)]
+    s = int(skip_head)
+    return [f"{job_name}-{i}" for i in range(s,n)]
 
-# Example usage:
-if __name__ == "__main__":
-    nodes = find_nodes()
-    print(f"Found [{len(nodes)}] nodes:", nodes)
+def main(*cmd, skip_head=False):
+    """
+    Main function to run the script.
+    It finds the nodes and launches mpirun with the provided command.
+    """
+    nodes = find_nodes(skip_head=skip_head)
+    if not nodes:
+        print("No nodes found. Please check your environment variables.")
+        exit(1)
+    
     cmd = sys.argv[1:]
     if not cmd:
         print("Usage: python mpi_run.py <command> [args...]")
         exit(1)
+    
+    print(f"Found [{len(nodes)}] nodes:", nodes)
     print("Command to run:", cmd)
     launch_mpirun(nodes, cmd)
+
+
+# Example usage:
+if __name__ == "__main__":
+    fire.Fire(main)
+
 
