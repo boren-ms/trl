@@ -48,7 +48,7 @@ train_data:
         common_word_num: 1000
 
 eval_strategy: steps
-# eval_on_start: True
+eval_on_start: True
 eval_steps: 10 
 per_device_eval_batch_size: 800
 num_eval_generations: 2

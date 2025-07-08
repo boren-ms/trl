@@ -16,7 +16,7 @@ train_data:
 
 eval_strategy: steps
 eval_steps: 400 
-# eval_on_start: True
+eval_on_start: True
 eval_data:
     # num_egs: 10
     dataset_name: ls_bias

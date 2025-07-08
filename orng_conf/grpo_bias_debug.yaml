@@ -15,7 +15,7 @@ train_data:
         common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 1000
 eval_strategy: steps
-# eval_on_start: True
+eval_on_start: True
 eval_steps: 1 
 eval_data:
     - nickname: clean_no

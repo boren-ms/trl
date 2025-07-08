@@ -45,7 +45,7 @@ vllm_server_host: ${VLLM_SERVER_HOST} # dev-n1-wus2-0
 
 
 eval_strategy: steps
-# eval_on_start: True
+eval_on_start: True
 eval_steps: 400 
 eval_data:
     - nickname: clean_no
