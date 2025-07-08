@@ -74,6 +74,8 @@ class GRPOConfig(TrainingArguments):
             Number of optimization steps per generation. If `None`, it defaults to gradient_accumulation_steps.
         temperature (`float`, defaults to `1.0`):
             Temperature for sampling. The higher the temperature, the more random the completions.
+        eval_temperature (`float`, defaults to `0.0`):
+            Temperature for eval sampling. The higher the temperature, the more random the completions.
         top_p (`float`, *optional*, defaults to `1.0`):
             Float that controls the cumulative probability of the top tokens to consider. Must be in (0, 1]. Set to
             `1.0` to consider all tokens.
@@ -297,6 +299,10 @@ class GRPOConfig(TrainingArguments):
     temperature: float = field(
         default=1.0,
         metadata={"help": "Temperature for sampling. The higher the temperature, the more random the completions."},
+    )
+    eval_temperature: float = field(
+        default=0.0,
+        metadata={"help": "Temperature for evaluation sampling. The higher the temperature, the more random the completions."},
     )
     top_p: float = field(
         default=1.0,

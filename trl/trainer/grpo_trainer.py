@@ -1063,6 +1063,7 @@ class GRPOTrainer(Trainer):
         device = self.accelerator.device
         mode = "train" if self.model.training else "eval"
         num_generations = self.num_generations if mode == "train" else self.num_eval_generations
+        temperature = self.temperature if mode == "train" else self.eval_temperature
         prompts = [x["prompt"] for x in inputs]
         # prompts_text = [
         #     maybe_apply_chat_template(example, self.processing_class)["prompt"]
@@ -1119,7 +1120,7 @@ class GRPOTrainer(Trainer):
                             audios=ordered_set_of_audios,
                             n=num_generations,
                             repetition_penalty=self.repetition_penalty,
-                            temperature=self.temperature,
+                            temperature=temperature,
                             top_p=self.top_p,
                             top_k=-1 if self.top_k is None else self.top_k,
                             min_p=0.0 if self.min_p is None else self.min_p,
@@ -1150,7 +1151,7 @@ class GRPOTrainer(Trainer):
                 generation_kwargs = {
                     "n": 1,  # vLLM on each GPU generates only 1 in colocate mode
                     "repetition_penalty": self.repetition_penalty,
-                    "temperature": self.temperature,
+                    "temperature": temperature,
                     "top_p": self.top_p,
                     "top_k": -1 if self.top_k is None else self.top_k,
                     "min_p": 0.0 if self.min_p is None else self.min_p,
