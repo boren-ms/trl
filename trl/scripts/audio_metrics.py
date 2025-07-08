@@ -294,7 +294,7 @@ def compute_reward_wers(completions, **kwargs):
     references = kwargs["text"]
     rewards = []
     for i, (completion, ref) in enumerate(zip(completions, references)):
-        rewards.append(calc_wers([{"id": i, "ref": ref, "hyp": completion[-1]["content"]}]))
+        rewards.append(compute_wers([{"id": i, "ref": ref, "hyp": completion[-1]["content"]}]))
     return rewards
 
 
