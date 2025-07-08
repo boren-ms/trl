@@ -164,7 +164,7 @@ def sync_outputs(output_dir):
         return
     print(f"Syncing checkpoints from head node: {head_node} to current node: {cur_node}")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    cmd = ["rsync", "-avz", f"{head_node}:{output_dir}/*", f"{output_dir}/"]
+    cmd = ["rsync", "-avz", f"{head_node}:{output_dir}/", f"{output_dir}/"]
     print(f"Running command: {' '.join(cmd)}")
     run(cmd, check=False)
     print("Output syncing completed.")
