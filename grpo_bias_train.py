@@ -124,11 +124,11 @@ def prepare_environment(forced=False):
         print(f"Required packages already installed on {hostname}, skipping installation.")
         return
     run_cmd("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
-    run_cmd("uv pip install --system torch==2.6.0 torchvision torchaudio transformers==4.51.3 vllm==0.8.5.post1 trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
+    run_cmd("uv pip install --system torch==2.6.0 torchvision torchaudio transformers==4.51.3  trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
+    run_cmd("pip install vllm==0.8.5.post1 && pip install ray==2.36.1")
     run_cmd("pip install torch==2.6.0 flash-attn ")
     run_cmd("pip uninstall -y trl")
     run_cmd("pip install -e /root/code/trl --no-deps")
-    run_cmd("pip install torch==2.6.0 ray==2.36.1")
     print("Environment preparation completed.")
 
 
@@ -322,4 +322,5 @@ if __name__ == "__main__":
     for node in nodes:
         print(f" - {node['NodeName']}[{node['NodeManagerAddress']}] (Alive: {node['Alive']})")
     fire.Fire(main)
+    # Example usage: python launch_job.py --config_file="path/to/config.yaml"
     # Example usage: python launch_job.py --config_file="path/to/config.yaml"
