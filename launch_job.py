@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import subprocess
+import nvidia
 import ray
 import os
 import importlib
@@ -9,7 +10,7 @@ import fire
 import time
 import importlib.metadata
 
-def run(cmd, check=True):
+def run_cmd(cmd, check=True):
     print(f"Running: {cmd}")
     subprocess.run(cmd, shell=True, check=check)
 
@@ -23,17 +24,18 @@ def head_hostname():
 
 def run_nodes(fun, *args, **kwargs):
     nodes = ray.nodes()
-    node_ips = [node["NodeManagerAddress"] for node in nodes if node["Alive"]]
+    # node_names = [node["NodeManagerAddress"] for node in nodes if node["Alive"]]
+    node_names = [node["NodeName"] for node in nodes if node["Alive"]]
 
     # Launch one task per node, each pinned to a specific node
     results = []
-    for node_ip in node_ips:
+    for node_name in node_names:
         # Use custom resource label to ensure the function runs on this node
         # Each node has a resource label 'node:<ip>'
-        node_label = f"node:{node_ip}"
+        node_label = f"node:{node_name}"
         result = fun.options(resources={node_label: 0.01}).remote(*args, **kwargs)
         results.append(result)
-    return ray.get(results)
+    return results
 
 
 @ray.remote
@@ -60,7 +62,7 @@ class OutputWatcher:
                 f"{self.local_dir}/",
                 f"{self.remote_dir}/",
             ]
-            run(cmd)
+            run_cmd(cmd)
             print("Sync completed.")
             time.sleep(self.interval)
 
@@ -114,13 +116,12 @@ def prepare_environment(forced=False):
     if all(is_package_version(*package.split("==")) for package in packages) and not forced:
         print(f"Required packages already installed on {hostname}, skipping installation.")
         return
-    
-    run("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
-    run("uv pip install --system torch==2.6.0 ray==2.36.1 torchvision torchaudio transformers==4.51.3  trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
-    run("pip install torch==2.6.0 flash-attn ")
-    run("pip install torch==2.6.0 vllm==0.8.5.post1 --no-deps")
-    run("pip uninstall -y trl")
-    run("pip install -e /root/code/trl --no-deps")
+    run_cmd("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
+    run_cmd("uv pip install --system torch==2.6.0 ray==2.36.1 torchvision torchaudio transformers==4.51.3  trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
+    run_cmd("pip install torch==2.6.0 flash-attn ")
+    run_cmd("pip install torch==2.6.0 vllm==0.8.5.post1 --no-deps")
+    run_cmd("pip uninstall -y trl")
+    run_cmd("pip install -e /root/code/trl --no-deps")
     print("Environment preparation completed.")
 
 
@@ -152,7 +153,7 @@ def prepare_data(forced=False):
     for rel_dir in rel_dirs:
         print(f"Syncing directory: {rel_dir}")
         cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/{rel_dir}", f"{local_dir}/{rel_dir}"]
-        run(cmd, check=True)
+        run_cmd(cmd)
 
     rel_files = [
         "LibriSpeech/ls_30k_shuf.tsv",
@@ -161,7 +162,7 @@ def prepare_data(forced=False):
     for rel_file in rel_files:
         print(f"Syncing file: {rel_file}")
         cmd = ["bbb", "cp", f"{remote_dir}/{rel_file}", f"{local_dir}/{rel_file}"]
-        run(cmd, check=True)
+        run_cmd(cmd)
     print("Data preparation completed.")
     done_tag.touch()
 
@@ -177,8 +178,8 @@ def sync_outputs(output_dir):
     print(f"Syncing checkpoints from head node: {head_node} to current node: {cur_node}")
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     cmd = ["rsync", "-avz", f"{head_node}:{output_dir}/", f"{output_dir}/"]
-    print(f"Running command: {' '.join(cmd)}")
-    run(cmd, check=False)
+    run_cmd(f"Running command: {' '.join(cmd)}")
+    run_cmd(cmd)
     print("Output syncing completed.")
 
 
@@ -258,16 +259,31 @@ def run_output_watcher():
     print("Starting output watcher...")
     watcher.start.remote()
 
+@ray.remote
+def release_gpus():
+    """Release GPUs on the current node."""
+    hostname = os.uname().nodename
+    print(f"Releasing GPUs on node: {hostname}")
+    list_cmd = " lsof /dev/nvidia* | awk '{print $2}' | grep -E '^[0-9]+$' | sort -u"
+    kill_cmd = "sudo lsof /dev/nvidia* | awk '{print $2}' | grep -E '^[0-9]+$' | sort -u | xargs kill -9"
+    print("Listing processes using NVIDIA devices:")
+    run_cmd(list_cmd, check=False)
+    print("Killing processes using NVIDIA devices:")
+    run_cmd(kill_cmd, check=False)
+    print("List processes using NVIDIA devices again:")
+    run_cmd(list_cmd, check=False)
+    print("GPUs released.")
 
-def main(config_file):
+def main(config_file, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
     print("Preparing environment on all nodes...")
-    run_nodes(prepare_environment)
+    run_nodes(prepare_environment, forced=forced)
     print("Preparing data on all nodes...")
-    run_nodes(prepare_data)
-    print("Syncing outputs on all nodes...")
-    run_nodes(sync_outputs, str(Path.home() / "outputs"))
-
+    run_nodes(prepare_data, forced=forced)
+    # print("Syncing outputs on all nodes...")
+    # run_nodes(sync_outputs, str(Path.home() / "outputs"))
+    print("Releasing GPUs on all nodes...")
+    run_nodes(release_gpus)
     print("Starting output watcher on head node...")
     run_output_watcher()
 
@@ -282,7 +298,6 @@ if __name__ == "__main__":
     nodes = ray.nodes()
     print(f"Found {len(nodes)} nodes in the cluster:")
     for node in nodes:
-        print(f" - {node['NodeManagerAddress']} (Alive: {node['Alive']})")
-    # Launch one task per node, each pinned to a specific node
+        print(f" - {node['NodeName']}[{node['NodeManagerAddress']}] (Alive: {node['Alive']})")
     fire.Fire(main)
     # Example usage: python launch_job.py --config_file="path/to/config.yaml"
