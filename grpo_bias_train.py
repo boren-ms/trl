@@ -8,7 +8,7 @@ from pathlib import Path
 import fire
 import time
 import importlib.metadata
-from ray_utils import run_nodes, run_cmd, head_hostname, init_ray
+from ray_tool import run_nodes, run_cmd, head_hostname, init_ray, release_gpus, sync_folder
 
 @ray.remote
 class OutputWatcher:
@@ -140,22 +140,6 @@ def prepare_data(forced=False):
     done_tag.touch()
 
 
-@ray.remote
-def sync_output_dir(output_dir):
-    """Sync the output files from the remote storage."""
-    head_node = head_hostname()
-    cur_node = os.uname().nodename
-    # Ensure the output directory exists for each node
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-    
-    if cur_node == head_node:
-        print(f"Skipping checkpoint sync on head node: {cur_node}")
-        return
-    print(f"Syncing checkpoints from head node: {head_node} to current node: {cur_node}")
-    cmd = ["rsync", "-avz", f"{head_node}:{output_dir}/", f"{output_dir}/"]
-    run_cmd(cmd)
-    print("Output syncing completed.")
-
 
 def update_envs(yaml_path):
     """Reads a YAML file, substitutes environment variables in its content"""
@@ -236,20 +220,7 @@ def run_output_watcher():
     print("Starting output watcher...")
     watcher.start.remote()
 
-@ray.remote
-def release_gpus():
-    """Release GPUs on the current node."""
-    hostname = os.uname().nodename
-    print(f"Releasing GPUs on node: {hostname}")
-    list_cmd = "lsof /dev/nvidia* | awk '{print $2}' | grep -E '^[0-9]+$' | sort -u"
-    kill_cmd = "lsof /dev/nvidia* | awk '{print $2}' | grep -E '^[0-9]+$' | sort -u | xargs -I {} kill -9 {}"
-    print("Listing processes using NVIDIA devices:")
-    run_cmd(list_cmd, check=False)
-    print("Killing processes using NVIDIA devices:")
-    run_cmd(kill_cmd, check=False)
-    print("List processes using NVIDIA devices again:")
-    run_cmd(list_cmd, check=False)
-    print("GPUs released.")
+
 
 def main(config_file, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
@@ -265,7 +236,7 @@ def main(config_file, forced=False):
 
     print("Syncing outputs on all nodes...")
     output_dir = Path.home() / "outputs"
-    results += run_nodes(sync_output_dir, str(output_dir), waiting=False)
+    results += run_nodes(sync_folder, str(output_dir), waiting=False)
 
     print("Releasing GPUs on all nodes...")
     results += run_nodes(release_gpus, waiting=False)
