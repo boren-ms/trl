@@ -102,7 +102,7 @@ def get_remote_data_dir():
 
 
 @ray.remote
-def prepare_environment():
+def prepare_environment(forced=False):
     """Prepare the environment on each node by installing necessary packages."""
     hostname = os.uname().nodename
     print(f"Preparing environment on node: {hostname}")
@@ -111,26 +111,27 @@ def prepare_environment():
         "ray==2.36.1",
         "transformers==4.51.3",
     ]
-    if all(is_package_version(*package.split("==")) for package in packages):
+    if all(is_package_version(*package.split("==")) for package in packages) and not forced:
         print(f"Required packages already installed on {hostname}, skipping installation.")
         return
     
     run("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
-    run("uv pip install --system torch==2.6.0 ray==2.36.1 torchvision torchaudio transformers==4.51.3 vllm trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
-    run("pip install torch==2.6.0 flash-attn")
+    run("uv pip install --system torch==2.6.0 ray==2.36.1 torchvision torchaudio transformers==4.51.3  trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
+    run("pip install torch==2.6.0 flash-attn ")
+    run("pip install torch==2.6.0 vllm==0.8.5.post1 --no-deps")
     run("pip uninstall -y trl")
     run("pip install -e /root/code/trl --no-deps")
     print("Environment preparation completed.")
 
 
 @ray.remote
-def prepare_data():
+def prepare_data(forced=False):
     """Prepare data on each node by syncing from the remote storage."""
     hostname = os.uname().nodename
     print(f"Preparing data on node: {hostname}")
     local_dir = Path.home() / "data"
     done_tag = local_dir / "data_preparation_done"
-    if done_tag.exists():
+    if done_tag.exists() and not forced:
         print(f"Data preparation already done on {hostname}, skipping.")
         return
     remote_dir = get_remote_data_dir()
