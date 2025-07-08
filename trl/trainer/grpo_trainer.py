@@ -524,6 +524,8 @@ class GRPOTrainer(Trainer):
         self.num_generations = args.num_generations  # = G in the GRPO paper
         self.num_eval_generations = args.num_eval_generations or args.num_generations
         self.temperature = args.temperature
+        self.eval_temperature = args.eval_temperature
+        
         self.top_p = args.top_p
         self.top_k = args.top_k
         self.min_p = args.min_p
