@@ -15,7 +15,7 @@ def run_cmd(cmd, check=True):
         cmd = " ".join(cmd)
     print(f"Running: {cmd}")
     ret = subprocess.run(cmd, shell=True, check=check)
-    print(f"Command completed: {ret.returncode}")
+    print(f"Cmd: {cmd} returned: {ret.returncode}")
     return ret
 
 
@@ -26,7 +26,7 @@ def head_hostname():
     return f"{job_name}-0"  # head node IP
 
 
-def run_nodes(fun, *args, **kwargs):
+def run_nodes(fun, *args, waiting=True, **kwargs):
     nodes = ray.nodes()
     # node_names = [node["NodeManagerAddress"] for node in nodes if node["Alive"]]
     node_names = [node["NodeName"] for node in nodes if node["Alive"]]
@@ -39,6 +39,8 @@ def run_nodes(fun, *args, **kwargs):
         node_label = f"node:{node_name}"
         result = fun.options(resources={node_label: 0.01}).remote(*args, **kwargs)
         results.append(result)
+    if waiting:
+        results = ray.get(results)
     return results
 
 
@@ -279,17 +281,25 @@ def release_gpus():
 
 def main(config_file, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
+    results = []
+    
     print("Preparing environment on all nodes...")
-    run_nodes(prepare_environment, forced=forced)
+    results += run_nodes(prepare_environment, forced=forced, waiting=False)
+    
     print("Preparing data on all nodes...")
-    run_nodes(prepare_data, forced=forced)
-    # print("Syncing outputs on all nodes...")
-    # run_nodes(sync_outputs, str(Path.home() / "outputs"))
+    results += run_nodes(prepare_data, forced=forced, waiting=False)
+
+    print("Syncing outputs on all nodes...")
+    results += run_nodes(sync_outputs, str(Path.home() / "outputs"), waiting=False)
+    
     print("Releasing GPUs on all nodes...")
-    run_nodes(release_gpus)
+    results += run_nodes(release_gpus, waiting=False)
+    
+    # Ensure all tasks are completed before proceeding
+    ray.get(results)
     print("Starting output watcher on head node...")
     run_output_watcher()
-
+    
     config_file = Path(config_file).absolute()
     print(f"Launch training with {config_file}...")
     run_nodes(launch_training, str(config_file))
