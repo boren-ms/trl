@@ -231,7 +231,9 @@ def run_output_watcher():
     local_output_dir, remote_output_dir = get_output_dirs()
     print(f"Local output directory: {local_output_dir}")
     print(f"Remote output directory: {remote_output_dir}")
-    watcher = OutputWatcher.options(resources={f"hostname:{head_hostname()}": 0.01}).remote(
+    node = head_hostname()
+    print(f"Starting output watcher @ {node} with 30 minutes interval...")
+    watcher = OutputWatcher.options(resources={f"node:{node}": 0.01}).remote(
         local_dir=local_output_dir,
         remote_dir=remote_output_dir,
         interval=1800,  # changed from 600 to 1800 (30min)
