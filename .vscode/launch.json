@@ -13,6 +13,29 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "eval_bias",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "trl/scripts/eval_bias.py",
+            "console": "integratedTerminal",
+            "env": {
+                "WANDB_ENTITY": "genai",
+                "WANDB_PROJECT": "biasing_debug",
+                "CUDA_VISIBLE_DEVICES": "7",
+                "RANK": "0",
+                "LOCAL_RANK": "0",
+                "WORLD_SIZE": "1",
+                "MASTER_ADDR": "localhost",
+                "MASTER_PORT": "12355",
+            },
+            "justMyCode": false,
+            "args": [
+                "--config",
+                "/root/code/trl/orng_conf/grpo_bias_vllm_colocate_debug.yaml",
+                // "/root/code/trl/orng_conf/grpo_bias_debug.yaml",
+            ]
+        },
+        {
             "name": "grpo_bias",
             "type": "debugpy",
             "request": "launch",
