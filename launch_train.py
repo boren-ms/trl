@@ -11,6 +11,14 @@ import importlib.metadata
 from ray_tool import run_nodes, run_cmd, head_node_label, init_ray, release_gpus, sync_folder, list_nodes
 
 
+def to_int(value, default=-1):
+    """Convert a value to an integer, if possible."""
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
 @ray.remote
 class OutputWatcher:
     def __init__(self, local_dir, remote_dir, interval=600):
@@ -19,36 +27,33 @@ class OutputWatcher:
         self.interval = interval
         self._running = True
 
+    def sync_latest_chkp(self):
+        """sync checkpoint folder from remote to local."""
+        print("Syncing latest checkpoint from local to remote ...")
+        chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
+        if not chkp_dirs:
+            print(f"No checkpoint found in {self.local_dir}.")
+            return
+        local_chkp_dir = chkp_dirs.sort(key=lambda d: to_int(d.name.split("-")[-1]), reverse=True)[0]
+        print(f"Latest checkpoint: {local_chkp_dir}")
+        remote_chkp_dir = f"{self.remote_dir}/{local_chkp_dir.relative_to(self.local_dir)}"
+        cmd = ["bbb", "sync", "--concurrency", "64", f"{local_chkp_dir}/", f"{remote_chkp_dir}/", "-x", ".png$"]
+        print(f"Syncing latest checkpoint from {local_chkp_dir} to {remote_chkp_dir}")
+        run_cmd(cmd)
+        print("Sync completed.")
+
     def start(self):
         print(f"Watcher started with interval {self.interval} seconds.")
-        print("Watching for output changes, and syncing if necessary.")
         print(f"Local directory: {self.local_dir}")
         print(f"Remote directory: {self.remote_dir}")
         while self._running:
-            # Place your watched logic here
             print("Watcher tick!")
-            cmd = [
-                "bbb",
-                "sync",
-                "--concurrency",
-                "64",
-                f"{self.local_dir}/",
-                f"{self.remote_dir}/",
-            ]
-            run_cmd(cmd)
-            print("Sync completed.")
+            self.sync_latest_chkp()
             time.sleep(self.interval)
 
     def stop(self):
         self._running = False
         print("Watcher stopped.")
-
-
-REGION_STORAGES = {
-    "southcentralus": "orngscuscresco",
-    "westus2": "orngwus2cresco",
-    "uksouth": "orngukscresco",
-}
 
 
 def is_package_version(package_name, target_version):
@@ -58,6 +63,13 @@ def is_package_version(package_name, target_version):
         return version == target_version
     except importlib.metadata.PackageNotFoundError:
         return False
+
+
+REGION_STORAGES = {
+    "southcentralus": "orngscuscresco",
+    "westus2": "orngwus2cresco",
+    "uksouth": "orngcresco",
+}
 
 
 def get_region_storage():
@@ -138,6 +150,7 @@ def prepare_data(forced=False):
         run_cmd(cmd)
     print("Data preparation completed.")
     done_tag.touch()
+
 
 @ray.remote
 def prepare_output():
@@ -222,7 +235,7 @@ def get_output_dirs():
     """Get the remote output directory based on the job name."""
     job_name = os.environ.get("RCALL_JOB_NAME", "UnknownJob")
     remote_output_dir = f"{get_remote_data_dir()}/outputs/{job_name}"
-    local_output_dir = Path.home() / "outputs" 
+    local_output_dir = Path.home() / "outputs"
     return local_output_dir, remote_output_dir
 
 
@@ -262,11 +275,11 @@ def main(config_file, forced=False):
 
     # Ensure all tasks are completed before proceeding
     ray.get(results)
-    
+
     print("Syncing outputs from head to other nodes...")
     output_dir, _ = get_output_dirs()
     run_nodes(sync_folder, str(output_dir))
-    
+
     print("Starting output watcher on head node...")
     watcher = run_output_watcher()
 
