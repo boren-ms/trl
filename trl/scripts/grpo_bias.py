@@ -76,7 +76,9 @@ class GRPOScriptArguments:
     )
     reward_funcs: Optional[str] = field(
         default=None,
-        metadata={"help": "Reward functions to use. Can be a list of functions or a single function."},
+        metadata={
+            "help": "Reward functions to use. Can be a list of functions or a single function."
+        },
     )
 
 
@@ -110,7 +112,8 @@ def init_wandb(job_name=None, wandb_project=None, config=None):
     print(f"Project Name: {wandb_project}, Job Name: {job_name}")
     key = os.environ.get("WANDB_API_KEY", "")
     host = os.environ.get("WANDB_ORGANIZATION", "")
-    wandb.login(host=host, key=key, relogin=True)
+    # wandb.login(host=host, key=key, relogin=True)
+    wandb.login()
     entity = os.environ.get("WANDB_ENTITY", "genai")
     run = wandb.init(
         entity=entity,
@@ -157,7 +160,9 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(job_name=script_args.job_name, wandb_project=script_args.project_name)  # disabled for wandb for orange
+        init_wandb(
+            job_name=script_args.job_name, wandb_project=script_args.project_name
+        )  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 
@@ -179,7 +184,9 @@ def make_parser(subparsers: argparse._SubParsersAction = None):
     """Create a parser for the GRPO training script."""
     dataclass_types = (GRPOScriptArguments, GRPOConfig)
     if subparsers is not None:
-        parser = subparsers.add_parser("grpo", help="Run the GRPO training script", dataclass_types=dataclass_types)
+        parser = subparsers.add_parser(
+            "grpo", help="Run the GRPO training script", dataclass_types=dataclass_types
+        )
     else:
         parser = TrlParser(dataclass_types)
     return parser

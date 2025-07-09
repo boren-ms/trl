@@ -9,7 +9,7 @@ from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
 
 
-def ls_bias_dataset(jsonl_path, bias_key=None, tag=True, data_dir=None, **kwargs):
+def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs):
     """Create a dataset from the given split."""
     # data_dir = Path("/home/boren/data/librispeech_biasing/ref")
     # jsonl_path = data_dir/"test-clean.biasing_100.jsonl"
@@ -28,26 +28,30 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag=True, data_dir=None, **kwargs
         """Load audio from a file."""
 
         bias_words = example.get(bias_key, [])
-        bias_str = ", ".join(tag_pieces(bias_words))
+        bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
         instruct = "Transcribe the audio clip into text."
         if bias_str:
-            instruct += f" Pay extra attention to the following phrases/words: {bias_str}."
+            instruct += (
+                f" Pay extra attention to the following phrases/words: {bias_str}."
+            )
         audio_path = Path(example["audio_path"])
         if data_dir:
             if audio_path.is_absolute():
-                audio_path= audio_path.relative_to("/root/data")
-            audio_path = f"{data_dir}/{audio_path}" # not use Path here, since it may be a remote path
+                audio_path = audio_path.relative_to("/root/data")
+            audio_path = f"{data_dir}/{audio_path}"  # not use Path here, since it may be a remote path
         words = example.get("text", "").strip().split()
         gt_words = example.get("ground_truth", [])
-        words = tag_pieces(words, specified=gt_words, norm=text_norm)
+        words = tag_pieces(words, tag=tag, specified=gt_words, norm=text_norm)
         # audio, sr = sf_read(audio_path)
         return {
-            "prompt": [{"role": "user", "content": f"<|audio_1|>{instruct}"}],
+            "prompt": f"<|audio_1|>{instruct}",
             "audio_path": str(audio_path),
-            "text": " ".join(words),
+            "trans": " ".join(words),
+            "id": example.get("id", audio_path.stem),
         }
 
     ds = ds.map(load_sample)
+    ds = ds.select_columns(["prompt", "audio_path", "trans", "id"])
     return ds
 
 
@@ -73,7 +77,11 @@ def load_tsv(tsv_file):
         column_names=["id", "paths", "msgs"],
         storage_options=options,
     )
-    dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
+    dir_path = (
+        url._replace(path=str(Path(url.path).parent)).geturl()
+        if url.scheme == "az"
+        else None
+    )
     print("DATA DIR:", dir_path)
     ds = ds.map(lambda x: {"dir": dir_path})
     return ds
@@ -101,12 +109,13 @@ def tsv_dataset(tsv_paths, **kwargs):
             #     "sampling_rate": fs,
             # },
             "audio_path": audio_path,
-            "text": messages[-1]["content"],
+            "trans": messages[-1]["content"],
             "id": egs["id"],
         }
         return x
 
     ds = ds.map(load_sample)
+    ds = ds.select_columns(["audio_path", "trans", "id"])
     return ds
 
 
@@ -149,8 +158,12 @@ def bias_sampling(ds, **kwargs):
 
     def proc_sample(sample):
         """Process a sample from the dataset."""
-        context, text = bias_sampler.sample(sample["text"])
-        side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
+        context, trans = bias_sampler.sample(sample["trans"])
+        side_prompt = (
+            f"Pay extra attention to the following phrases/words: {context}."
+            if context
+            else ""
+        )
         return {
             "prompt": [
                 {
@@ -160,7 +173,7 @@ def bias_sampling(ds, **kwargs):
             ],
             # "sr": sample["audio"]["sampling_rate"],
             # "audio": sample["audio"]["array"],
-            "text": text,
+            "trans": trans,
         }
 
     ds = ds.map(proc_sample)

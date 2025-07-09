@@ -2,7 +2,13 @@ import torch
 import wandb
 from torch.utils.data import DataLoader
 from accelerate import Accelerator
-from accelerate.utils import broadcast_object_list, gather, gather_object, is_peft_model, set_seed
+from accelerate.utils import (
+    broadcast_object_list,
+    gather,
+    gather_object,
+    is_peft_model,
+    set_seed,
+)
 import json
 from vllm import LLM, SamplingParams
 from transformers import AutoProcessor
@@ -21,9 +27,20 @@ class Evaluation:
         self.batch_size = batch_size
         self.use_vllm = use_vllm
 
-        self.processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+        self.processor = AutoProcessor.from_pretrained(
+            model_path, trust_remote_code=True
+        )
         self.stop_tokens = ["<|end|>", self.processor.tokenizer.eos_token]
-        self.stop_tokens_ids = self.processor.tokenizer(self.stop_tokens, add_special_tokens=False, padding="longest", return_tensors="pt").input_ids.flatten().tolist()
+        self.stop_tokens_ids = (
+            self.processor.tokenizer(
+                self.stop_tokens,
+                add_special_tokens=False,
+                padding="longest",
+                return_tensors="pt",
+            )
+            .input_ids.flatten()
+            .tolist()
+        )
 
         self._prepare_model()
         if self.accelerator.is_main_process:
@@ -55,17 +72,29 @@ class Evaluation:
 
     def generate(self, batch):
         """Generate outputs for a batch of audio files."""
-        samples = [(sample["prompt"], sf_read(sample["audio_path"])) for sample in batch]
+        samples = [
+            (sample["prompt"], sf_read(sample["audio_path"])) for sample in batch
+        ]
 
         if self.use_vllm:
-            inputs = [{"prompt": prompt, "multi_modal_data": {"audio": [audio]}} for (prompt, audio) in samples]
+            inputs = [
+                {"prompt": prompt, "multi_modal_data": {"audio": [audio]}}
+                for (prompt, audio) in samples
+            ]
             outputs = self.llm.generate(
                 inputs,
-                sampling_params=SamplingParams(temperature=0, max_tokens=512, n=1, stop_token_ids=self.stop_tokens_ids),
+                sampling_params=SamplingParams(
+                    temperature=0,
+                    max_tokens=512,
+                    n=1,
+                    stop_token_ids=self.stop_tokens_ids,
+                ),
             )
         else:
             prompts, audios = zip(*samples)
-            inputs = self.processor(text=prompts, audios=audios, return_tensors="pt").to(self.accelerator.device)
+            inputs = self.processor(
+                text=prompts, audios=audios, return_tensors="pt"
+            ).to(self.accelerator.device)
             generate_ids = self.model.generate(
                 **inputs,
                 max_new_tokens=512,
@@ -74,7 +103,11 @@ class Evaluation:
             )
 
             generate_ids = generate_ids[:, inputs["input_ids"].shape[1] :]
-            outputs = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+            outputs = self.processor.batch_decode(
+                generate_ids,
+                skip_special_tokens=True,
+                clean_up_tokenization_spaces=False,
+            )
 
         return outputs
 
@@ -110,6 +143,7 @@ class Evaluation:
             wandb.log(metrics)
         return all_results, metrics
 
+
 def main(args):
     """Main function to run the evaluation."""
     use_vllm = getattr(args, "use_vllm", False)
@@ -120,9 +154,9 @@ def main(args):
     )
     output_dir = Path().home() / "outputs"
     output_dir.mkdir(parents=True, exist_ok=True)
-    
-    datasets = create_dataset(args.data_cfg)
-    if not isinstance(datasets, torch.utils.data.Dataset):
+
+    datasets = create_dataset(args.eval_data)
+    if not isinstance(datasets, dict):
         datasets = {"default": datasets}
     for name, dataset in datasets.items():
         print(f"Evaluating dataset: {name}")
@@ -139,7 +173,7 @@ def main(args):
                 json.dump(metrics, f, indent=4)
             print(f"Metrics saved to {metrics_file}")
             print(f"Results saved to {result_file}")
-                
+
 
 if __name__ == "__main__":
     parser = make_parser()
