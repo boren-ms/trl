@@ -32,7 +32,7 @@ max_completion_length: 512
 wandb_log_unique_prompts: True
 # beta: 0.1
 epsilon_high: 0.28
-save_steps: 400
+save_steps: 100
 use_vllm: True
 vllm_update_steps: 10
 vllm_server_host: ${VLLM_SERVER_HOST} # dev-n1-wus2-0
