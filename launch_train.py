@@ -174,14 +174,13 @@ def prepare_data(forced=False):
 
 
 @ray.remote
-def prepare_output():
+def prepare_output(local_dir=None, remote_dir=None):
     """Prepare output on each node by syncing from the remote storage."""
     hostname = os.uname().nodename
     print(f"Sync remote output on node: {hostname}")
-    local_output_dir, remote_output_dir = get_output_dirs()
-    print(f"Remote output directory: {remote_output_dir}")
-    print(f"Local output directory: {local_output_dir}")
-    cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_output_dir}/", f"{local_output_dir}/"]
+    print(f"Remote output directory: {remote_dir}")
+    print(f"Local output directory: {local_dir}")
+    cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/", f"{local_dir}/"]
     run_cmd(cmd)
     print("Data preparation completed.")
 
@@ -294,7 +293,7 @@ def main(config_file, forced=False):
     results += run_nodes(release_gpus, waiting=False)
 
     print("Preparing output on all nodes...")
-    results += run_nodes(prepare_output, waiting=False)
+    results += run_nodes(prepare_output, local_dir=output_dir, remote_dir=remote_output_dir, waiting=False)
 
     # Ensure all tasks are completed before proceeding
     ray.get(results)
