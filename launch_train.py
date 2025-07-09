@@ -36,6 +36,9 @@ class ChkpWatcher:
     def sync_latest_chkp(self):
         """sync checkpoint folder from remote to local."""
         print("Syncing latest checkpoint from local to remote ...")
+        if not Path(self.local_dir).exists():
+            print(f"Local directory [{self.local_dir}] does not exist, skipping sync.")
+            return
         chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
         chkp_dirs = sorted(chkp_dirs, key=lambda d: chkp_index(d.name), reverse=True)
         ckhps = [chkp_index(d.name) for d in chkp_dirs]
@@ -190,6 +193,9 @@ def fetch_remote_chkp(local_dir, remote_dir):
     print(f"Sync remote output on node: {hostname}")
     print(f"Remote output directory: {remote_dir}")
     print(f"Local output directory: {local_dir}")
+    if not bf.exists(remote_dir) or not bf.isdir(remote_dir):
+        print(f"Remote directory [{remote_dir}] does not exist.")
+        return
     chkps = [(chkp_index(d.name), d.name) for d in bf.scandir(remote_dir) if d.is_dir and chkp_index(d.name) >= 0]
     chkps = sorted(chkps, key=lambda x: x[0], reverse=True)
     if not chkps:
