@@ -8,7 +8,7 @@ from pathlib import Path
 import fire
 import time
 import importlib.metadata
-from ray_tool import run_nodes, run_cmd, head_hostname, init_ray, release_gpus, sync_folder
+from ray_tool import run_nodes, run_cmd, head_node_label, init_ray, release_gpus, sync_folder
 
 
 @ray.remote
@@ -231,13 +231,13 @@ def run_output_watcher():
     local_output_dir, remote_output_dir = get_output_dirs()
     print(f"Local output directory: {local_output_dir}")
     print(f"Remote output directory: {remote_output_dir}")
-    node = head_hostname()
-    watcher = OutputWatcher.options(resources={f"node:{node}": 0.01}).remote(
+    head_node = head_node_label()
+    print(f"Starting output watcher @ {head_node} with 30 minutes interval...")
+    watcher = OutputWatcher.options(resources={head_node: 0.01}).remote(
         local_dir=local_output_dir,
         remote_dir=remote_output_dir,
         interval=1800,  # changed from 600 to 1800 (30min)
     )
-    print(f"Starting output watcher @ {node} with 30 minutes interval...")
     watcher.start.remote()
     return watcher
 

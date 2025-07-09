@@ -23,18 +23,24 @@ def head_hostname():
     assert job_name is not None, "RCALL_JOB_NAME must be set"
     return f"{job_name}-0"  # head node IP
 
+def head_node_label():
+    """Get the head node IP address from environment variables."""
+    nodes = ray.nodes()
+    node_ip = nodes[0]["NodeManagerAddress"]
+    return f"node:{node_ip}"
 
 def run_nodes(fun, *args, waiting=True, **kwargs):
     nodes = ray.nodes()
-    # node_names = [node["NodeManagerAddress"] for node in nodes if node["Alive"]]
-    node_names = [node["NodeName"] for node in nodes if node["Alive"]]
-
     # Launch one task per node, each pinned to a specific node
     results = []
-    for node_name in node_names:
+    for node in nodes:
+        if not node["Alive"]:
+            print(f"Node {node['NodeName']} is not alive, skipping.")
+            continue
+        node_ip = node["NodeManagerAddress"]
         # Use custom resource label to ensure the function runs on this node
         # Each node has a resource label 'node:<ip>'
-        node_label = f"node:{node_name}"
+        node_label = f"node:{node_ip}"
         result = fun.options(resources={node_label: 0.01}).remote(*args, **kwargs)
         results.append(result)
     if waiting:
@@ -61,7 +67,7 @@ def init_ray():
 @ray.remote
 def sync_folder(folder):
     """Sync the Folder from the remote storage."""
-    head_node = head_hostname()
+    head_node = head_node_label()
     cur_node = os.uname().nodename
     # Ensure the Folder exists for each node
     Path(folder).mkdir(parents=True, exist_ok=True)
