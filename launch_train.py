@@ -37,7 +37,7 @@ class OutputWatcher:
         local_chkp_dir = chkp_dirs.sort(key=lambda d: to_int(d.name.split("-")[-1]), reverse=True)[0]
         print(f"Latest checkpoint: {local_chkp_dir}")
         remote_chkp_dir = f"{self.remote_dir}/{local_chkp_dir.relative_to(self.local_dir)}"
-        cmd = ["bbb", "sync", "--concurrency", "64", f"{local_chkp_dir}/", f"{remote_chkp_dir}/", "-x", ".png$"]
+        cmd = ["bbb", "sync", "--concurrency", "64", f"{local_chkp_dir}/", f"{remote_chkp_dir}/"]
         print(f"Syncing latest checkpoint from {local_chkp_dir} to {remote_chkp_dir}")
         run_cmd(cmd)
         print("Sync completed.")
