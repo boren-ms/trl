@@ -7,6 +7,7 @@ import importlib
 from pathlib import Path
 import fire
 import time
+import blobfile as bf
 import importlib.metadata
 from ray_tool import run_nodes, run_cmd, head_node_label, init_ray, release_gpus, sync_folder, list_nodes
 
@@ -18,6 +19,11 @@ def to_int(value, default=-1):
     except ValueError:
         return default
 
+def chkp_index(name):
+    """Extract the checkpoint index from a checkpoint directory name."""
+    if not name.startswith("checkpoint-"):
+        return -1
+    return to_int(name.split("-")[-1], -1)
 
 @ray.remote
 class ChkpWatcher:
@@ -31,8 +37,8 @@ class ChkpWatcher:
         """sync checkpoint folder from remote to local."""
         print("Syncing latest checkpoint from local to remote ...")
         chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
-        chkp_dirs = sorted(chkp_dirs, key=lambda d: to_int(d.name.split("-")[-1]), reverse=True)
-        ckhps = [to_int(d.name.split("-")[-1]) for d in chkp_dirs]
+        chkp_dirs = sorted(chkp_dirs, key=lambda d: chkp_index(d.name), reverse=True)
+        ckhps = [chkp_index(d.name) for d in chkp_dirs]
         if not chkp_dirs:
             print(f"No checkpoint found in {self.local_dir}.")
             return
@@ -178,13 +184,22 @@ def prepare_data(forced=False):
 
 
 @ray.remote
-def prepare_output(local_dir=None, remote_dir=None):
+def fetch_remote_chkp(local_dir, remote_dir):
     """Prepare output on each node by syncing from the remote storage."""
     hostname = os.uname().nodename
     print(f"Sync remote output on node: {hostname}")
     print(f"Remote output directory: {remote_dir}")
     print(f"Local output directory: {local_dir}")
-    cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/", f"{local_dir}/"]
+    chkps = [(chkp_index(d.name), d.name) for d in bf.scandir(remote_dir) if d.is_dir and chkp_index(d.name) >= 0]
+    chkps = sorted(chkps, key=lambda x: x[0], reverse=True)
+    if not chkps:
+        print(f"No checkpoints found in {remote_dir}.")
+        return
+    print(f"Found {len(chkps)} checkpoints in {remote_dir}.")
+    print("Latest 20 checkpoints: ", [chkp[0] for chkp in chkps[:20]])
+    latest_chkp = chkps[0][1]
+    print(f"Syncing latest checkpoint ({latest_chkp}) to local directory...")
+    cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/{latest_chkp}/", f"{local_dir}/{latest_chkp}/"]
     run_cmd(cmd)
     print("Data preparation completed.")
 
@@ -297,7 +312,7 @@ def main(config_file, forced=False):
     results += run_nodes(release_gpus, waiting=False)
 
     print("Preparing output on all nodes...")
-    results += run_nodes(prepare_output, local_dir=output_dir, remote_dir=remote_output_dir, waiting=False)
+    results += run_nodes(fetch_remote_chkp, local_dir=output_dir, remote_dir=remote_output_dir, waiting=False)
 
     # Ensure all tasks are completed before proceeding
     ray.get(results)
