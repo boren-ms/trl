@@ -114,11 +114,11 @@ def main(args):
     """Main function to run the evaluation."""
     use_vllm = getattr(args, "use_vllm", False)
     evaluator = Evaluation(
-        model_path=args.model_path,
+        model_path=args.model_name_or_path,
         use_vllm=use_vllm,
         batch_size=getattr(args, "batch_size", 8),
     )
-    output_dir = Path(args.output_dir)
+    output_dir = Path().home() / "outputs"
     output_dir.mkdir(parents=True, exist_ok=True)
     
     datasets = create_dataset(args.data_cfg)
