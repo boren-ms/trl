@@ -61,7 +61,7 @@ def init_ray():
     """Check the connection to a Ray cluster and print the status of nodes."""
     print("Connecting to Ray cluster...")
     ray.init(address="auto")  # Connect to the running cluster
-    return list_nodes()
+    print("Connected to Ray cluster.")
 
 
 @ray.remote
