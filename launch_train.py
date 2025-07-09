@@ -8,7 +8,7 @@ from pathlib import Path
 import fire
 import time
 import importlib.metadata
-from ray_tool import run_nodes, run_cmd, head_node_label, init_ray, release_gpus, sync_folder
+from ray_tool import run_nodes, run_cmd, head_node_label, init_ray, release_gpus, sync_folder, list_nodes
 
 
 @ray.remote
@@ -245,7 +245,7 @@ def run_output_watcher():
 def main(config_file, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
     init_ray()
-    print("Ray cluster initialized.")
+    list_nodes()
     results = []
 
     print("Preparing environment on all nodes...")
