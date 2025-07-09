@@ -67,7 +67,7 @@ def init_ray():
 @ray.remote
 def sync_folder(folder):
     """Sync the Folder from the remote storage."""
-    head_node = head_node_label()
+    head_node = head_hostname()
     cur_node = os.uname().nodename
     # Ensure the Folder exists for each node
     Path(folder).mkdir(parents=True, exist_ok=True)
