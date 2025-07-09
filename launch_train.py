@@ -87,7 +87,7 @@ class UserStorage:
         self.region = region or get_region()
         assert self.region, "Region must be specified or set in RCALL_KUBE_CLUSTER environment variable"
         self.region_storage = REGION_STORAGES.get(self.region, "orngscuscresco")
-        self.user = os.environ.get("RCALL_USER", os.environ.get("USER", "boren"))
+        self.user = os.environ.get("OPENAI_USER", "boren")
 
     @property
     def home_path(self):
