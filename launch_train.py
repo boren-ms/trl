@@ -31,10 +31,14 @@ class ChkpWatcher:
         """sync checkpoint folder from remote to local."""
         print("Syncing latest checkpoint from local to remote ...")
         chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
+        chkp_dirs = sorted(chkp_dirs, key=lambda d: to_int(d.name.split("-")[-1]), reverse=True)
+        ckhps = [to_int(d.name.split("-")[-1]) for d in chkp_dirs]
         if not chkp_dirs:
             print(f"No checkpoint found in {self.local_dir}.")
             return
-        local_chkp_dir = chkp_dirs.sort(key=lambda d: to_int(d.name.split("-")[-1]), reverse=True)[0]
+        print(f"Found {len(chkp_dirs)} checkpoints in {self.local_dir}.")
+        print("Latest 20 checkpoints: ", ckhps[:20])
+        local_chkp_dir = chkp_dirs[0]
         print(f"Latest checkpoint: {local_chkp_dir}")
         remote_chkp_dir = f"{self.remote_dir}/{local_chkp_dir.relative_to(self.local_dir)}"
         cmd = ["bbb", "sync", "--concurrency", "64", f"{local_chkp_dir}/", f"{remote_chkp_dir}/"]
