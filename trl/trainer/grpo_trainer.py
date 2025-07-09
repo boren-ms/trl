@@ -47,7 +47,7 @@ from transformers import (
 from transformers.trainer_utils import seed_worker, EvalLoopOutput, has_length
 from transformers.utils import is_datasets_available, is_flash_attn_2_available, is_peft_available, logging
 
-from ..data_utils import apply_chat_template, is_conversational, sf_read
+from ..data_utils import apply_chat_template, is_conversational, sf_read, maybe_apply_chat_template
 from ..extras.profiling import profiling_context, profiling_decorator
 from ..extras.vllm_client import VLLMClient
 from ..import_utils import is_liger_kernel_available, is_vllm_available, is_rich_available
@@ -1066,19 +1066,19 @@ class GRPOTrainer(Trainer):
         mode = "train" if self.model.training else "eval"
         num_generations = self.num_generations if mode == "train" else self.num_eval_generations
         temperature = self.temperature if mode == "train" else self.eval_temperature
-        prompts = [x["prompt"] for x in inputs]
-        # prompts_text = [
-        #     maybe_apply_chat_template(example, self.processing_class)["prompt"]
-        #     for example in inputs
-        # ]
+        # prompts = [x["prompt"] for x in inputs]
         prompts_text = [
-            self.processing_class.tokenizer.apply_chat_template(
-                prompt,
-                tokenize=False,
-                add_generation_prompt=True,
-            )
-            for prompt in prompts
+            maybe_apply_chat_template(example,  self.processing_class.tokenizer)["prompt"]
+            for example in inputs
         ]
+        # prompts_text = [
+        #     self.processing_class.tokenizer.apply_chat_template(
+        #         prompt,
+        #         tokenize=False,
+        #         add_generation_prompt=True,
+        #     )
+        #     for prompt in prompts
+        # ]
         # audios = [(np.array(x["audio"]), x["sr"]) for x in inputs]
         audio_paths = [x["audio_path"] for x in inputs]
         audios = [sf_read(p) for p in audio_paths]  # delay the audio read here.
