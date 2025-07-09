@@ -20,7 +20,7 @@ def to_int(value, default=-1):
 
 
 @ray.remote
-class OutputWatcher:
+class ChkpWatcher:
     def __init__(self, local_dir, remote_dir, interval=600):
         self.local_dir = local_dir
         self.remote_dir = remote_dir
@@ -43,9 +43,9 @@ class OutputWatcher:
         print("Sync completed.")
 
     def start(self):
-        print(f"Watcher started with interval {self.interval} seconds.")
-        print(f"Local directory: {self.local_dir}")
-        print(f"Remote directory: {self.remote_dir}")
+        print(f"Watcher started with interval {self.interval/60} minutes.")
+        print(f"Local dir: {self.local_dir}")
+        print(f"Remote dir: {self.remote_dir}")
         while self._running:
             print("Watcher tick!")
             self.sync_latest_chkp()
@@ -65,6 +65,13 @@ def is_package_version(package_name, target_version):
         return False
 
 
+def get_region():
+    """Get the region of the Kubernetes cluster from the environment variable."""
+    rcall_kube_cluster = os.environ.get("RCALL_KUBE_CLUSTER", "")
+    cluster_region = rcall_kube_cluster.split("-")[1] if "-" in rcall_kube_cluster else None
+    return cluster_region
+
+
 REGION_STORAGES = {
     "southcentralus": "orngscuscresco",
     "westus2": "orngwus2cresco",
@@ -72,19 +79,33 @@ REGION_STORAGES = {
 }
 
 
-def get_region_storage():
-    """Get the storage path based on the region of the Kubernetes cluster."""
-    rcall_kube_cluster = os.environ.get("RCALL_KUBE_CLUSTER", "")
-    cluster_region = rcall_kube_cluster.split("-")[1] if "-" in rcall_kube_cluster else ""
-    data_storage = REGION_STORAGES.get(cluster_region, "orngscuscresco")
-    return data_storage
+class UserStorage:
+    """Class to manage user storage paths based on the region of the Kubernetes cluster."""
+
+    def __init__(self, region=None):
+        """Initialize the UserStorage with the specified region."""
+        self.region = region or get_region()
+        assert self.region, "Region must be specified or set in RCALL_KUBE_CLUSTER environment variable"
+        self.region_storage = REGION_STORAGES.get(self.region, "orngscuscresco")
+        self.user = os.environ.get("RCALL_USER", os.environ.get("USER", "boren"))
+
+    @property
+    def home_path(self):
+        """Get the storage path based on the region."""
+        return f"az://{self.region_storage}/data/{self.user}"
+
+    @property
+    def data_path(self):
+        """Get the user data storage path based on the region."""
+        return f"{self.home_path}/data"
+
+    @property
+    def output_path(self):
+        """Get the user output storage path based on the region."""
+        return f"{self.home_path}/outputs"
 
 
-def get_remote_data_dir():
-    """Get the storage path based on the region of the Kubernetes cluster."""
-    data_storage = get_region_storage()
-    user = os.environ.get("RCALL_USER", "boren")
-    return f"az://{data_storage}/data/{user}/data"
+ORNG_USER = UserStorage()
 
 
 @ray.remote
@@ -120,7 +141,7 @@ def prepare_data(forced=False):
     if done_tag.exists() and not forced:
         print(f"Data preparation already done on {hostname}, skipping.")
         return
-    remote_dir = get_remote_data_dir()
+    remote_dir = ORNG_USER.data_path
     print(f"Remote directory: {remote_dir}")
 
     rel_dirs = [
@@ -168,7 +189,7 @@ def prepare_output():
 def update_envs(yaml_path):
     """Reads a YAML file, substitutes environment variables in its content"""
     print(f"Updating variables in {yaml_path}")
-    os.environ["DATA_STORAGE"] = get_region_storage()
+    os.environ["DATA_STORAGE"] = ORNG_USER.region_storage
     content = Path(yaml_path).read_text()
     expanded_content = os.path.expandvars(content)
     Path(yaml_path).write_text(expanded_content)
@@ -231,26 +252,24 @@ def launch_training(config_file, output_dir):
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
 
-def get_output_dirs():
+def get_output_dirs(rel_path=None, job_name=None):
     """Get the remote output directory based on the job name."""
-    job_name = os.environ.get("RCALL_JOB_NAME", "UnknownJob")
-    remote_output_dir = f"{get_remote_data_dir()}/outputs/{job_name}"
+    job_name = job_name or os.environ.get("RCALL_JOB_NAME", None)
+    remote_output_dir = f"{ORNG_USER.output_path}/{job_name}"
     local_output_dir = Path.home() / "outputs"
-    return local_output_dir, remote_output_dir
+    if rel_path:
+        remote_output_dir = f"{remote_output_dir}/{rel_path}"
+        local_output_dir = local_output_dir / rel_path
+    return str(local_output_dir), remote_output_dir
 
 
-def run_output_watcher():
+def run_chkp_watcher(local_dir=None, remote_dir=None, interval=600):
     """Start the output watcher to sync outputs periodically."""
-    local_output_dir, remote_output_dir = get_output_dirs()
-    print(f"Local output directory: {local_output_dir}")
-    print(f"Remote output directory: {remote_output_dir}")
     head_node = head_node_label()
-    print(f"Starting output watcher @ {head_node} with 30 minutes interval...")
-    watcher = OutputWatcher.options(resources={head_node: 0.01}).remote(
-        local_dir=local_output_dir,
-        remote_dir=remote_output_dir,
-        interval=1800,  # changed from 600 to 1800 (30min)
-    )
+    print(f"Watching  @ {head_node} every {interval/60} minutes")
+    print(f"Local directory: {local_dir}")
+    print(f"Remote directory: {remote_dir}")
+    watcher = ChkpWatcher.options(resources={head_node: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval)
     watcher.start.remote()
     return watcher
 
@@ -259,8 +278,12 @@ def main(config_file, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
     init_ray()
     list_nodes()
+    
+    config_file = Path(config_file).absolute()
+    print(f"Using config file: {config_file}")
+    output_dir, remote_output_dir = get_output_dirs(config_file.stem)
+    
     results = []
-
     print("Preparing environment on all nodes...")
     results += run_nodes(prepare_environment, forced=forced, waiting=False)
 
@@ -277,13 +300,11 @@ def main(config_file, forced=False):
     ray.get(results)
 
     print("Syncing outputs from head to other nodes...")
-    output_dir, _ = get_output_dirs()
     run_nodes(sync_folder, str(output_dir))
 
     print("Starting output watcher on head node...")
-    watcher = run_output_watcher()
+    watcher = run_chkp_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
 
-    config_file = Path(config_file).absolute()
     print(f"Launch training with {config_file}...")
     run_nodes(launch_training, str(config_file), output_dir=str(output_dir))
     print("Job completed on all nodes.")
