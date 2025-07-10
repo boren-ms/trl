@@ -26,7 +26,7 @@ def chkp_index(name):
     return to_int(name.split("-")[-1], -1)
 
 @ray.remote
-class ChkpWatcher:
+class OutputWatcher:
     def __init__(self, local_dir, remote_dir, interval=600):
         self.local_dir = local_dir
         self.remote_dir = remote_dir
@@ -39,6 +39,11 @@ class ChkpWatcher:
         if not Path(self.local_dir).exists():
             print(f"Local directory [{self.local_dir}] does not exist, skipping sync.")
             return
+        for file_path in Path(self.local_dir).iterdir():
+            if not file_path.is_file():
+                continue
+            bf.copy(file_path, f"{self.remote_dir}/{file_path.name}", overwrite=True)
+        
         chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
         chkp_dirs = sorted(chkp_dirs, key=lambda d: chkp_index(d.name), reverse=True)
         ckhps = [chkp_index(d.name) for d in chkp_dirs]
@@ -187,7 +192,7 @@ def prepare_data(forced=False):
 
 
 @ray.remote
-def fetch_remote_chkp(local_dir, remote_dir):
+def prepare_local_output(local_dir, remote_dir):
     """Prepare output on each node by syncing from the remote storage."""
     hostname = os.uname().nodename
     print(f"Sync remote output on node: {hostname}")
@@ -196,6 +201,22 @@ def fetch_remote_chkp(local_dir, remote_dir):
     if not bf.exists(remote_dir) or not bf.isdir(remote_dir):
         print(f"Remote directory [{remote_dir}] does not exist.")
         return
+    
+    # sync remote files to local directory 
+    for file_path in bf.scandir(remote_dir):
+        if not file_path.is_file:
+            continue
+        local_file_path = Path(local_dir) / file_path.name
+        if local_file_path.exists():
+            print(f"File {local_file_path} already exists, skipping.")
+            continue
+        print(f"Syncing file {file_path.name} to {local_file_path}")
+        local_file_path.parent.mkdir(parents=True, exist_ok=True)
+        bf.copy(file_path, local_file_path)
+        # cmd = ["bbb", "cp", f"{remote_dir}/{file_path.name}", f"{local_file_path}"]
+        # run_cmd(cmd)
+        
+    # sync remote checkpoints to local directory
     chkps = [(chkp_index(d.name), d.name) for d in bf.scandir(remote_dir) if d.is_dir and chkp_index(d.name) >= 0]
     chkps = sorted(chkps, key=lambda x: x[0], reverse=True)
     if not chkps:
@@ -293,7 +314,7 @@ def run_chkp_watcher(local_dir=None, remote_dir=None, interval=600):
     print(f"Watching  @ {head_node} every {interval/60} minutes")
     print(f"Local directory: {local_dir}")
     print(f"Remote directory: {remote_dir}")
-    watcher = ChkpWatcher.options(resources={head_node: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval)
+    watcher = OutputWatcher.options(resources={head_node: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval)
     watcher.start.remote()
     return watcher
 
@@ -318,7 +339,7 @@ def main(config_file, forced=False):
     results += run_nodes(release_gpus, waiting=False)
 
     print("Preparing output on all nodes...")
-    results += run_nodes(fetch_remote_chkp, local_dir=output_dir, remote_dir=remote_output_dir, waiting=False)
+    results += run_nodes(prepare_local_output, local_dir=output_dir, remote_dir=remote_output_dir, waiting=False)
 
     # Ensure all tasks are completed before proceeding
     ray.get(results)
