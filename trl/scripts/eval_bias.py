@@ -87,7 +87,7 @@ class Evaluation:
 
     def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None):
         self.accelerator = Accelerator()
-        self.model_path = model_path
+        self.model_path = str(model_path)
         self.batch_size = batch_size
         self.use_vllm = use_vllm
         self.output_dir = output_dir or model_path
@@ -164,7 +164,7 @@ class Evaluation:
             f"BWER": b_wer.get_wer(),
         }
 
-    def evaluate_measures(self, dataset, name=None):
+    def evaluate_measures(self, dataset):
         """Evaluate the model on the dataset and compute metrics."""
         results = self.evaluate(dataset)
         all_results = gather_object(results)
@@ -237,7 +237,7 @@ def main(args):
     for model_path in model_paths:
         step = chkp_index(model_path.name, 0)
         print(f"Evaluating: {model_path}, step: {step}")
-        evaluate_model(model_path, datasets, step=step, wandb_dir=args.model_path, **vars(args))
+        evaluate_model(model_path, datasets, step=step, wandb_dir=args.model_path, **kwargs)
     print("All evaluations completed.")
 
 def make_parser(subparsers: argparse._SubParsersAction = None):
