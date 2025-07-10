@@ -162,6 +162,7 @@ def prepare_data(forced=False):
         "librispeech_biasing/words",
         "librispeech_biasing/ref",
         "LibriSpeech/test-clean",
+        "LibriSpeech/test-other",
         "LibriSpeech/train-clean-360/115/122944",
     ]
 
