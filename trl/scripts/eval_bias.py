@@ -2,6 +2,7 @@ from pathlib import Path
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
+from tqdm import tqdm
 from transformers import AutoProcessor, GenerationConfig
 import wandb
 from trl import TrlParser
@@ -144,7 +145,7 @@ class Evaluation:
         dataloader = DataLoader(dataset, batch_size=self.batch_size)
         dataloader = self.accelerator.prepare(dataloader)
         results = []
-        for batch in dataloader:
+        for batch in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
             output = self.generate(batch)
             results += [{"hyp": hyp, "ref": ref, "id": id} for id, ref, hyp in zip(batch["id"], batch["text"], output)]
         return results
@@ -161,8 +162,6 @@ class Evaluation:
 
     def evaluate_measures(self, dataset):
         """Evaluate the model on the dataset and compute metrics."""
-        if self.is_main:
-           print(f"Evaluating {self.model_path} @ {dataset.name} with bs {self.batch_size}") 
         results = self.evaluate(dataset)
         all_results = gather_object(results)
         metrics = self.measure(all_results)
@@ -192,6 +191,18 @@ class Evaluation:
         print(f"Metrics saved to {metrics_file}")
         print(f"Results saved to {result_file}")
 
+    def evaluate_all(self, datasets, step=0):
+        """Evaluate the model on all datasets."""
+        if not isinstance(datasets, dict):
+            datasets = {"default": datasets}
+
+        for name, dataset in tqdm(datasets.items(), "Evaluating datasets", disable=not self.is_main):
+            if self.is_main:
+                print(f"Evaluating {self.model_path} @ {name}")
+            results, metrics = self.evaluate_measures(dataset)
+            metrics.update({"train/global_step": step})
+            self.log_metrics_results(metrics, results, name=name)
+            
 
 def find_models(model_path, checkpoints=None):
     """Get a list of checkpoint directories in the model path."""
@@ -212,12 +223,8 @@ def evaluate_model(model_path, datasets, **kwargs):
         wandb_dir=kwargs.get("wandb_dir", None),
         generation_config=kwargs.get("generation_config", None),
     )
-    for name, dataset in datasets.items():
-        results, metrics = evaluator.evaluate_measures(dataset)
-        metrics.update({"train/global_step": kwargs.get("step", 0)})
-        evaluator.log_metrics_results(metrics, results, name=name)
+    evaluator.evaluate_all(datasets, step=chkp_index(Path(model_path).name, 0))
     del evaluator  # Clean up the evaluator to free resources
-
 
 
 def main(args):
@@ -225,13 +232,10 @@ def main(args):
     run_name = args.run_name or Path(args.model_path).stem
     model_paths = find_models(args.model_path, args.checkpoints)
     datasets = create_dataset(args.eval_data)
-    if not isinstance(datasets, dict):
-        datasets = {"default": datasets}
     kwargs = { k:v for k,v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints", "run_name"]}
     
     for model_path in model_paths:
-        step = chkp_index(model_path.name, 0)
-        evaluate_model(model_path, datasets, step=step, wandb_dir=args.model_path, run_name=run_name, **kwargs)
+        evaluate_model(model_path, datasets, wandb_dir=args.model_path, run_name=run_name, **kwargs)
 
 def make_parser(subparsers: argparse._SubParsersAction = None):
     """Create a parser for the evaluation script."""
