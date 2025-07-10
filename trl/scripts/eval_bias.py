@@ -19,7 +19,7 @@ import json
 from vllm import LLM, SamplingParams
 from transformers import AutoProcessor
 from pathlib import Path
-from trl.data_utils import sf_read
+from trl.data_utils import sf_read, find_chkps, chkp_index
 from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, init_wandb
 from trl.scripts.audio_metrics import compute_wers
 
@@ -28,22 +28,21 @@ from trl.scripts.audio_metrics import compute_wers
 class EvalArguments:
     """Script arguments for the  evaluation script."""
 
-    job_name: Optional[str] = field(
+    model_name: Optional[str] = field(
         default=None,
-        metadata={"help": "Name of the script."},
+        metadata={"help": "Name of the model."},
     )
-    project_name: Optional[str] = field(
-        default="grpo_bias",
-        metadata={"help": "Name of the project."},
-    )
-
     eval_data: Optional[dict] = field(
         default=None,
-        metadata={"help": "Evalution dataset config"},
+        metadata={"help": "Evaluation dataset config"},
     )
-    model_name_or_path: Optional[str] = field(
+    model_path: Optional[str] = field(
         default=None,
         metadata={"help": "Path to the model."},
+    )
+    checkpoints: Optional[list[str]] = field(
+        default=None,
+        metadata={"help": "Checkpoint indices to evaluate."},
     )
     batch_size: Optional[int] = field(
         default=8,
@@ -62,6 +61,7 @@ class EvalArguments:
         metadata={"help": "Generation parameters for the model."},
     )
 
+
 def hf2vllm_config(hf_config):
     """Convert a HuggingFace GenerationConfig or dict to vLLM sampling parameters."""
     mapping = {
@@ -78,20 +78,21 @@ def hf2vllm_config(hf_config):
     vllm_params = {vllm_key: hf_config[hf_key] for hf_key, vllm_key in mapping.items() if hf_key in hf_config and hf_config[hf_key] is not None}
     if "do_sample" in hf_config and not hf_config["do_sample"]:
         vllm_params["temperature"] = 0.0
-    vllm_params["n"] = vllm_params.get("n", 1) 
+    vllm_params["n"] = vllm_params.get("n", 1)
     return vllm_params
+
 
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
 
-    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, project_name=None, generation_config=None):
+    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None):
         self.accelerator = Accelerator()
         self.model_path = model_path
         self.batch_size = batch_size
         self.use_vllm = use_vllm
         self.output_dir = output_dir or model_path
+        self.wandb_dir = wandb_dir or self.output_dir
         self.job_name = job_name
-        self.project_name = project_name
 
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
         self.generation_config.update(**(generation_config or {}))
@@ -101,13 +102,8 @@ class Evaluation:
         if self.accelerator.is_main_process:
             init_wandb(
                 job_name=self.job_name,
-                wandb_project=self.project_name,
-                config={
-                    "model_path": model_path,
-                    "use_vllm": use_vllm,
-                    "batch_size": batch_size,
-                },
-                output_dir=self.output_dir,
+                config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size},
+                output_dir=self.wandb_dir,
             )
 
     def _prepare_model(self):
@@ -123,7 +119,6 @@ class Evaluation:
             )
             config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
-
         else:
             self.model, _ = init_model(self.model_path)
             self.model.eval()
@@ -180,7 +175,7 @@ class Evaluation:
         if not self.accelerator.is_main_process:
             return
         pfx = f"metric/{name}_" if name else "metric/"
-        metrics = {f"{pfx}{k}": v for k, v in metrics.items()}
+        metrics = {k if "/" in k else f"{pfx}{k}": v for k, v in metrics.items()}  # skip prefix for keys with slashes
         wandb.log(metrics)
         print("Logging metrics:")
         for key, value in metrics.items():
@@ -199,6 +194,50 @@ class Evaluation:
         print(f"Results saved to {result_file}")
 
 
+def find_models(model_path, checkpoints=None):
+    """Get a list of checkpoint directories in the model path."""
+    model_path = Path(model_path)
+    if checkpoints is None:
+        return [model_path]
+    return find_chkps(model_path, checkpoints)
+
+
+
+def evaluate_model(model_path, datasets, **kwargs):
+    """Evaluate a model on the given evaluation data."""
+    evaluator = Evaluation(
+        model_path=model_path,
+        use_vllm=kwargs.get("use_vllm", True),
+        batch_size=kwargs.get("batch_size", 8),
+        output_dir=kwargs.get("output_dir", None),
+        job_name=kwargs.get("job_name", None),
+        wandb_dir=kwargs.get("wandb_dir", None),
+        generation_config=kwargs.get("generation_config", None),
+    )
+    for name, dataset in datasets.items():
+        print(f"Evaluating dataset: {name}, model: {model_path}")
+        results, metrics = evaluator.evaluate_measures(dataset)
+        metrics.update({"train/global_step": kwargs.get("step", 0)})
+        evaluator.log_metrics_results(metrics, results, name=name)
+        print("*" * 20)
+    del evaluator  # Clean up the evaluator to free resources
+
+
+def main(args):
+    """Main function to run the evaluation."""
+    model_paths = find_models(args.model_path, args.checkpoints)
+    datasets = create_dataset(args.eval_data)
+    if not isinstance(datasets, dict):
+        datasets = {"default": datasets}
+    print(f"Found {len(model_paths)} models for {args.model_path}")
+    print(f"Found {len(datasets)} datasets")
+    
+    for model_path in model_paths:
+        step = chkp_index(model_path.name, 0)
+        print(f"Evaluating: {model_path}, step: {step}")
+        evaluate_model(model_path, datasets, step=step, wandb_dir=args.model_path, **vars(args))
+    print("All evaluations completed.")
+
 def make_parser(subparsers: argparse._SubParsersAction = None):
     """Create a parser for the evaluation script."""
     dataclass_types = EvalArguments
@@ -207,31 +246,6 @@ def make_parser(subparsers: argparse._SubParsersAction = None):
     else:
         parser = TrlParser(dataclass_types)
     return parser
-
-
-def main(args):
-    """Main function to run the evaluation."""
-
-    eval_data = args.eval_data
-    evaluator = Evaluation(
-        model_path=args.model_name_or_path,
-        output_dir=args.output_dir,
-        use_vllm=args.use_vllm,
-        batch_size=args.batch_size,
-        job_name=args.job_name,
-        project_name=args.project_name,
-        generation_config=args.generation_config,
-    )
-    datasets = create_dataset(eval_data)
-    if not isinstance(datasets, dict):
-        datasets = {"default": datasets}
-    for name, dataset in datasets.items():
-        print(f"Evaluating dataset: {name}")
-        results, metrics = evaluator.evaluate_measures(dataset)
-        evaluator.log_metrics_results(metrics, results, name=name)
-        print("*" * 20)
-    print("Evaluation completed.")
-
 
 
 if __name__ == "__main__":

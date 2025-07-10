@@ -9,21 +9,10 @@ import fire
 import time
 import blobfile as bf
 import importlib.metadata
+from trl.data_utils import chkp_index
 from ray_tool import run_nodes, run_cmd, head_node_label, init_ray, release_gpus, sync_folder, list_nodes
 
 
-def to_int(value, default=-1):
-    """Convert a value to an integer, if possible."""
-    try:
-        return int(value)
-    except ValueError:
-        return default
-
-def chkp_index(name):
-    """Extract the checkpoint index from a checkpoint directory name."""
-    if not name.startswith("checkpoint-"):
-        return -1
-    return to_int(name.split("-")[-1], -1)
 
 @ray.remote
 class OutputWatcher:

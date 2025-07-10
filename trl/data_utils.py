@@ -26,8 +26,11 @@ from datasets import Dataset, DatasetDict
 from transformers import PreTrainedTokenizerBase
 import blobfile as bf
 import soundfile as sf
+from pathlib import Path
+from more_itertools import unique_everseen
 
 DatasetType = TypeVar("DatasetType", Dataset, DatasetDict)
+
 
 def sf_read(file_path):
     """Load audio from a file."""
@@ -37,6 +40,7 @@ def sf_read(file_path):
     with bf.BlobFile(file_path, "rb") as f:
         audio, sr = sf.read(f)
     return audio, sr
+
 
 def is_conversational(example: dict[str, Any]) -> bool:
     r"""
@@ -128,9 +132,7 @@ def apply_chat_template(
     # Apply the chat template to the entire prompt + completion
     if "prompt" in example:  # explicit prompt and prompt-completion case
         if "chosen" in example:
-            prompt_chosen = tokenizer.apply_chat_template(
-                example["prompt"] + example["chosen"], tools=tools, tokenize=False
-            )
+            prompt_chosen = tokenizer.apply_chat_template(example["prompt"] + example["chosen"], tools=tools, tokenize=False)
             # DeepSeek-R1 inserts a <think> token when using `add_generation_prompt`, which can cause discrepancies
             # between the prompt alone and the combined prompt+completion. To ensure consistency, we extract the
             # common prefix between the two. In most cases, this is a no-op.
@@ -138,16 +140,12 @@ def apply_chat_template(
 
             chosen = prompt_chosen[len(prompt) :]
         if "rejected" in example and "prompt" in example:  # explicit prompt
-            prompt_rejected = tokenizer.apply_chat_template(
-                example["prompt"] + example["rejected"], tools=tools, tokenize=False
-            )
+            prompt_rejected = tokenizer.apply_chat_template(example["prompt"] + example["rejected"], tools=tools, tokenize=False)
             # Handle DeepSeek-R1 <think> token, see the above comment for details
             prompt = "".join(x for x, _ in takewhile(lambda x: x[0] == x[1], zip(prompt, prompt_rejected)))
             rejected = prompt_rejected[len(prompt) :]
         if "completion" in example:
-            prompt_completion = tokenizer.apply_chat_template(
-                example["prompt"] + example["completion"], tools=tools, tokenize=False
-            )
+            prompt_completion = tokenizer.apply_chat_template(example["prompt"] + example["completion"], tools=tools, tokenize=False)
             # Handle DeepSeek-R1 <think> token, see the above comment for details
             prompt = "".join(x for x, _ in takewhile(lambda x: x[0] == x[1], zip(prompt, prompt_completion)))
             completion = prompt_completion[len(prompt) :]
@@ -245,9 +243,7 @@ def _unpair_row(examples: list[dict[str, list[dict[str, str]]]]) -> list[dict[st
     return new_rows
 
 
-def unpair_preference_dataset(
-    dataset: DatasetType, num_proc: Optional[int] = None, desc: Optional[str] = None
-) -> DatasetType:
+def unpair_preference_dataset(dataset: DatasetType, num_proc: Optional[int] = None, desc: Optional[str] = None) -> DatasetType:
     r"""
     Unpair a preference dataset.
 
@@ -288,9 +284,7 @@ def unpair_preference_dataset(
     return dataset.map(_unpair_row, batched=True, remove_columns=["chosen", "rejected"], num_proc=num_proc, desc=desc)
 
 
-def maybe_unpair_preference_dataset(
-    dataset: DatasetType, num_proc: Optional[int] = None, desc: Optional[str] = None
-) -> DatasetType:
+def maybe_unpair_preference_dataset(dataset: DatasetType, num_proc: Optional[int] = None, desc: Optional[str] = None) -> DatasetType:
     r"""
     Unpair a preference dataset if it is paired.
 
@@ -480,8 +474,7 @@ def pack_examples(examples: dict[str, list[list]], seq_length: int) -> dict[str,
     ```
     """
     warnings.warn(
-        "`pack_examples` is deprecated and will be removed in version 0.20.0. Use `pack_dataset` with a dataset "
-        "instead.",
+        "`pack_examples` is deprecated and will be removed in version 0.20.0. Use `pack_dataset` with a dataset " "instead.",
         DeprecationWarning,
     )
     # Join  all the values into a single list
@@ -582,9 +575,7 @@ def _pack_ffd(examples: pa.Table, seq_length: int) -> pa.Table:
     offsets = np.array([0] + [bin["length"] for bin in bins])
     offsets = np.cumsum(offsets)
 
-    assert all(
-        column.num_chunks == 1 for column in examples.columns
-    )  # `pc.take` returns a ChunkedArray with a single chunk
+    assert all(column.num_chunks == 1 for column in examples.columns)  # `pc.take` returns a ChunkedArray with a single chunk
 
     lengths = examples["seq_lengths"].chunks[0]
     examples = examples.drop_columns("seq_lengths")
@@ -618,9 +609,7 @@ def _pack_wrapped(examples: pa.Table, seq_length: int) -> pa.Table:
     return pa.Table.from_arrays(columns, names=examples.column_names)
 
 
-def pack_dataset(
-    dataset: DatasetType, seq_length: int, strategy: str = "ffd", map_kwargs: Optional[dict[str, Any]] = None
-) -> DatasetType:
+def pack_dataset(dataset: DatasetType, seq_length: int, strategy: str = "ffd", map_kwargs: Optional[dict[str, Any]] = None) -> DatasetType:
     r"""
     Pack sequences in a dataset into chunks of size `seq_length`.
 
@@ -673,9 +662,7 @@ def pack_dataset(
     return dataset
 
 
-def truncate_dataset(
-    dataset: DatasetType, max_length: int, map_kwargs: Optional[dict[str, Any]] = None
-) -> DatasetType:
+def truncate_dataset(dataset: DatasetType, max_length: int, map_kwargs: Optional[dict[str, Any]] = None) -> DatasetType:
     r"""
     Truncate sequences in a dataset to a specifed `max_length`.
 
@@ -824,3 +811,35 @@ def maybe_convert_to_chatml(example: dict[str, list]) -> dict[str, list]:
         example["messages"] = example.pop("conversations")
 
     return example
+
+
+def to_int(value, default=-1):
+    """Convert a value to an integer, if possible."""
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def chkp_index(name, default=-1):
+    """Extract the checkpoint index from a checkpoint directory name."""
+    if not name.startswith("checkpoint-"):
+        return default
+    return to_int(name.split("-")[-1], default)
+
+
+def find_chkps(model_dir, specified=None):
+    """Find all checkpoint directories in the model directory."""
+    chkps = [d for d in Path(model_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
+    if not chkps:
+        return []
+    chkps = sorted(chkps, key=lambda d: chkp_index(d.name), reverse=True)
+    idxs = [chkp_index(chkp.name) for chkp in chkps]
+    if specified is None:
+        return chkps
+
+    if isinstance(specified, int):
+        specified = [specified]
+    specified =  [i if i >= 0 else idxs[i] for i in map(to_int, specified)]
+    
+    return [chkp for chkp in chkps if chkp_index(chkp.name)  in specified]
