@@ -231,6 +231,8 @@ def main(args):
         datasets = {"default": datasets}
     print(f"Found {len(model_paths)} models for {args.model_path}")
     print(f"Found {len(datasets)} datasets")
+    kwargs = { k:v for k,v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints"]}
+    print(f"Evaluation arguments: {kwargs}")
     
     for model_path in model_paths:
         step = chkp_index(model_path.name, 0)
