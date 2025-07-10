@@ -1,16 +1,10 @@
-import torch
-import os
-import sys
-import pytz
-import shortuuid
 from pathlib import Path
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
-from datetime import datetime
 from transformers import AutoProcessor, GenerationConfig
 import wandb
-from trl import GRPOConfig, GRPOTrainer, TrlParser
+from trl import TrlParser
 import wandb
 from torch.utils.data import DataLoader
 from accelerate import Accelerator
@@ -28,9 +22,9 @@ from trl.scripts.audio_metrics import compute_wers
 class EvalArguments:
     """Script arguments for the  evaluation script."""
 
-    model_name: Optional[str] = field(
+    run_name: Optional[str] = field(
         default=None,
-        metadata={"help": "Name of the model."},
+        metadata={"help": "Name of the run."},
     )
     eval_data: Optional[dict] = field(
         default=None,
@@ -85,14 +79,14 @@ def hf2vllm_config(hf_config):
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
 
-    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None):
+    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, run_name=None, wandb_dir=None, generation_config=None):
         self.accelerator = Accelerator()
         self.model_path = str(model_path)
         self.batch_size = batch_size
         self.use_vllm = use_vllm
         self.output_dir = output_dir or model_path
         self.wandb_dir = wandb_dir or self.output_dir
-        self.job_name = job_name
+        self.run_name = run_name 
 
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
         self.generation_config.update(**(generation_config or {}))
@@ -101,10 +95,15 @@ class Evaluation:
         self._prepare_model()
         if self.accelerator.is_main_process:
             init_wandb(
-                job_name=self.job_name,
+                run_name=self.run_name,
                 config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size},
                 output_dir=self.wandb_dir,
             )
+            
+    @property
+    def is_main(self):
+        """Check if the current process is the main process."""
+        return self.accelerator.is_main_process
 
     def _prepare_model(self):
         """Prepare the model for evaluation."""
@@ -154,10 +153,6 @@ class Evaluation:
         # Placeholder: implement your metric computation here
         # results = [{"hyp": ..., "ref": ..., "id": ...}, ...]
         wer, u_wer, b_wer = compute_wers(results)
-        print("WER:", wer.get_result_string())  # noqa
-        print("U-WER:", u_wer.get_result_string())  # noqa
-        print("B-WER:", b_wer.get_result_string())  # noqa
-
         return {
             f"WER": wer.get_wer(),
             f"UWER": u_wer.get_wer(),
@@ -166,21 +161,25 @@ class Evaluation:
 
     def evaluate_measures(self, dataset):
         """Evaluate the model on the dataset and compute metrics."""
+        if self.is_main:
+           print(f"Evaluating {self.model_path} @ {dataset.name} with bs {self.batch_size}") 
         results = self.evaluate(dataset)
         all_results = gather_object(results)
         metrics = self.measure(all_results)
         return all_results, metrics
 
     def log_metrics_results(self, metrics, results, name=None):
-        if not self.accelerator.is_main_process:
+        if not self.is_main:
             return
         pfx = f"metric/{name}_" if name else "metric/"
         metrics = {k if "/" in k else f"{pfx}{k}": v for k, v in metrics.items()}  # skip prefix for keys with slashes
-        wandb.log(metrics)
+
         print("Logging metrics:")
         for key, value in metrics.items():
             print(f"{key}: {value}")
 
+        wandb.log(metrics)
+        
         output_dir = Path(self.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         file_stem = f"{'vllm' if self.use_vllm else 'hf'}_{name}"
@@ -202,7 +201,6 @@ def find_models(model_path, checkpoints=None):
     return find_chkps(model_path, checkpoints)
 
 
-
 def evaluate_model(model_path, datasets, **kwargs):
     """Evaluate a model on the given evaluation data."""
     evaluator = Evaluation(
@@ -210,35 +208,31 @@ def evaluate_model(model_path, datasets, **kwargs):
         use_vllm=kwargs.get("use_vllm", True),
         batch_size=kwargs.get("batch_size", 8),
         output_dir=kwargs.get("output_dir", None),
-        job_name=kwargs.get("job_name", None),
+        run_name=kwargs.get("run_name", None),
         wandb_dir=kwargs.get("wandb_dir", None),
         generation_config=kwargs.get("generation_config", None),
     )
     for name, dataset in datasets.items():
-        print(f"Evaluating dataset: {name}, model: {model_path}")
         results, metrics = evaluator.evaluate_measures(dataset)
         metrics.update({"train/global_step": kwargs.get("step", 0)})
         evaluator.log_metrics_results(metrics, results, name=name)
-        print("*" * 20)
     del evaluator  # Clean up the evaluator to free resources
+
 
 
 def main(args):
     """Main function to run the evaluation."""
+    run_name = args.run_name or Path(args.model_path).stem
     model_paths = find_models(args.model_path, args.checkpoints)
     datasets = create_dataset(args.eval_data)
     if not isinstance(datasets, dict):
         datasets = {"default": datasets}
-    print(f"Found {len(model_paths)} models for {args.model_path}")
-    print(f"Found {len(datasets)} datasets")
-    kwargs = { k:v for k,v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints"]}
-    print(f"Evaluation arguments: {kwargs}")
+    kwargs = { k:v for k,v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints", "run_name"]}
     
     for model_path in model_paths:
         step = chkp_index(model_path.name, 0)
         print(f"Evaluating: {model_path}, step: {step}")
-        evaluate_model(model_path, datasets, step=step, wandb_dir=args.model_path, **kwargs)
-    print("All evaluations completed.")
+        evaluate_model(model_path, datasets, step=step, wandb_dir=args.model_path, run_name=run_name, **kwargs)
 
 def make_parser(subparsers: argparse._SubParsersAction = None):
     """Create a parser for the evaluation script."""

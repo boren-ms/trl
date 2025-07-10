@@ -91,7 +91,7 @@ def is_master():
     return local_rank == "0" and rank == "0"
 
 
-def get_job_name(jobname=None):
+def get_run_name(jobname=None):
     """Get a unique job name."""
     if jobname:
         return jobname
@@ -111,7 +111,14 @@ def save_run_info(run, work_dir=None, file_name="run_info.json"):
         return
     info_file = Path(work_dir) / file_name
     info_file.parent.mkdir(parents=True, exist_ok=True)
-    info = {"entity": run.entity, "project": run.project, "run_id": run.id, "run_name": run.name, "run_url": run.url}
+    info = {
+        "entity": run.entity,
+        "project": run.project,
+        "run_id": run.id,
+        "run_name": run.name,
+        "run_url": run.url,
+        "config": run.config,
+    }
     json.dump(info, info_file.open("w"), indent=2)
     print(f"Run info saved to {info_file}")
 
@@ -125,10 +132,10 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
         print(f"Run info file {file_name} does not exist in {work_dir}.")
         return {}
     print(f"Loading run info from {info_file}")
-    info =  json.load(info_file.open("r"))
+    info = json.load(info_file.open("r"))
     url = info.get("run_url", "")
     print(f"Reuse run: {url}")
-    
+
     parts = Path(url).parts
     if url.startswith("https://msaip.wandb.io/") and len(parts) > 4:
         print("Run info from", url)
@@ -138,11 +145,11 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     return info
 
 
-def init_wandb(job_name=None, wandb_project=None, config=None, output_dir=None):
+def init_wandb(run_name=None, project=None, config=None, output_dir=None):
     """Initialize wandb."""
-    wandb_project = os.environ.get("WANDB_PROJECT", wandb_project or "biasing")
-    job_name = get_job_name(job_name)
-    print(f"Project Name: {wandb_project}, Job Name: {job_name}")
+    project = os.environ.get("WANDB_PROJECT", project or "biasing")
+    run_name = get_run_name(run_name)
+    print(f"Project Name: {project}, Run Name: {run_name}")
     key = os.environ.get("WANDB_API_KEY", "")
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
@@ -150,11 +157,11 @@ def init_wandb(job_name=None, wandb_project=None, config=None, output_dir=None):
     run_info = load_run_info(output_dir)
     run = wandb.init(
         entity=run_info.get("entity", entity),
-        project=run_info.get("project", wandb_project),
+        project=run_info.get("project", project),
         id=run_info.get("run_id", None),
-        name=run_info.get("run_name", job_name),
+        name=run_info.get("run_name", run_name),
         resume="allow",
-        config=config,
+        config=run_info.get("config", config),
     )
     print("wandb offline: ", run.settings._offline)  # Should be True
     print("wandb mode: ", run.settings.mode)  # Should be "offline"
@@ -195,7 +202,7 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(job_name=script_args.job_name, wandb_project=script_args.project_name, output_dir=training_args.output_dir)  # disabled for wandb for orange
+        init_wandb(run_name=script_args.job_name, project=script_args.project_name, output_dir=training_args.output_dir)  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 
