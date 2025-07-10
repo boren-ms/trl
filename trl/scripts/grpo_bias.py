@@ -56,10 +56,6 @@ def init_model(model_id=None):
 class GRPOScriptArguments:
     """Script arguments for the GRPO training script."""
 
-    run_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "Name of the script."},
-    )
     project: Optional[str] = field(
         default=None,
         metadata={"help": "Name of the project."},
@@ -201,7 +197,7 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(run_name=script_args.run_name, project=script_args.project, output_dir=training_args.output_dir)  # disabled for wandb for orange
+        init_wandb(run_name=training_args.run_name, project=script_args.project, output_dir=training_args.output_dir)  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 
