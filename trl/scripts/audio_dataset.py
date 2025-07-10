@@ -34,6 +34,7 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
         if bias_str:
             instruct += f" Pay extra attention to the following phrases/words: {bias_str}."
         audio_path = Path(example["audio_path"])
+        idx = audio_path.stem
         if data_dir:
             if audio_path.is_absolute():
                 audio_path = audio_path.relative_to("/root/data")
@@ -45,7 +46,7 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
             "prompt": prompt_format.format(instruct),
             "audio_path": str(audio_path),
             "text": " ".join(words),
-            "id": example.get("id", audio_path.stem),
+            "id": example.get("id", idx),
         }
 
     ds = ds.map(load_sample)
