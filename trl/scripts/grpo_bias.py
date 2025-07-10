@@ -124,7 +124,10 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     if not info_file.exists():
         print(f"Run info file {file_name} does not exist in {work_dir}.")
         return {}
-    return json.load(info_file.open("r"))
+    print(f"Loading run info from {file_name}")
+    info =  json.load(info_file.open("r"))
+    print(f"Reuse run: {info['run_url']}")
+    return info
 
 
 def init_wandb(job_name=None, wandb_project=None, config=None, output_dir=None):
