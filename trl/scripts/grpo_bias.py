@@ -56,11 +56,11 @@ def init_model(model_id=None):
 class GRPOScriptArguments:
     """Script arguments for the GRPO training script."""
 
-    job_name: Optional[str] = field(
+    run_name: Optional[str] = field(
         default=None,
         metadata={"help": "Name of the script."},
     )
-    project_name: Optional[str] = field(
+    project: Optional[str] = field(
         default=None,
         metadata={"help": "Name of the project."},
     )
@@ -117,7 +117,6 @@ def save_run_info(run, work_dir=None, file_name="run_info.json"):
         "run_id": run.id,
         "run_name": run.name,
         "run_url": run.url,
-        "config": run.config,
     }
     json.dump(info, info_file.open("w"), indent=2)
     print(f"Run info saved to {info_file}")
@@ -202,7 +201,7 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(run_name=script_args.job_name, project=script_args.project_name, output_dir=training_args.output_dir)  # disabled for wandb for orange
+        init_wandb(run_name=script_args.run_name, project=script_args.project, output_dir=training_args.output_dir)  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 
