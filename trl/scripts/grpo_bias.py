@@ -3,6 +3,7 @@
 import os
 import sys
 import pytz
+import json
 import shortuuid
 from pathlib import Path
 import argparse
@@ -24,7 +25,7 @@ def uuid4():
 def init_model(model_id=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
-    model_id = model_id.rstrip("/") # Ensure no trailing slash
+    model_id = model_id.rstrip("/")  # Ensure no trailing slash
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
@@ -104,7 +105,29 @@ def get_job_name(jobname=None):
     return datetime.now(tz).strftime("%Y%m%d-%H%M%S")
 
 
-def init_wandb(job_name=None, wandb_project=None, config=None):
+def save_run_info(run, work_dir=None, file_name="run_info.json"):
+    """Save run identifying information to a JSON file."""
+    if work_dir is None:
+        return
+    info_file = Path(work_dir) / file_name
+    info_file.parent.mkdir(parents=True, exist_ok=True)
+    info = {"entity": run.entity, "project": run.project, "run_id": run.id, "run_name": run.name, "run_url": run.url}
+    json.dump(info, info_file.open("w"), indent=2)
+    print(f"Run info saved to {file_name}")
+
+
+def load_run_info(work_dir=None, file_name="run_info.json"):
+    """Load run info from JSON and resume the run."""
+    if work_dir is None:
+        return {}
+    info_file = Path(work_dir) / file_name
+    if not info_file.exists():
+        print(f"Run info file {file_name} does not exist in {work_dir}.")
+        return {}
+    return json.load(info_file.open("r"))
+
+
+def init_wandb(job_name=None, wandb_project=None, config=None, output_dir=None):
     """Initialize wandb."""
     wandb_project = os.environ.get("WANDB_PROJECT", wandb_project or "biasing")
     job_name = get_job_name(job_name)
@@ -113,15 +136,18 @@ def init_wandb(job_name=None, wandb_project=None, config=None):
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
     entity = os.environ.get("WANDB_ENTITY", "genai")
+    run_info = load_run_info(output_dir)
     run = wandb.init(
-        entity=entity,
-        project=wandb_project,
-        name=job_name,
+        entity=run_info.get("entity", entity),
+        project=run_info.get("project", wandb_project),
+        id=run_info.get("run_id", None),
+        name=run_info.get("run_name", job_name),
         resume="allow",
         config=config,
     )
     print("wandb offline: ", run.settings._offline)  # Should be True
     print("wandb mode: ", run.settings.mode)  # Should be "offline"
+    save_run_info(run, output_dir)
 
 
 def reward_functions(names=None):
@@ -158,7 +184,7 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(job_name=script_args.job_name, wandb_project=script_args.project_name)  # disabled for wandb for orange
+        init_wandb(job_name=script_args.job_name, wandb_project=script_args.project_name, output_dir=training_args.output_dir)  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 

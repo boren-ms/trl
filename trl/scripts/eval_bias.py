@@ -107,6 +107,7 @@ class Evaluation:
                     "use_vllm": use_vllm,
                     "batch_size": batch_size,
                 },
+                output_dir=self.output_dir,
             )
 
     def _prepare_model(self):
