@@ -21,7 +21,6 @@
             "env": {
                 "WANDB_ENTITY": "genai",
                 "WANDB_PROJECT": "biasing_debug",
-                "CUDA_VISIBLE_DEVICES": "7",
                 "RANK": "0",
                 "LOCAL_RANK": "0",
                 "WORLD_SIZE": "1",
@@ -31,7 +30,7 @@
             "justMyCode": false,
             "args": [
                 "--config",
-                "/root/code/trl/orng_conf/grpo_bias_vllm_colocate_debug.yaml",
+                "orng_conf/eval_debug.yaml",
                 // "/root/code/trl/orng_conf/grpo_bias_debug.yaml",
             ]
         },

@@ -7,12 +7,13 @@ from pathlib import Path
 from datasets import load_dataset, concatenate_datasets
 from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
+from trl.data_utils import sf_read
+
+prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
 
 
-def ls_bias_dataset(jsonl_path, bias_key=None, tag=True, data_dir=None, **kwargs):
+def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs):
     """Create a dataset from the given split."""
-    # data_dir = Path("/home/boren/data/librispeech_biasing/ref")
-    # jsonl_path = data_dir/"test-clean.biasing_100.jsonl"
     data_files = [jsonl_path] if isinstance(jsonl_path, str) else jsonl_path
     data_files = [str(file_path) for file_path in data_files]
 
@@ -28,23 +29,23 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag=True, data_dir=None, **kwargs
         """Load audio from a file."""
 
         bias_words = example.get(bias_key, [])
-        bias_str = ", ".join(tag_pieces(bias_words))
+        bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
         instruct = "Transcribe the audio clip into text."
         if bias_str:
             instruct += f" Pay extra attention to the following phrases/words: {bias_str}."
         audio_path = Path(example["audio_path"])
         if data_dir:
             if audio_path.is_absolute():
-                audio_path= audio_path.relative_to("/root/data")
-            audio_path = f"{data_dir}/{audio_path}" # not use Path here, since it may be a remote path
+                audio_path = audio_path.relative_to("/root/data")
+            audio_path = f"{data_dir}/{audio_path}"  # not use Path here, since it may be a remote path
         words = example.get("text", "").strip().split()
         gt_words = example.get("ground_truth", [])
-        words = tag_pieces(words, specified=gt_words, norm=text_norm)
-        # audio, sr = sf_read(audio_path)
+        words = tag_pieces(words, tag=tag, specified=gt_words, norm=text_norm)
         return {
-            "prompt": [{"role": "user", "content": f"<|audio_1|>{instruct}"}],
+            "prompt": prompt_format.format(instruct),
             "audio_path": str(audio_path),
             "text": " ".join(words),
+            "id": example.get("id", audio_path.stem),
         }
 
     ds = ds.map(load_sample)
@@ -94,12 +95,7 @@ def tsv_dataset(tsv_paths, **kwargs):
         if egs["dir"]:
             audio_path = audio_path.replace("/root/data/LibriSpeech", egs["dir"])
         messages = ast.literal_eval(egs["msgs"])[0]["messages"]
-        # audio, fs = sf_read(audio_path)
         x = {
-            # "audio": {
-            #     "array": audio,
-            #     "sampling_rate": fs,
-            # },
             "audio_path": audio_path,
             "text": messages[-1]["content"],
             "id": egs["id"],
@@ -131,9 +127,22 @@ def stream_shuffle(ds, **kwargs):
     num_egs = kwargs.get("num_egs", None)
     if num_egs is not None:
         ds = ds.take(num_egs)
-    # shuf_buf = kwargs.get("shuffle_buffer_size", None)
-    # if shuf_buf is not None:
-    #     ds = ds.shuffle(seed=42, buffer_size=shuf_buf)
+    return ds
+
+
+def post_process(ds, **kwargs):
+    """Post process the dataset."""
+    load_audio = kwargs.get("load_audio", False)
+    def read_audio(sample):
+        """Read audio from the file."""
+        audio, sr = sf_read(sample["audio_path"])
+        return {"audio": audio, "sr": sr}
+    cols = ["prompt", "text", "audio_path", "id"]
+    if load_audio:
+        cols += ["audio", "sr"]
+        ds = ds.map(read_audio)
+    # select required only
+    ds = ds.select_columns(cols)
     return ds
 
 
@@ -152,15 +161,8 @@ def bias_sampling(ds, **kwargs):
         context, text = bias_sampler.sample(sample["text"])
         side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
         return {
-            "prompt": [
-                {
-                    "role": "user",
-                    "content": f"<|audio_1|>Transcribe the audio clip into text. {side_prompt}",
-                }
-            ],
-            # "sr": sample["audio"]["sampling_rate"],
-            # "audio": sample["audio"]["array"],
-            "text": text,
+            "prompt": prompt_format.format(f"Transcribe the audio clip into text. {side_prompt}"),
+            "text": text,  # text is updated
         }
 
     ds = ds.map(proc_sample)
@@ -196,23 +198,23 @@ def simulate_perference(ds, **kwargs):
 
     return ds.map(add_perference, fn_kwargs={"error_range": error_range})
 
-    # return concatenate_datasets(datasets)
 
 
 def create_audio_dataset(dataset_name="openasr", **kwargs):
     """Create a dataset from the given split."""
+    ds = None
     if dataset_name == "ls_bias":
-        return ls_bias_dataset(**kwargs)
+        ds = ls_bias_dataset(**kwargs)
     elif dataset_name == "openasr":
         ds = openasr_dataset(**kwargs)
         ds = bias_sampling(ds, **kwargs.get("biasing", {}))
         ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
-        return ds
     elif dataset_name == "tsv":
         ds = tsv_dataset(**kwargs)
         ds = bias_sampling(ds, **kwargs.get("biasing", {}))
         ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
-        return ds
+    if ds:
+        return post_process(ds, **kwargs)
     raise ValueError(f"Unknown dataset name: {dataset_name}")
 
 
