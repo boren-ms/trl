@@ -212,10 +212,10 @@ def prepare_local_output(local_dir, remote_dir):
             print(f"File {local_file_path} already exists, skipping.")
             continue
         print(f"Syncing file {file_path.name} to {local_file_path}")
-        local_file_path.parent.mkdir(parents=True, exist_ok=True)
-        bf.copy(file_path, local_file_path)
-        # cmd = ["bbb", "cp", f"{remote_dir}/{file_path.name}", f"{local_file_path}"]
-        # run_cmd(cmd)
+        # local_file_path.parent.mkdir(parents=True, exist_ok=True)
+        # bf.copy(file_path, local_file_path)
+        cmd = ["bbb", "cp", f"{remote_dir}/{file_path.name}", f"{local_file_path}"]
+        run_cmd(cmd)
         
     # sync remote checkpoints to local directory
     chkps = [(chkp_index(d.name), d.name) for d in bf.scandir(remote_dir) if d.is_dir and chkp_index(d.name) >= 0]
