@@ -87,20 +87,15 @@ class Evaluation:
         self.use_vllm = use_vllm
         self.output_dir = output_dir or model_path
         self.wandb_dir = wandb_dir or self.output_dir
-        self.run_name = run_name 
+        self.run_name = run_name
 
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
         self.generation_config.update(**(generation_config or {}))
-        self.processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
 
         self._prepare_model()
         if self.is_main:
-            init_wandb(
-                run_name=self.run_name,
-                config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size},
-                output_dir=self.wandb_dir,
-            )
-            
+            init_wandb(run_name=self.run_name, config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size}, output_dir=self.wandb_dir)
+
     @property
     def is_main(self):
         """Check if the current process is the main process."""
@@ -120,9 +115,8 @@ class Evaluation:
             config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
         else:
-            self.model, _ = init_model(self.model_path)
-            self.model.eval()
-            self.model = self.accelerator.prepare(self.model)
+            model, self.processor = init_model(self.model_path)
+            self.model = self.accelerator.prepare(model).eval()
 
     def generate(self, batch):
         """Generate outputs for a batch of audio files."""
@@ -134,7 +128,8 @@ class Evaluation:
         else:
             audios = [sf_read(audio_path) for audio_path in batch["audio_path"]]
             inputs = self.processor(text=batch["prompt"], audios=audios, return_tensors="pt").to(self.accelerator.device)
-            generate_ids = self.model.generate(**inputs, generation_config=self.generation_config)
+            model = self.accelerator.unwrap_model(self.model)
+            generate_ids = model.generate(**inputs, generation_config=self.generation_config)
             generate_ids = generate_ids[:, inputs["input_ids"].shape[1] :]
             outputs = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
             texts = outputs
@@ -178,7 +173,7 @@ class Evaluation:
             print(f"{key}: {value}")
 
         wandb.log(metrics)
-        
+
         output_dir = Path(self.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         file_stem = f"{'vllm' if self.use_vllm else 'hf'}_{name}"
@@ -202,7 +197,7 @@ class Evaluation:
             results, metrics = self.evaluate_measures(dataset)
             metrics.update({"train/global_step": step})
             self.log_metrics_results(metrics, results, name=name)
-            
+
 
 def find_models(model_path, checkpoints=None):
     """Get a list of checkpoint directories in the model path."""
@@ -232,10 +227,11 @@ def main(args):
     run_name = args.run_name or Path(args.model_path).stem
     model_paths = find_models(args.model_path, args.checkpoints)
     datasets = create_dataset(args.eval_data)
-    kwargs = { k:v for k,v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints", "run_name"]}
-    
+    kwargs = {k: v for k, v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints", "run_name"]}
+
     for model_path in model_paths:
         evaluate_model(model_path, datasets, wandb_dir=args.model_path, run_name=run_name, **kwargs)
+
 
 def make_parser(subparsers: argparse._SubParsersAction = None):
     """Create a parser for the evaluation script."""

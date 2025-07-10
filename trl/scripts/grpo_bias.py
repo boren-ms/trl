@@ -45,10 +45,7 @@ def init_model(model_id=None):
         print("loading speech lora adapter")
         model.set_lora_adapter("speech")
 
-    processor = AutoProcessor.from_pretrained(
-        model_id,
-        trust_remote_code=True,
-    )
+    processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 
 

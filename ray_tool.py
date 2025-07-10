@@ -217,6 +217,7 @@ def prepare_data(forced=False):
         "ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf_merged",
         "ckp/hf_models/phi4_mm_bias_merged",
         # "ckp/hf_models/phi4_mm_bias",
+        # "ckp/hf_models/Phi-4-multimodal-instruct",
         "librispeech_biasing/words",
         "librispeech_biasing/ref",
         "LibriSpeech/test-clean",
