@@ -1066,7 +1066,7 @@ class GRPOTrainer(Trainer):
         mode = "train" if self.model.training else "eval"
         num_generations = self.num_generations if mode == "train" else self.num_eval_generations
         temperature = self.temperature if mode == "train" else self.eval_temperature
-        # prompts = [x["prompt"] for x in inputs]
+        prompts = [x["prompt"] for x in inputs]
         prompts_text = [
             maybe_apply_chat_template(example,  self.processing_class.tokenizer)["prompt"]
             for example in inputs
