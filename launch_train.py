@@ -42,6 +42,7 @@ class OutputWatcher:
         for file_path in Path(self.local_dir).iterdir():
             if not file_path.is_file():
                 continue
+            print(f"Syncing file {file_path.name} to {self.remote_dir}/{file_path.name}")
             bf.copy(file_path, f"{self.remote_dir}/{file_path.name}", overwrite=True)
         
         chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
