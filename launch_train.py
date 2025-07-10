@@ -126,6 +126,7 @@ def prepare_environment(forced=False):
         "ray==2.36.1",
         "transformers==4.51.3",
         "vllm==0.8.5.post1",
+        "trl==0.20.0.dev0",
     ]
     if all(is_package_version(*package.split("==")) for package in packages) and not forced:
         print(f"Required packages already installed on {hostname}, skipping installation.")
