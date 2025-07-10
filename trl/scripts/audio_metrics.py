@@ -276,7 +276,7 @@ def eval_biasing_metrics(groups):
     results = [
         {
             "ref": group[0]["text"],
-            "hyp": group[0]["completions"][-1]["content"],
+            "hyp": group[0]["completions"],
             "id": group[0].get("id", i),  # if "id" is not present, use index
         }
         for i, group in enumerate(groups)
@@ -294,7 +294,7 @@ def compute_reward_wers(completions, **kwargs):
     references = kwargs["text"]
     rewards = []
     for i, (completion, ref) in enumerate(zip(completions, references)):
-        rewards.append(compute_wers([{"id": i, "ref": ref, "hyp": completion[-1]["content"]}]))
+        rewards.append(compute_wers([{"id": i, "ref": ref, "hyp": completion}]))
     return rewards
 
 

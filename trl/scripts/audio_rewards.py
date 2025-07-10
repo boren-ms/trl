@@ -170,44 +170,44 @@ def compute_biasing_metrics(groups):
 def eval_biasing_metrics(groups):
     """compute eval metrics"""
     # Extract reference and hypothesis pairs from groups
-    extracted_groups = [[{"ref": egs["text"], "hyp": egs["completions"][-1]["content"]} for egs in g] for g in groups]
+    extracted_groups = [[{"ref": egs["text"], "hyp": egs["completions"]} for egs in g] for g in groups]
     return compute_biasing_metrics(extracted_groups)
 
 
 def reward_bias_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
     references = kwargs["text"]
-    return [bias_match(ref, completion[-1]["content"]).accuracy for completion, ref in zip(completions, references)]
+    return [bias_match(ref, completion).accuracy for completion, ref in zip(completions, references)]
 
 
 def reward_word_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
     references = kwargs["text"]
-    return [word_match(ref, completion[-1]["content"]).accuracy for completion, ref in zip(completions, references)]
+    return [word_match(ref, completion).accuracy for completion, ref in zip(completions, references)]
 
 
 def reward_bias_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     references = kwargs["text"]
-    return [-bias_match(ref, completion[-1]["content"]).count_err for completion, ref in zip(completions, references)]
+    return [-bias_match(ref, completion).count_err for completion, ref in zip(completions, references)]
 
 
 def reward_word_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     references = kwargs["text"]
-    return [-word_match(ref, completion[-1]["content"]).count_err for completion, ref in zip(completions, references)]
+    return [-word_match(ref, completion).count_err for completion, ref in zip(completions, references)]
 
 
 def reward_bias_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     references = kwargs["text"]
-    return [-bias_match(ref, completion[-1]["content"]).error_rate for completion, ref in zip(completions, references)]
+    return [-bias_match(ref, completion).error_rate for completion, ref in zip(completions, references)]
 
 
 def reward_word_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     references = kwargs["text"]
-    return [-word_match(ref, completion[-1]["content"]).error_rate for completion, ref in zip(completions, references)]
+    return [-word_match(ref, completion).error_rate for completion, ref in zip(completions, references)]
 
 
 # %%
