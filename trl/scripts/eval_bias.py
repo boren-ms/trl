@@ -93,7 +93,7 @@ class Evaluation:
         self.processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
 
         self._prepare_model()
-        if self.accelerator.is_main_process:
+        if self.is_main:
             init_wandb(
                 run_name=self.run_name,
                 config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size},
@@ -231,7 +231,6 @@ def main(args):
     
     for model_path in model_paths:
         step = chkp_index(model_path.name, 0)
-        print(f"Evaluating: {model_path}, step: {step}")
         evaluate_model(model_path, datasets, step=step, wandb_dir=args.model_path, run_name=run_name, **kwargs)
 
 def make_parser(subparsers: argparse._SubParsersAction = None):
