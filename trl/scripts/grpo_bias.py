@@ -113,7 +113,7 @@ def save_run_info(run, work_dir=None, file_name="run_info.json"):
     info_file.parent.mkdir(parents=True, exist_ok=True)
     info = {"entity": run.entity, "project": run.project, "run_id": run.id, "run_name": run.name, "run_url": run.url}
     json.dump(info, info_file.open("w"), indent=2)
-    print(f"Run info saved to {file_name}")
+    print(f"Run info saved to {info_file}")
 
 
 def load_run_info(work_dir=None, file_name="run_info.json"):
@@ -124,9 +124,17 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     if not info_file.exists():
         print(f"Run info file {file_name} does not exist in {work_dir}.")
         return {}
-    print(f"Loading run info from {file_name}")
+    print(f"Loading run info from {info_file}")
     info =  json.load(info_file.open("r"))
-    print(f"Reuse run: {info['run_url']}")
+    url = info.get("run_url", "")
+    print(f"Reuse run: {url}")
+    
+    parts = Path(url).parts
+    if url.startswith("https://msaip.wandb.io/") and len(parts) > 4:
+        print("Run info from", url)
+        info["run_id"] = info.get("run_id", parts[-1])
+        info["project"] = info.get("project", parts[-3])
+        info["entity"] = info.get("entity", parts[-4])
     return info
 
 
