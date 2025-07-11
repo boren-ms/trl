@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import fire
 from ray_tool import (
+    ORNG_USER,
     run_nodes,
     update_envs,
     prepare_env,
@@ -15,6 +16,7 @@ from ray_tool import (
     init_ray,
     list_nodes,
     get_output_dirs,
+    run_output_watcher
 )
 
 
@@ -103,13 +105,17 @@ def main(model_name, config_file=None, forced=False):
 
     if not Path(model_dir).exists():  # for baseline models
         print(f"Model [{model_name}] can not be found in {model_dir}, switching to data folder")
-        model_dir = Path.home() / f"data/ckp/hf_models/{model_name}"
+        rel_path = f"data/ckp/hf_models/{model_name}"
+        model_dir = Path.home() / rel_path
+        remote_model_dir = f"{ORNG_USER.home_path}/{rel_path}"
 
     if not Path(model_dir).exists():
         print(f"Model [{model_name}] can not be found in {model_dir}")
         print(f"Exiting evaluation, please double check model [{model_name}]")
         return
-
+    
+    print("Starting output watcher on head node...")
+    run_output_watcher(local_dir=model_dir, remote_dir=remote_model_dir, interval=600)
     print(f"Evaluating {model_dir} ")
     run_nodes(launch_evaluation, model_dir, config_file)
     print("All tasks completed, stopping watcher.")
