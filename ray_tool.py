@@ -33,24 +33,28 @@ def upload_file(local_path, remote_path, overwrite=False):
 
 @ray.remote
 class OutputWatcher:
-    def __init__(self, local_dir, remote_dir, interval=600):
+    def __init__(self, local_dir, remote_dir, interval=600, sync_all=True):
         self.local_dir = local_dir
         self.remote_dir = remote_dir
         self.interval = interval
         self._running = True
+        self.sync_all = sync_all
 
-    def sync_latest_chkp(self):
+    def sync_output_dir(self):
         """sync checkpoint folder from remote to local."""
         print("Syncing latest checkpoint from local to remote ...")
         if not Path(self.local_dir).exists():
             print(f"Local directory [{self.local_dir}] does not exist, skipping sync.")
             return
-        for file_path in Path(self.local_dir).iterdir():
-            if not file_path.is_file():
-                continue
-            remote_file = f"{self.remote_dir}/{file_path.name}"
-            upload_file(file_path, remote_file)
-
+        if self.sync_all:
+            print(f"Syncing all files from {self.local_dir} to {self.remote_dir}")
+            cmd = ["bbb", "sync", "--concurrency", "64", f"{self.local_dir}/", f"{self.remote_dir}/"]
+            run_cmd(cmd)
+            return
+        print(f"Syncing files expecting checkpoints from {self.local_dir} to {self.remote_dir}")    
+        cmd = ["bbb", "sync", "--concurrency", "64", f"{self.local_dir}/", f"{self.remote_dir}/" , "--exclude", "checkpoint-*"]
+        run_cmd(cmd)
+        print("Syncing latest checkpoint ...")
         chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
         chkp_dirs = sorted(chkp_dirs, key=lambda d: chkp_index(d.name), reverse=True)
         ckhps = [chkp_index(d.name) for d in chkp_dirs]
@@ -73,7 +77,7 @@ class OutputWatcher:
         print(f"Remote dir: {self.remote_dir}")
         while self._running:
             print("Watcher tick!")
-            self.sync_latest_chkp()
+            self.sync_output_dir()
             time.sleep(self.interval)
 
     def stop(self):
