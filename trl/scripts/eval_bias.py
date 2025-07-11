@@ -9,6 +9,7 @@ from trl import TrlParser
 import wandb
 from torch.utils.data import DataLoader
 from accelerate import Accelerator
+from accelerate import find_executable_batch_size
 from accelerate.utils import gather_object
 import json
 from vllm import LLM, SamplingParams
@@ -137,13 +138,16 @@ class Evaluation:
 
     def evaluate(self, dataset):
         assert dataset is not None, "Dataset must not be None"
-        dataloader = DataLoader(dataset, batch_size=self.batch_size)
-        dataloader = self.accelerator.prepare(dataloader)
-        results = []
-        for batch in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
-            output = self.generate(batch)
-            results += [{"hyp": hyp, "ref": ref, "id": id} for id, ref, hyp in zip(batch["id"], batch["text"], output)]
-        return results
+        @find_executable_batch_size(starting_batch_size=self.batch_size)
+        def auto_eval(batch_size):
+            dataloader = DataLoader(dataset, batch_size=batch_size)
+            dataloader = self.accelerator.prepare(dataloader)
+            results = []
+            for batch in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
+                output = self.generate(batch)
+                results += [{"hyp": hyp, "ref": ref, "id": id} for id, ref, hyp in zip(batch["id"], batch["text"], output)]
+            return results
+        return auto_eval(dataset)
 
     def measure(self, results):
         # Placeholder: implement your metric computation here
