@@ -10,10 +10,13 @@ import blobfile as bf
 import importlib.metadata
 from trl.data_utils import chkp_index
 
-def upload_file(local_path, remote_path):
+def upload_file(local_path, remote_path, overwrite=False):
     """Upload a file from local to remote storage."""
     local_mtime = Path(local_path).stat().st_mtime
     remote_mtime = None
+    if bf.exists(remote_path) and not overwrite:
+        print(f"Remote file {remote_path} already exists, skipping upload.")
+        return
     try:
         if bf.exists(remote_path):
             remote_mtime = bf.stat(remote_path).mtime
