@@ -116,7 +116,7 @@ class Evaluation:
             self.llm = LLM(
                 model=self.model_path,
                 trust_remote_code=True,
-                max_model_len=1024*5, # now for biasing_1000
+                max_model_len=1024 * 5,  # now for biasing_1000
                 distributed_executor_backend="external_launcher",
                 seed=self.rank,
                 max_num_seqs=self.batch_size,
@@ -157,7 +157,7 @@ class Evaluation:
             results = []
             for batch in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
                 output = self.generate(batch)
-                results += [{"hyp": hyp, "ref": ref, "id": id} for id, ref, hyp in zip(batch["id"], batch["text"], output)]
+                results += [{"hyp": hyp, "ref": ref, "id": id, "prompt": prompt} for id, ref, prompt, hyp in zip(batch["id"], batch["text"], batch["prompt"], output)]
             return results
 
         return auto_eval()
@@ -176,7 +176,7 @@ class Evaluation:
         """Evaluate the model on the dataset and compute metrics."""
         results = self.evaluate(dataset)
         all_results = gather_object(results)
-        unique_results = list(unique_everseen(all_results, key=lambda x: x['id']))  # remove duplicates from multiple ranks
+        unique_results = list(unique_everseen(all_results, key=lambda x: x["id"]))  # remove duplicates from multiple ranks
         metrics = self.measure(unique_results)
         return all_results, metrics
 
