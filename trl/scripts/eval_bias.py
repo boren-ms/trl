@@ -98,9 +98,20 @@ class Evaluation:
             init_wandb(job_name=self.job_name, config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size}, output_dir=self.wandb_dir)
 
     @property
+    def rank(self):
+        """Get the rank of the current process."""
+        return self.accelerator.process_index
+
+    @property
     def is_main(self):
         """Check if the current process is the main process."""
         return self.accelerator.is_main_process
+
+    def rank_log(self, *args, all=False):
+        """Log a message with the current rank."""
+        if not all and not self.is_main:
+            return
+        print(f"[{self.rank}]", *args)
 
     def _prepare_model(self):
         """Prepare the model for evaluation."""
@@ -138,8 +149,10 @@ class Evaluation:
 
     def evaluate(self, dataset):
         assert dataset is not None, "Dataset must not be None"
+
         @find_executable_batch_size(starting_batch_size=self.batch_size)
         def auto_eval(batch_size):
+            self.rank_log("Evaluating batch size:", batch_size, all=True)
             dataloader = DataLoader(dataset, batch_size=batch_size)
             dataloader = self.accelerator.prepare(dataloader)
             results = []
@@ -147,7 +160,8 @@ class Evaluation:
                 output = self.generate(batch)
                 results += [{"hyp": hyp, "ref": ref, "id": id} for id, ref, hyp in zip(batch["id"], batch["text"], output)]
             return results
-        return auto_eval(dataset)
+
+        return auto_eval()
 
     def measure(self, results):
         # Placeholder: implement your metric computation here
@@ -172,9 +186,9 @@ class Evaluation:
         pfx = f"metric/{name}_" if name else "metric/"
         metrics = {k if "/" in k else f"{pfx}{k}": v for k, v in metrics.items()}  # skip prefix for keys with slashes
 
-        print("Logging metrics:")
+        self.rank_log("Logging metrics:")
         for key, value in metrics.items():
-            print(f"{key}: {value}")
+            self.rank_log(f"{key}: {value}")
 
         wandb.log(metrics)
 
@@ -187,8 +201,8 @@ class Evaluation:
             json.dump(results, f, indent=4)
         with open(metrics_file, "w") as f:
             json.dump(metrics, f, indent=4)
-        print(f"Metrics saved to {metrics_file}")
-        print(f"Results saved to {result_file}")
+        self.rank_log(f"Metrics saved to {metrics_file}")
+        self.rank_log(f"Results saved to {result_file}")
 
     def evaluate_all(self, datasets, step=0):
         """Evaluate the model on all datasets."""
@@ -196,8 +210,7 @@ class Evaluation:
             datasets = {"default": datasets}
 
         for name, dataset in tqdm(datasets.items(), "Evaluating datasets", disable=not self.is_main):
-            if self.is_main:
-                print(f"Evaluating {self.model_path} @ {name}")
+            self.rank_log(f"Evaluating {self.model_path} @ {name}")
             results, metrics = self.evaluate_measures(dataset)
             metrics.update({"train/global_step": step})
             self.log_metrics_results(metrics, results, name=name)
@@ -207,7 +220,7 @@ def find_models(model_path, checkpoints=None):
     """Get a list of checkpoint directories in the model path."""
     chkps = find_chkps(model_path, checkpoints)
     if checkpoints is None:
-        return [chkps[0] if chkps else model_path] # latest or current folder
+        return [chkps[0] if chkps else model_path]  # latest or current folder
     return chkps
 
 
