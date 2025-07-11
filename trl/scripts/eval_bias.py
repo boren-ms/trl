@@ -5,6 +5,7 @@ from tqdm import tqdm
 from transformers import GenerationConfig
 from trl import TrlParser
 import wandb
+from more_itertools import unique_everseen
 from torch.utils.data import DataLoader
 from accelerate import Accelerator, find_executable_batch_size
 from accelerate.utils import gather_object
@@ -175,7 +176,8 @@ class Evaluation:
         """Evaluate the model on the dataset and compute metrics."""
         results = self.evaluate(dataset)
         all_results = gather_object(results)
-        metrics = self.measure(all_results)
+        unique_results = list(unique_everseen(all_results, key=lambda x: x['id']))  # remove duplicates from multiple ranks
+        metrics = self.measure(unique_results)
         return all_results, metrics
 
     def log_metrics_results(self, metrics, results, name=None):
