@@ -51,8 +51,8 @@ class OutputWatcher:
             cmd = ["bbb", "sync", "--concurrency", "64", f"{self.local_dir}/", f"{self.remote_dir}/"]
             run_cmd(cmd)
             return
-        print(f"Syncing files expecting checkpoints from {self.local_dir} to {self.remote_dir}")    
-        cmd = ["bbb", "sync", "--concurrency", "64", f"{self.local_dir}/", f"{self.remote_dir}/" , "--exclude", "checkpoint-*"]
+        print(f"Syncing files expecting checkpoints from {self.local_dir} to {self.remote_dir}")
+        cmd = ["bbb", "sync", "--concurrency", "64", f"{self.local_dir}/", f"{self.remote_dir}/", "--exclude", "checkpoint-*"]
         run_cmd(cmd)
         print("Syncing latest checkpoint ...")
         chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
@@ -397,9 +397,10 @@ def list_gpus():
 
 
 @ray.remote
-def job_log(cmd="tail", n=100, log_dir=None):
+def job_log(cmd="tail", key=None, n=100, log_dir=None):
     log_dir = str(log_dir or os.environ.get("RCALL_LOGDIR", Path.home() / "results/*"))
-    cmd = f"{cmd} -n {n}  {log_dir}/*.log"
+    pattern = f"*{key}*" if key else "*"
+    cmd = f"{cmd} -n {n}  {log_dir}/{pattern}.log"
     print(f"Tailing logs in {log_dir} with command: {cmd}")
     run_cmd(cmd)
 
