@@ -16,7 +16,8 @@ from ray_tool import (
     init_ray,
     list_nodes,
     get_output_dirs,
-    run_output_watcher
+    run_output_watcher,
+    sync_folder,
 )
 
 
@@ -103,7 +104,9 @@ def main(model_name, config_file=None, forced=False):
 
     # Ensure all tasks are completed before proceeding
     ray.get(results)
-
+    print("Syncing outputs from head to other nodes...")
+    run_nodes(sync_folder, str(model_dir))
+    
     if not Path(model_dir).exists():  # for baseline models
         print(f"Model [{model_name}] can not be found in {model_dir}, switching to data folder")
         rel_path = f"data/ckp/hf_models/{model_name}"
