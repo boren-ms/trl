@@ -430,9 +430,9 @@ class RayTool:
         """List all nodes in the Ray cluster."""
         list_nodes()
 
-    def log(self, cmd="tail", n=100, log_dir=None):
+    def log(self, cmd="tail", key=None, n=100, log_dir=None):
         """Tail logs from all Ray nodes."""
-        run_nodes(job_log, cmd, n, log_dir)
+        run_nodes(job_log, cmd, key, n, log_dir)
 
     def run(self, *args, **kwargs):
         """Run a command on all Ray nodes."""
