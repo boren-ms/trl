@@ -10,6 +10,22 @@ import blobfile as bf
 import importlib.metadata
 from trl.data_utils import chkp_index
 
+def upload_file(local_path, remote_path):
+    """Upload a file from local to remote storage."""
+    local_mtime = Path(local_path).stat().st_mtime
+    remote_mtime = None
+    try:
+        if bf.exists(remote_path):
+            remote_mtime = bf.stat(remote_path).mtime
+    except Exception as e:
+        print(f"Could not stat remote file {remote_path}: {e}")
+    # Copy if remote does not exist or local is newer
+    if remote_mtime is None or local_mtime > remote_mtime:
+        print(f"Syncing file {local_path.name} to {remote_path} (local newer or remote missing)")
+        bf.copy(local_path, remote_path, overwrite=True)
+    else:
+        print(f"Skipping {local_path.name}: remote is newer or same.")
+
 
 @ray.remote
 class OutputWatcher:
@@ -28,8 +44,8 @@ class OutputWatcher:
         for file_path in Path(self.local_dir).iterdir():
             if not file_path.is_file():
                 continue
-            print(f"Syncing file {file_path.name} to {self.remote_dir}/{file_path.name}")
-            bf.copy(file_path, f"{self.remote_dir}/{file_path.name}", overwrite=True)
+            remote_file = f"{self.remote_dir}/{file_path.name}"
+            upload_file(file_path, remote_file)
 
         chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
         chkp_dirs = sorted(chkp_dirs, key=lambda d: chkp_index(d.name), reverse=True)
