@@ -18,7 +18,7 @@ from ray_tool import (
     get_output_dirs,
     run_output_watcher
 )
-
+from launch_eval import launch_evaluation
 
 @ray.remote
 def launch_training(config_file, output_dir):
@@ -106,12 +106,15 @@ def main(config_file, forced=False):
     run_nodes(sync_folder, str(output_dir))
 
     print("Starting output watcher on head node...")
-    watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
+    run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
 
-    print(f"Launch training with {config_file}...")
+    print(f"Launching training with {config_file}...")
     run_nodes(launch_training, str(config_file), output_dir=str(output_dir))
-    print("Job completed on all nodes.")
-    ray.get(watcher.stop.remote())
+    print("Training completed on all nodes.")
+    print("Launching evaluation on all nodes")
+    run_nodes(launch_evaluation, model_path=str(output_dir))
+    print("Evaluation completed on all nodes.")
+
     print("All tasks completed, stopping watcher.")
 
 

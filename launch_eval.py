@@ -15,15 +15,14 @@ from ray_tool import (
     init_ray,
     list_nodes,
     get_output_dirs,
-    ORNG_USER,
 )
 
 
 @ray.remote
-def launch_evaluation(config_file, model_path):
+def launch_evaluation(model_path, config_file=None):
     """Launch evaluation using the specified YAML config file."""
-    model_path = Path(model_path)
-    config_file = Path(config_file).absolute()
+    model_path = Path(model_path).absolute()
+    config_file = Path(config_file).absolute() or Path(__file__).parent / "eval_conf/eval_baseline_hf.yaml"
     update_envs(config_file)
 
     cur_dir = Path(__file__).parent
@@ -110,9 +109,8 @@ def main(model_name, config_file=None, forced=False):
         print(f"Exiting evaluation, please double check model [{model_name}]")
         return
 
-    config_file = config_file or Path(__file__).parent / "eval_conf/eval_baseline_hf.yaml"
-    print(f"Evaluating {model_dir} with {config_file}")
-    run_nodes(launch_evaluation, str(config_file), model_path=str(model_dir))
+    print(f"Evaluating {model_dir} ")
+    run_nodes(launch_evaluation, model_dir, config_file)
     print("All tasks completed, stopping watcher.")
 
 

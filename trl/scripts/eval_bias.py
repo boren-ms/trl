@@ -201,10 +201,10 @@ class Evaluation:
 
 def find_models(model_path, checkpoints=None):
     """Get a list of checkpoint directories in the model path."""
-    model_path = Path(model_path)
+    chkps = find_chkps(model_path, checkpoints)
     if checkpoints is None:
-        return [model_path]
-    return find_chkps(model_path, checkpoints)
+        return [chkps[0] if chkps else model_path] # latest or current folder
+    return chkps
 
 
 def evaluate_model(model_path, datasets, **kwargs):
