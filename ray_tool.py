@@ -81,6 +81,9 @@ class OutputWatcher:
             time.sleep(self.interval)
 
     def stop(self):
+        """Stop the output watcher."""
+        print("flushing output before stopping...")
+        self.sync_output_dir()
         self._running = False
         print("Watcher stopped.")
 
