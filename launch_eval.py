@@ -22,6 +22,7 @@ from ray_tool import (
 @ray.remote
 def launch_evaluation(config_file, model_path):
     """Launch evaluation using the specified YAML config file."""
+    model_path = Path(model_path)
     config_file = Path(config_file).absolute()
     update_envs(config_file)
 
@@ -31,7 +32,7 @@ def launch_evaluation(config_file, model_path):
 
     print(f"Config file: {config_file}")
     print(f"Model path: {model_path}")
-    assert Path(model_path).exists(), f"Model {model_path} does not exist."
+    assert model_path.exists(), f"Model {model_path} does not exist."
 
     rank = int(os.environ.get("RCALL_INSTANCE_INDEX", "0"))
     rank_size = int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
@@ -63,7 +64,7 @@ def launch_evaluation(config_file, model_path):
 
     rcall_logdir = os.environ.get("RCALL_LOGDIR", os.path.expanduser("~/logs"))
     os.makedirs(rcall_logdir, exist_ok=True)
-    rank_log_file = os.path.join(rcall_logdir, f"{config_file.stem}_eval_rank_{rank}.log")
+    rank_log_file = os.path.join(rcall_logdir, f"{config_file.stem}_{model_path.stem}_{rank}.log")
     print(f"Logging to {rank_log_file}")
     with open(rank_log_file, "w") as logf:
         logf.write(f"Running {' '.join(cmd)}\n")
