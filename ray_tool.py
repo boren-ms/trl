@@ -395,7 +395,7 @@ class RayTool:
         """Release GPUs on all Ray nodes."""
         run_nodes(release_gpus)
 
-    def sync_folder(self, folder):
+    def sync_folder(self, folder=None):
         """Sync output directories across all Ray nodes."""
         folder = str(folder or Path.home() / "outputs")
         run_nodes(sync_folder, folder)
@@ -431,6 +431,18 @@ class RayTool:
         local_dir, remote_dir = get_output_dirs(rel_path)
         print(f"Preparing local output on all nodes: {local_dir} from {remote_dir}")
         run_nodes(prepare_local_output, local_dir, remote_dir)
+        run_nodes(sync_folder, local_dir)
+
+    def prepare_all(self, rel_path=None, forced=False):
+        """Prepare the environment, data, and output on all Ray nodes."""
+        results = []
+        results.append(run_nodes(prepare_env, forced=forced, waiting=False))
+        results.append(run_nodes(prepare_data, forced=forced, waiting=False))
+        local_dir, remote_dir = get_output_dirs(rel_path)
+        print(f"Preparing local output on all nodes: {local_dir} from {remote_dir}")
+        results.append(run_nodes(prepare_local_output, local_dir, remote_dir, waiting=False))
+        results = ray.get(results)
+        self.sync_folder(local_dir)
 
     def run_output_watcher(self, rel_path=None, interval=600):
         """Run the output watcher on head."""
