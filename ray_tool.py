@@ -300,7 +300,7 @@ def run_nodes(fun, *args, waiting=True, **kwargs):
     results = []
     for node in nodes:
         if not node["Alive"]:
-            print(f"Node {node['NodeName']} is not alive, skipping.")
+            # print(f"Node {node['NodeName']} is not alive, skipping.")
             continue
         node_ip = node["NodeManagerAddress"]
         # Use custom resource label to ensure the function runs on this node
