@@ -10,6 +10,7 @@ import blobfile as bf
 import importlib.metadata
 from trl.data_utils import chkp_index
 
+
 def upload_file(local_path, remote_path, overwrite=False):
     """Upload a file from local to remote storage."""
     local_mtime = Path(local_path).stat().st_mtime
@@ -79,6 +80,7 @@ class OutputWatcher:
         self._running = False
         print("Watcher stopped.")
 
+
 def run_output_watcher(local_dir=None, remote_dir=None, interval=600):
     """Start the output watcher to sync outputs periodically."""
     head_node = head_node_label()
@@ -97,6 +99,25 @@ def is_package_version(package_name, target_version):
         return version == target_version
     except importlib.metadata.PackageNotFoundError:
         return False
+
+
+def is_valid_model_path(model_dir):
+    """Check if the model path is valid."""
+    model_dir = Path(model_dir)
+    if not model_dir.exists():
+        print(f"Model path {model_dir} does not exist.")
+        return False
+    if not model_dir.is_dir():
+        print(f"Model path {model_dir} is not a directory.")
+        return False
+    config_file = model_dir / "config.json"
+    if not config_file.exists():
+        print(f"Config file {config_file} does not exist in the model directory.")
+        return False
+    if not any(model_dir.glob("*.tesafetensors")):
+        print(f"No .tesafetensors files found in {model_dir}.")
+        return False
+    return True
 
 
 def get_region():
@@ -449,6 +470,7 @@ class RayTool:
         local_dir, remote_dir = get_output_dirs(rel_path=rel_path)
         print(f"Running output watcher on head: {local_dir} from {remote_dir} every {interval/60} minutes")
         return run_output_watcher(local_dir, remote_dir, interval)
+
 
 if __name__ == "__main__":
     """Main entry point for the RayTool."""

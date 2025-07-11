@@ -18,6 +18,7 @@ from ray_tool import (
     get_output_dirs,
     run_output_watcher,
     sync_folder,
+    is_valid_model_path,
 )
 
 
@@ -81,6 +82,7 @@ def launch_evaluation(model_path, config_file=None):
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
 
+
 def main(model_name, config_file=None, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
     init_ray()
@@ -107,14 +109,14 @@ def main(model_name, config_file=None, forced=False):
     print("Syncing outputs from head to other nodes...")
     run_nodes(sync_folder, str(model_dir))
     
-    if not Path(model_dir).exists():  # for baseline models
-        print(f"Model [{model_name}] can not be found in {model_dir}, switching to data folder")
+    if not is_valid_model_path(model_dir):  # for baseline models
+        print(f"Model [{model_name}] is not valid in {model_dir}, switching to prepared data checkpoints folder")
         rel_path = f"data/ckp/hf_models/{model_name}"
         model_dir = Path.home() / rel_path
         remote_model_dir = f"{ORNG_USER.home_path}/{rel_path}"
 
-    if not Path(model_dir).exists():
-        print(f"Model [{model_name}] can not be found in {model_dir}")
+    if not is_valid_model_path(model_dir):
+        print(f"Model [{model_name}] is not valid in {model_dir}")
         print(f"Exiting evaluation, please double check model [{model_name}]")
         return
     
