@@ -23,9 +23,9 @@ from trl.scripts.audio_metrics import compute_wers
 class EvalArguments:
     """Script arguments for the  evaluation script."""
 
-    run_name: Optional[str] = field(
+    job_name: Optional[str] = field(
         default=None,
-        metadata={"help": "Name of the run."},
+        metadata={"help": "Name of the job."},
     )
     eval_data: Optional[dict] = field(
         default=None,
@@ -80,21 +80,21 @@ def hf2vllm_config(hf_config):
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
 
-    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, run_name=None, wandb_dir=None, generation_config=None):
+    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None):
         self.accelerator = Accelerator()
         self.model_path = str(model_path)
         self.batch_size = batch_size
         self.use_vllm = use_vllm
         self.output_dir = output_dir or model_path
         self.wandb_dir = wandb_dir or self.output_dir
-        self.run_name = run_name
+        self.job_name = job_name
 
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
         self.generation_config.update(**(generation_config or {}))
 
         self._prepare_model()
         if self.is_main:
-            init_wandb(run_name=self.run_name, config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size}, output_dir=self.wandb_dir)
+            init_wandb(job_name=self.job_name, config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size}, output_dir=self.wandb_dir)
 
     @property
     def is_main(self):
@@ -214,7 +214,7 @@ def evaluate_model(model_path, datasets, **kwargs):
         use_vllm=kwargs.get("use_vllm", True),
         batch_size=kwargs.get("batch_size", 8),
         output_dir=kwargs.get("output_dir", None),
-        run_name=kwargs.get("run_name", None),
+        job_name=kwargs.get("job_name", None),
         wandb_dir=kwargs.get("wandb_dir", None),
         generation_config=kwargs.get("generation_config", None),
     )
@@ -224,13 +224,13 @@ def evaluate_model(model_path, datasets, **kwargs):
 
 def main(args):
     """Main function to run the evaluation."""
-    run_name = args.run_name or Path(args.model_path).stem
+    job_name = args.job_name or Path(args.model_path).stem
     model_paths = find_models(args.model_path, args.checkpoints)
     datasets = create_dataset(args.eval_data)
-    kwargs = {k: v for k, v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints", "run_name"]}
+    kwargs = {k: v for k, v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints", "job_name"]}
 
     for model_path in model_paths:
-        evaluate_model(model_path, datasets, wandb_dir=args.model_path, run_name=run_name, **kwargs)
+        evaluate_model(model_path, datasets, wandb_dir=args.model_path, job_name=job_name, **kwargs)
 
 
 def make_parser(subparsers: argparse._SubParsersAction = None):

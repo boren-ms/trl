@@ -53,6 +53,10 @@ def init_model(model_id=None):
 class GRPOScriptArguments:
     """Script arguments for the GRPO training script."""
 
+    job_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Name of the job."},
+    )
     project: Optional[str] = field(
         default=None,
         metadata={"help": "Name of the project."},
@@ -84,7 +88,7 @@ def is_master():
     return local_rank == "0" and rank == "0"
 
 
-def get_run_name(jobname=None):
+def get_job_name(jobname=None):
     """Get a unique job name."""
     if jobname:
         return jobname
@@ -137,11 +141,11 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     return info
 
 
-def init_wandb(run_name=None, project=None, config=None, output_dir=None):
+def init_wandb(job_name=None, project=None, config=None, output_dir=None):
     """Initialize wandb."""
     project = os.environ.get("WANDB_PROJECT", project or "biasing")
-    run_name = get_run_name(run_name)
-    print(f"Project Name: {project}, Run Name: {run_name}")
+    job_name = get_job_name(job_name)
+    print(f"Project Name: {project}, Run Name: {job_name}")
     key = os.environ.get("WANDB_API_KEY", "")
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
@@ -151,7 +155,7 @@ def init_wandb(run_name=None, project=None, config=None, output_dir=None):
         entity=run_info.get("entity", entity),
         project=run_info.get("project", project),
         id=run_info.get("run_id", None),
-        name=run_info.get("run_name", run_name),
+        name=run_info.get("run_name", job_name),
         resume="allow",
         config=run_info.get("config", config),
     )
@@ -194,7 +198,7 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(run_name=training_args.run_name, project=script_args.project, output_dir=training_args.output_dir)  # disabled for wandb for orange
+        init_wandb(job_name=script_args.job_name, project=script_args.project, output_dir=training_args.output_dir)  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
 
