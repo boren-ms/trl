@@ -85,13 +85,13 @@ class OutputWatcher:
         print("Watcher stopped.")
 
 
-def run_output_watcher(local_dir=None, remote_dir=None, interval=600):
+def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=False):
     """Start the output watcher to sync outputs periodically."""
     head_node = head_node_label()
     print(f"Watching  @ {head_node} every {interval/60} minutes")
     print(f"Local directory: {local_dir}")
     print(f"Remote directory: {remote_dir}")
-    watcher = OutputWatcher.options(resources={head_node: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval)
+    watcher = OutputWatcher.options(resources={head_node: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all)
     watcher.start.remote()
     return watcher
 

@@ -121,7 +121,7 @@ def main(model_name, config_file=None, forced=False):
         return
     
     print("Starting output watcher on head node...")
-    run_output_watcher(local_dir=model_dir, remote_dir=remote_model_dir, interval=600)
+    run_output_watcher(local_dir=model_dir, remote_dir=remote_model_dir, interval=600, sync_all=True)
     print(f"Evaluating {model_dir} ")
     run_nodes(launch_evaluation, model_dir, config_file)
     print("All tasks completed, stopping watcher.")
