@@ -23,14 +23,15 @@ from ray_tool import (
 @ray.remote
 def launch_evaluation(model_path, config_file=None):
     """Launch evaluation using the specified YAML config file."""
-    config_file = config_file or Path(__file__).parent / "eval_conf/eval_baseline_hf.yaml"
+    cur_dir = Path(__file__).parent
+    os.chdir(cur_dir)
+    print(f"Working Dir: {os.getcwd()}")
+
+    config_file = config_file or "eval_conf/eval_baseline_hf.yaml"
     config_file = Path(config_file).absolute()
     update_envs(config_file)
 
     model_path = Path(model_path).absolute()
-    cur_dir = Path(__file__).parent
-    os.chdir(cur_dir)
-    print(f"Working Dir: {os.getcwd()}")
 
     print(f"Config file: {config_file}")
     print(f"Model path: {model_path}")
