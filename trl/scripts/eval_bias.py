@@ -1,19 +1,15 @@
-from pathlib import Path
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
 from tqdm import tqdm
-from transformers import AutoProcessor, GenerationConfig
-import wandb
+from transformers import GenerationConfig
 from trl import TrlParser
 import wandb
 from torch.utils.data import DataLoader
-from accelerate import Accelerator
-from accelerate import find_executable_batch_size
+from accelerate import Accelerator, find_executable_batch_size
 from accelerate.utils import gather_object
 import json
 from vllm import LLM, SamplingParams
-from transformers import AutoProcessor
 from pathlib import Path
 from trl.data_utils import sf_read, find_chkps, chkp_index
 from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, init_wandb
@@ -119,7 +115,7 @@ class Evaluation:
             self.llm = LLM(
                 model=self.model_path,
                 trust_remote_code=True,
-                max_model_len=1024*4, 
+                max_model_len=1024*5, # now for biasing_1000
                 distributed_executor_backend="external_launcher",
                 seed=self.rank,
                 max_num_seqs=self.batch_size,
