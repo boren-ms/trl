@@ -114,8 +114,8 @@ def is_valid_model_path(model_dir):
     if not config_file.exists():
         print(f"Config file {config_file} does not exist in the model directory.")
         return False
-    if not any(model_dir.glob("*.tesafetensors")):
-        print(f"No .tesafetensors files found in {model_dir}.")
+    if not any(model_dir.glob("*.safetensors")):
+        print(f"No .safetensors files found in {model_dir}.")
         return False
     return True
 
