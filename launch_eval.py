@@ -102,7 +102,7 @@ def main(model_name, config_file=None, forced=False):
 
     if not Path(model_dir).exists():  # for baseline models
         print(f"Model [{model_name}] can not be found in {model_dir}, switching to data folder")
-        model_dir = Path.home() / "data/ckp/hf_models/{model_name}"
+        model_dir = Path.home() / f"data/ckp/hf_models/{model_name}"
 
     if not Path(model_dir).exists():
         print(f"Model [{model_name}] can not be found in {model_dir}")
