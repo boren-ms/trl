@@ -119,7 +119,9 @@ class Evaluation:
             self.llm = LLM(
                 model=self.model_path,
                 trust_remote_code=True,
-                max_model_len=512,
+                max_model_len=1024*4, 
+                distributed_executor_backend="external_launcher",
+                seed=self.rank,
                 max_num_seqs=self.batch_size,
                 load_format="auto",
                 limit_mm_per_prompt={"audio": 1},
