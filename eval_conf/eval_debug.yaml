@@ -8,11 +8,12 @@ model_path: /root/data/ckp/hf_models/phi4_mm_bias
 # model_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
 # model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 eval_data:
-    # - nickname: clean_no
-    #   num_egs: 12
-    #   dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    - nickname: clean_no
+      num_egs: 512
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     - nickname: clean_1000
+      num_egs: 512
       dataset_name: ls_bias
       jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
       bias_key: distractors
