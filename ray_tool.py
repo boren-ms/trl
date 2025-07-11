@@ -79,11 +79,17 @@ class OutputWatcher:
             print("Watcher tick!")
             self.sync_output_dir()
             time.sleep(self.interval)
-
-    def stop(self):
-        """Stop the output watcher."""
-        print("flushing output before stopping...")
+    
+    def flush(self):
+        """Flush the output directory by syncing it."""
+        print("Flushing output directory...")
         self.sync_output_dir()
+        print("Flush completed.")
+
+    def stop(self, flush=True):
+        """Stop the output watcher."""
+        if flush:
+            self.flush()
         self._running = False
         print("Watcher stopped.")
 

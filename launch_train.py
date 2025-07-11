@@ -106,16 +106,18 @@ def main(config_file, forced=False):
     run_nodes(sync_folder, str(output_dir))
 
     print("Starting output watcher on head node...")
-    run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
+    watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
 
     print(f"Launching training with {config_file}...")
     run_nodes(launch_training, str(config_file), output_dir=str(output_dir))
     print("Training completed on all nodes.")
+
     print("Launching evaluation on all nodes")
     run_nodes(launch_evaluation, model_path=str(output_dir))
     print("Evaluation completed on all nodes.")
 
-    print("All tasks completed, stopping watcher.")
+    watcher.flush.remote() 
+    print("All tasks completed.")
 
 
 if __name__ == "__main__":
