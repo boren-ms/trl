@@ -1,5 +1,5 @@
 use_vllm: false
-batch_size: 32
+batch_size: 16
 generation_config:
   max_new_tokens: 512
   do_sample: false
