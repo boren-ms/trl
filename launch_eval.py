@@ -83,13 +83,13 @@ def launch_evaluation(model_path, config_file=None):
 
 
 
-def main(model_name, config_file=None, forced=False):
+def main(model_name, job_name=None, config_file=None, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
     init_ray()
     list_nodes()
 
     print(f"Model name: {model_name}")
-    model_dir, remote_model_dir = get_output_dirs(Path(model_name).stem)
+    model_dir, remote_model_dir = get_output_dirs(Path(model_name).stem, job_name=job_name)
 
     results = []
     print("Preparing environment on all nodes...")
