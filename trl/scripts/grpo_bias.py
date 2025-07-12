@@ -22,7 +22,7 @@ def uuid4():
     return short_id
 
 
-def init_model(model_id=None):
+def init_model(model_id=None, lora_merged=True):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -33,7 +33,7 @@ def init_model(model_id=None):
         _attn_implementation="flash_attention_2",
     )
     # lora_adpater=None
-    if "merged" in model_id:
+    if lora_merged:
         print("Lora merged, delete lora adapters")
         from peft.tuners.lora import LoraLayer
 
@@ -72,6 +72,10 @@ class GRPOScriptArguments:
     model_name_or_path: Optional[str] = field(
         default=None,
         metadata={"help": "Path to the model."},
+    )
+    lora_merged: bool = field(
+        default=True,
+        metadata={"help": "Whether LoRA is merged."},
     )
     reward_funcs: Optional[str] = field(
         default=None,
@@ -200,7 +204,7 @@ def main(script_args, training_args):
         print("Init Wandb")
         init_wandb(job_name=script_args.job_name, project=script_args.project, output_dir=training_args.output_dir)  # disabled for wandb for orange
 
-    model, processor = init_model(script_args.model_name_or_path)
+    model, processor = init_model(script_args.model_name_or_path, lora_merged=script_args.lora_merged)
 
     trainer = GRPOTrainer(
         model=model,

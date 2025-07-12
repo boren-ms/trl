@@ -8,7 +8,7 @@ import fire
 import time
 import blobfile as bf
 import importlib.metadata
-from trl.data_utils import chkp_index
+from trl.data_utils import chkp_index, find_chkps
 
 
 def upload_file(local_path, remote_path, overwrite=False):
@@ -123,6 +123,10 @@ def is_valid_model_path(model_dir):
     if not model_dir.is_dir():
         print(f"Model path {model_dir} is not a directory.")
         return False
+    
+    if any(is_valid_model_path(chkp) for chkp in find_chkps(model_dir)):
+        return True
+
     config_file = model_dir / "config.json"
     if not config_file.exists():
         print(f"Config file {config_file} does not exist in the model directory.")

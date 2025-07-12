@@ -78,9 +78,10 @@ def hf2vllm_config(hf_config):
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
 
-    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None):
+    def __init__(self, model_path, lora_merged=True, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None):
         self.accelerator = Accelerator()
         self.model_path = str(model_path)
+        self.lora_merged = lora_merged
         self.batch_size = batch_size
         self.use_vllm = use_vllm
         self.output_dir = output_dir or model_path
@@ -126,7 +127,7 @@ class Evaluation:
             config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
         else:
-            model, self.processor = init_model(self.model_path)
+            model, self.processor = init_model(self.model_path, lora_merged=self.lora_merged)
             self.model = self.accelerator.prepare(model).eval()
 
     def generate(self, batch):
