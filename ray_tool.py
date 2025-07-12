@@ -484,6 +484,13 @@ class RayTool:
         local_dir, remote_dir = get_output_dirs(rel_path=rel_path)
         print(f"Running output watcher on head: {local_dir} from {remote_dir} every {interval/60} minutes")
         return run_output_watcher(local_dir, remote_dir, interval)
+    def show_remote_dirs(self, rel_path=None):
+        """Show remote directories."""
+        rel_path = rel_path or ""
+        print("Remote Home:", f"{ORNG_USER.home_path}/{rel_path}")
+        print("Remote Data:", f"{ORNG_USER.data_path}/{rel_path}")
+        print("Remote Output:", f"{ORNG_USER.output_path}/{rel_path}")
+        
 
 
 if __name__ == "__main__":
