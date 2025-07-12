@@ -45,7 +45,9 @@ def update_ssh_config(df, ssh_conf, new_ssh_conf=None, wsl=False):
     for _, row in df.iterrows():
         host = row["NAME"]
         cluster = row["CLUSTER"]
-        host_name = row["IP"] if row["STATUS"] != "Running" else f"{host}.rcall.{user}.svc.{cluster}.dev.openai.org"
+        host_name = f"{host}.rcall.{user}.svc.{cluster}.dev.openai.org"
+        if row["IP"] and row["STATUS"] != "Running":
+            host_name = row["IP"]
         if host in cf.hosts():
             print(f"Update {host}: {host_name}")
             cf.set(host, HostName=host_name)
