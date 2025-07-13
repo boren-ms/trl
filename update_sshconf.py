@@ -46,13 +46,14 @@ def update_ssh_config(df, ssh_conf, new_ssh_conf=None, wsl=False):
         host = row["NAME"]
         cluster = row["CLUSTER"]
         host_name = f"{host}.rcall.{user}.svc.{cluster}.dev.openai.org"
-        if row["IP"] and row["STATUS"] != "Running":
+        status = row["STATUS"]
+        if pd.notna(row["IP"]) and row["STATUS"] != "Running":
             host_name = row["IP"]
         if host in cf.hosts():
-            print(f"Update {host}: {host_name}")
+            print(f"Update {host} [{status}]: {host_name}")
             cf.set(host, HostName=host_name)
         else:
-            print(f"Add {host}: {host_name}")
+            print(f"Add {host} [{status}]: {host_name}")
             host_kwargs = HOST_TEMP.copy()
             host_kwargs["HostName"] = host_name
             host_kwargs["IdentityFile"] = identity_fmt.format(user=user, cluster=cluster)
@@ -69,7 +70,7 @@ def main(ssh_conf=None, wsl=False):
     if df is not None:
         ssh_confs = [(ssh_conf, wsl)] if ssh_conf else [(f"/home/{user}/.ssh/config", False), (f"/mnt/c/Users/{user}/.ssh/config", True)]
         for ssh_conf, wsl in ssh_confs:
-            print("="*20)
+            print("=" * 20)
             print(f"Updating SSH: {ssh_conf}")
             if not Path(ssh_conf).exists():
                 print(f"Skipping {ssh_conf} due to missing.")
@@ -79,8 +80,9 @@ def main(ssh_conf=None, wsl=False):
     else:
         print("Failed to retrieve brix instances.")
 
-#%%
+
+# %%
 # main()
-#%%
+# %%
 if __name__ == "__main__":
     fire.Fire(main)

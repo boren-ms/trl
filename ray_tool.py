@@ -238,7 +238,7 @@ def prepare_env(forced=False):
     print(f"Preparing environment on node: {hostname}")
     packages = [
         "torch==2.6.0",
-        "ray==2.36.1",
+        "ray==2.46.0",
         "transformers==4.51.3",
         "vllm==0.8.5.post1",
         "trl==0.20.0.dev0",
@@ -248,7 +248,7 @@ def prepare_env(forced=False):
         return
     run_cmd("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
     run_cmd("uv pip install --system torch==2.6.0 torchvision torchaudio transformers==4.51.3  trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
-    run_cmd("pip install vllm==0.8.5.post1 && pip install ray==2.36.1")
+    run_cmd("pip install vllm==0.8.5.post1 && pip install ray==2.46.0")
     run_cmd("pip install torch==2.6.0 flash-attn ")
     run_cmd("pip uninstall -y trl")
     run_cmd("pip install -e /root/code/trl --no-deps")
