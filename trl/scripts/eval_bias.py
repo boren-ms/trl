@@ -1,4 +1,5 @@
 import argparse
+import torch
 from dataclasses import dataclass, field
 from typing import Optional
 from tqdm import tqdm
@@ -117,6 +118,7 @@ class Evaluation:
             self.llm = LLM(
                 model=self.model_path,
                 trust_remote_code=True,
+                dtype=torch.float32,
                 max_model_len=1024 * 5,  # now for biasing_1000
                 distributed_executor_backend="external_launcher",
                 seed=self.rank,
