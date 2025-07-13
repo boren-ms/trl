@@ -24,6 +24,8 @@ from .scripts.env import print_env
 from .scripts.grpo import make_parser as make_grpo_parser
 from .scripts.kto import make_parser as make_kto_parser
 from .scripts.sft import make_parser as make_sft_parser
+from .scripts.summarize_changes import main as summarize_changes_main
+from .scripts.summarize_changes import make_parser as make_summarize_changes_parser
 from .scripts.utils import TrlParser
 from .scripts.vllm_serve import main as vllm_serve_main
 from .scripts.vllm_serve import make_parser as make_vllm_serve_parser
@@ -41,6 +43,7 @@ def main():
     make_grpo_parser(subparsers)
     make_kto_parser(subparsers)
     make_sft_parser(subparsers)
+    make_summarize_changes_parser(subparsers)
     make_vllm_serve_parser(subparsers)
 
     # Parse the arguments; the remaining ones (`launch_args`) are passed to the 'accelerate launch' subparser.
@@ -131,6 +134,10 @@ def main():
             )
 
         vllm_serve_main(script_args)
+
+    elif args.command == "summarize-changes":
+        (script_args,) = parser.parse_args_and_config()
+        summarize_changes_main(script_args)
 
 
 if __name__ == "__main__":

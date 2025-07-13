@@ -15,6 +15,7 @@ Currently supported commands are:
 
 - `trl env`: get the system information
 - `trl vllm-serve`: serve a model with vLLM
+- `trl summarize-changes`: summarize git changes from the last month in detail
 
 ## Fine-Tuning with the TRL CLI
 
@@ -270,3 +271,48 @@ Copy-paste the following information when reporting an issue:
 ```
 
 This information is required when reporting an issue.
+
+## Summarizing Repository Changes
+
+The `trl summarize-changes` command provides a comprehensive analysis of git changes over a specified time period (default: last 30 days). This is useful for generating release notes, tracking development progress, and understanding code evolution.
+
+### Basic Usage
+
+```bash
+# Summarize changes from the last 30 days (default)
+trl summarize-changes
+
+# Summarize changes from the last 7 days
+trl summarize-changes --days 7
+
+# Save the summary to a markdown file
+trl summarize-changes --output change_summary.md
+
+# Analyze a different repository
+trl summarize-changes --repo-path /path/to/other/repo
+```
+
+### Example Output
+
+The command generates a detailed markdown report including:
+
+- **Overall Statistics**: Total commits, contributors, files changed, lines added/deleted
+- **Contributors**: Breakdown of changes by author
+- **Changes by Category**: Automatically categorized commits (features, bug fixes, documentation, etc.)
+- **File Type Analysis**: Changes broken down by file extension
+- **Recent Commits**: Chronological list of recent changes with statistics
+
+### Use Cases
+
+- **Release Notes**: Generate detailed summaries for release documentation
+- **Progress Tracking**: Monitor development velocity and contributor activity
+- **Code Review**: Understand the scope and impact of recent changes
+- **Project Management**: Track progress across different areas of the codebase
+
+### Standalone Usage
+
+The script can also be used independently without the TRL CLI:
+
+```bash
+python scripts/summarize_changes.py --days 30 --output summary.md
+```

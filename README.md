@@ -30,7 +30,7 @@ TRL is a cutting-edge library designed for post-training foundation models using
     - Full integration with [🤗 PEFT](https://github.com/huggingface/peft) enables training on large models with modest hardware via quantization and LoRA/QLoRA.
     - Integrates [🦥 Unsloth](https://github.com/unslothai/unsloth) for accelerating training using optimized kernels.
 
-- **Command Line Interface (CLI)**: A simple interface lets you fine-tune with models without needing to write code.
+- **Command Line Interface (CLI)**: A simple interface lets you fine-tune with models without needing to write code, and includes developer tools like `trl summarize-changes` for tracking repository changes.
 
 ## Installation
 
