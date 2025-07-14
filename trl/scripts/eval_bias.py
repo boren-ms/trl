@@ -75,6 +75,7 @@ def hf2vllm_config(hf_config):
     vllm_params["n"] = vllm_params.get("n", 1)
     return vllm_params
 
+
 def hack_package(package_path, replace=False):
     """hack the processor config file to remove unnecessary keys and rename some keys."""
     if not Path(package_path).exists():
@@ -290,7 +291,8 @@ def evaluate_model(model_path, datasets, **kwargs):
 
 def main(args):
     """Main function to run the evaluation."""
-    job_name = args.job_name or Path(args.model_path).stem
+    model_path = Path(args.model_path)
+    job_name = args.job_name or model_path.parent.stem if model_path.stem.startswith("checkpoint-") else model_path.stem
     model_paths = find_models(args.model_path, args.checkpoints)
     datasets = create_dataset(args.eval_data)
     kwargs = {k: v for k, v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints", "job_name"]}

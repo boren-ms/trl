@@ -89,11 +89,7 @@ def main(model_path, config=None, forced=False):
     list_nodes()
 
     print(f"Model path: {model_path}")
-    model_path= Path(model_path)
-    job_name = model_path.parent if model_path.parent else None
-    model_name = model_path.stem
-
-    model_dir, remote_model_dir = get_output_dirs(model_name, job_name=job_name)
+    model_dir, remote_model_dir = get_output_dirs(model_path)
 
     results = []
     print("Preparing environment on all nodes...")
@@ -114,14 +110,14 @@ def main(model_path, config=None, forced=False):
     run_nodes(sync_folder, str(model_dir))
     
     if not is_valid_model_path(model_dir):  # for baseline models
-        print(f"Model [{model_name}] is not valid in {model_dir}, switching to prepared data checkpoints folder")
-        rel_path = f"data/ckp/hf_models/{model_name}"
+        print(f"Model [{model_path}] is not valid in {model_dir}, switching to prepared data checkpoints folder")
+        rel_path = f"data/ckp/hf_models/{model_path}"
         model_dir = Path.home() / rel_path
         remote_model_dir = f"{ORNG_USER.home_path}/{rel_path}"
 
     if not is_valid_model_path(model_dir):
-        print(f"Model [{model_name}] is not valid in {model_dir}")
-        print(f"Exiting evaluation, please double check model [{model_name}]")
+        print(f"Model [{model_path}] is not valid in {model_dir}")
+        print(f"Exiting evaluation, please double check model [{model_path}]")
         return
     
     print("Starting output watcher on head node...")

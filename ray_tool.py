@@ -180,11 +180,11 @@ class UserStorage:
 ORNG_USER = UserStorage()
 
 
-def get_output_dirs(rel_path=None, job_name=None):
+def get_output_dirs(rel_path=None):
     """Get the remote output directory based on the job name."""
-    job_name = job_name or os.environ.get("RCALL_JOB_NAME", None)
-    remote_output_dir = f"{ORNG_USER.output_path}/{job_name}"
-    local_output_dir = Path.home() / "outputs"
+    # job_name = job_name or os.environ.get("RCALL_JOB_NAME", None)
+    remote_output_dir = f"{ORNG_USER.output_path}"
+    local_output_dir = Path.home() / "outputs" 
     if rel_path:
         remote_output_dir = f"{remote_output_dir}/{rel_path}"
         local_output_dir = local_output_dir / rel_path
@@ -485,7 +485,7 @@ class RayTool:
 
     def run_output_watcher(self, rel_path=None, interval=600):
         """Run the output watcher on head."""
-        local_dir, remote_dir = get_output_dirs(rel_path=rel_path)
+        local_dir, remote_dir = get_output_dirs(rel_path)
         print(f"Running output watcher on head: {local_dir} from {remote_dir} every {interval/60} minutes")
         return run_output_watcher(local_dir, remote_dir, interval)
 
