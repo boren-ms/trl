@@ -1,66 +1,120 @@
 # %%
+import torch
+from transformers import GenerationConfig, AutoProcessor
 from vllm import LLM, SamplingParams
-from transformers import AutoProcessor
-import soundfile as sf
-import pandas as pd
+from trl.data_utils import sf_read
+from datasets import load_dataset  # Added import
 
 
-def load_wav_path(tsv_path):
-    df = pd.read_csv(tsv_path, sep="\t", names=["id", "wav_paths", "msgs"])
-    df["wav_path"] = df["wav_paths"].apply(lambda x: eval(x)[0])
-    return df["wav_path"].tolist()
+#%%
+import os
+os.environ["RANK"]= "0"
+os.environ["LOCAL_RANK"]= "0"
+os.environ["WORLD_SIZE"]= "1"
+os.environ["MASTER_ADDR"]= "localhost"
+os.environ["MASTER_PORT"]= "12355"
+
+#%%
+#%%
+
+def hf2vllm_config(hf_config):
+    """Convert a HuggingFace GenerationConfig or dict to vLLM sampling parameters."""
+    mapping = {
+        "max_new_tokens": "max_tokens",
+        "temperature": "temperature",
+        "top_p": "top_p",
+        "top_k": "top_k",
+        "repetition_penalty": "repetition_penalty",
+        "presence_penalty": "presence_penalty",
+        "frequency_penalty": "frequency_penalty",
+        "num_return_sequences": "n",
+        "eos_token_id": "stop_token_ids",
+    }
+    vllm_params = {vllm_key: hf_config[hf_key] for hf_key, vllm_key in mapping.items() if hf_key in hf_config and hf_config[hf_key] is not None}
+    if "do_sample" in hf_config and not hf_config["do_sample"]:
+        vllm_params["temperature"] = 0.0
+    vllm_params["n"] = vllm_params.get("n", 1)
+    return vllm_params
 
 
-# %%
-model_path = "/root/data/ckp/hf_models/phi4_mm_bias_merged"
+#%%
+model_path="/root/data/ckp/hf_models/phi4_mm_bias_merged"
+
+generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
+config = hf2vllm_config(generation_config.to_dict())
+#%%
 llm = LLM(
     model=model_path,
     trust_remote_code=True,
-    max_model_len=512,
-    max_num_seqs=8,
+    dtype=torch.float32,
+    max_model_len=1024 * 6, # this will 5*1024 still to short
+    distributed_executor_backend="external_launcher",
+    seed=0,
+    max_num_seqs=128,
     load_format="auto",
-    limit_mm_per_prompt={"audio": 10},
+    limit_mm_per_prompt={"audio": 1},
 )
-# %%
-processor = AutoProcessor.from_pretrained(
-    model_path,
-    trust_remote_code=True,
-)
-stop_tokens = ["<|end|>", processor.tokenizer.eos_token]
-stop_tokens_ids = processor.tokenizer(stop_tokens, add_special_tokens=False, padding="longest", return_tensors="pt").input_ids.flatten().tolist()
+#%%
+jsonl_path="/root/data/ckp/hf_models/phi4_mm_bias_merged/clean_1000_hf_vllm_diff.jsonl"
+dataset = load_dataset("json", data_files=jsonl_path, split="train")
+processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+#%%
+
+data_dir ="/root/data/LibriSpeech/test-clean/"
+
+for example in dataset:
+    id = example["id"]
+    if id != "5105-28233-0007":
+        continue
+    rel_dir = "/".join(id.split("-")[:2])
+    audio_path = f"{data_dir}/{rel_dir}/{id}.flac"
+    inputs = [
+        {"prompt": example["prompt"], "multi_modal_data": {"audio": [sf_read(audio_path)]}}
+    ]
+    hf_x = processor(text=[example["prompt"]], audios=[sf_read(audio_path)], return_tensors="pt")
+    print("input token length:", hf_x["input_ids"].shape[1])
+    config["max_tokens"] = 512
+    config["ignore_eos"] = True
+    config["n"]=1
+    sampling_params = SamplingParams(**config)
+    # sampling_params.stop_token_ids = [sampling_params.stop_token_ids[1]]
+    print(sampling_params)
+    outputs = llm.generate(inputs, sampling_params=sampling_params)
+    texts = [output.outputs[0].text for output in outputs]
+    text = texts[0]
+    print("ID       :", id)
+    print("hyp_vlLM :", example["hyp_vllm"])
+    print("HYP_HF   :", example["hyp_hf"])
+    for i, text in enumerate(texts):
+        print(f"[{i}]TEXT   :", text)
+    break
+    
+#%%
 
 # %%
-tsv_path = "/root/data/LibriSpeech/debug.tsv"
-wav_paths = load_wav_path(tsv_path)
-
+for example in dataset.take(10):
+    id = example["id"]
+    print("ID       :", id)
+    print("HYP_HF   :", example["hyp_hf"])
+    print("hyp_vlLM :", example["hyp_vllm"])
+    print("*"*20)    
 # %%
-wav_paths = ["/root/data/LibriSpeech/test-clean/2094/142345/2094-142345-0034.flac", "/root/data/LibriSpeech/train-clean-360/115/122944/115-122944-0026.flac"]
-words = ["cutlery", "utensils", "silverware", "TABLE", "CLOTHS", "Napkins", "Linen", "dining"]
-words_text = ", ".join([f"*{w}*" for w in words])
-text = "Transcribe the audio clip into text."
-text = f"{text} Please pay attention to following words: {words_text}."
-inputs = []
-N = 10
-for wav_path in wav_paths[:N]:
+id = "5105-28233-0007"
+hyp_hf = "Ben *zoof's* most *ambitious* desire was to *induce* the captain to go with him and end his days in his much loved home, and so *incessantly* were *servadac's* ears *besieged* with *descriptions* of the *unparalleled* *beauties* and advantages of this *eighteenth* *arrondissement* of Paris that he could scarcely hear the name of *montmartre* without a conscious *thrill* of *aversion*"
 
-    inputs.append(
-        {
-            "prompt": f"<|user|><|audio_1|>{text}<|end|><|assistant|>",
-            "multi_modal_data": {"audio": [sf.read(wav_path)]},
-        }
-    )
+rel_dir = "/".join(id.split("-")[:2])
+audio_path = f"{data_dir}/{rel_dir}/{id}.flac"
+inputs = [
+    {"prompt": example["prompt"], "multi_modal_data": {"audio": [sf_read(audio_path)]}}
+]
+config["max_tokens"] = 512
+sampling_params = SamplingParams(**config)
+print("Sampling Param:", sampling_params)
+outputs = llm.generate(inputs, sampling_params=sampling_params)
+texts = [output.outputs[0].text for output in outputs]
+text = texts[0]
+print(f"ID     : {id}")
+print(f"TEXT   : {texts[0]}")
+print(f"HF_HYP : {hyp_hf}")
 
-
-# %%
-stop = ["<|end|>", "<|endoftext|>"]
-n_gen = 8
-outputs = llm.generate(
-    inputs,
-    # sampling_params=SamplingParams(temperature=1, max_tokens=512, n=n_gen, stop=stop),
-    sampling_params=SamplingParams(temperature=1, max_tokens=512, n=n_gen, stop_token_ids=stop_tokens_ids),
-)
-for i, o in zip(inputs, outputs):
-    print(f"Utt: {i['prompt']}")
-    for j, output in enumerate(o.outputs):
-        print(f"[{j}]:", output.text)
 # %%

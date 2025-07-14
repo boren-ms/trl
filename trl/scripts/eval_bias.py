@@ -162,16 +162,17 @@ class Evaluation:
     def _prepare_model(self):
         """Prepare the model for evaluation."""
         if self.use_vllm:
+            max_all_tokens = 1024*6
             self.llm = LLM(
                 model=self.model_path,
                 trust_remote_code=True,
-                dtype=torch.float32,
-                max_model_len=1024 * 5,  # now for biasing_1000
+                max_model_len=max_all_tokens,  # the max token processed by vLLM including both input and output
                 distributed_executor_backend="external_launcher",
                 seed=self.rank,
                 max_num_seqs=self.batch_size,
                 load_format="auto",
                 limit_mm_per_prompt={"audio": 1},
+                max_num_batched_tokens=max_all_tokens*2,
             )
             config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
