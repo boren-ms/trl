@@ -543,7 +543,8 @@ class OnlineDPOTrainer(Trainer):
         if "input_features" in inputs:
             generation_kwargs["input_features"] = inputs["input_features"].repeat(2, 1, 1)
         if "audio_attention_mask" in inputs:
-            generation_kwargs["attention_mask"] = inputs["audio_attention_mask"].repeat(2, 1)
+            # For audio models, use encoder_attention_mask to avoid conflict with decoder attention_mask
+            generation_kwargs["encoder_attention_mask"] = inputs["audio_attention_mask"].repeat(2, 1)
 
         with unwrap_model_for_generation(
             model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
@@ -558,7 +559,7 @@ class OnlineDPOTrainer(Trainer):
         if "input_features" in inputs:
             audio_data["input_features"] = inputs["input_features"].repeat(2, 1, 1)
         if "audio_attention_mask" in inputs:
-            audio_data["audio_attention_mask"] = inputs["audio_attention_mask"].repeat(2, 1)
+            audio_data["encoder_attention_mask"] = inputs["audio_attention_mask"].repeat(2, 1)
 
         return prompt_ids, prompt_mask, completion_ids, completion_mask, audio_data
 
@@ -582,10 +583,8 @@ class OnlineDPOTrainer(Trainer):
         # Add audio-specific inputs if available
         if "input_features" in audio_kwargs:
             model_kwargs["input_features"] = audio_kwargs["input_features"]
-        if "audio_attention_mask" in audio_kwargs:
-            # Note: for audio models, this might override the text attention_mask
-            # We'll keep the text attention_mask as primary and handle audio separately if needed
-            model_kwargs["encoder_attention_mask"] = audio_kwargs["audio_attention_mask"]
+        if "encoder_attention_mask" in audio_kwargs:
+            model_kwargs["encoder_attention_mask"] = audio_kwargs["encoder_attention_mask"]
 
         # Get the logprobs of the completions from the model
         output = model(prompt_completion_ids, **model_kwargs)
