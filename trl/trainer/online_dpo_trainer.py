@@ -370,7 +370,12 @@ class OnlineDPOTrainer(Trainer):
             # Fallback for text-only data
             processed_features = processor(text=feature["prompt"], add_special_tokens=False)
 
-        prompt_input_ids = processed_features["input_ids"][0] if isinstance(processed_features["input_ids"][0], list) else processed_features["input_ids"]
+        # Handle input_ids - they might be nested lists or tensors
+        input_ids = processed_features["input_ids"]
+        if isinstance(input_ids, list) and len(input_ids) > 0 and isinstance(input_ids[0], list):
+            prompt_input_ids = input_ids[0]  # Take first sequence
+        else:
+            prompt_input_ids = input_ids
         
         output = {
             "prompt_input_ids": prompt_input_ids,
@@ -378,11 +383,27 @@ class OnlineDPOTrainer(Trainer):
 
         # Add vision-specific features if available
         if "pixel_values" in processed_features:
-            output["pixel_values"] = processed_features["pixel_values"][0] if processed_features["pixel_values"].dim() > 3 else processed_features["pixel_values"]
+            pixel_values = processed_features["pixel_values"]
+            # Handle potential batch dimension
+            if hasattr(pixel_values, 'dim') and pixel_values.dim() > 3:
+                output["pixel_values"] = pixel_values[0]
+            else:
+                output["pixel_values"] = pixel_values
+                
         if "pixel_attention_mask" in processed_features:
-            output["pixel_attention_mask"] = processed_features["pixel_attention_mask"][0] if processed_features["pixel_attention_mask"].dim() > 2 else processed_features["pixel_attention_mask"]
+            pixel_attention_mask = processed_features["pixel_attention_mask"]
+            # Handle potential batch dimension
+            if hasattr(pixel_attention_mask, 'dim') and pixel_attention_mask.dim() > 2:
+                output["pixel_attention_mask"] = pixel_attention_mask[0]
+            else:
+                output["pixel_attention_mask"] = pixel_attention_mask
+                
         if "image_sizes" in processed_features:
-            output["image_sizes"] = processed_features["image_sizes"][0] if isinstance(processed_features["image_sizes"], list) and len(processed_features["image_sizes"]) > 0 else processed_features.get("image_sizes")
+            image_sizes = processed_features["image_sizes"]
+            if isinstance(image_sizes, list) and len(image_sizes) > 0:
+                output["image_sizes"] = image_sizes[0]
+            else:
+                output["image_sizes"] = image_sizes
 
         return output
 
