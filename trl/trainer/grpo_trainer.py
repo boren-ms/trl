@@ -664,18 +664,18 @@ class GRPOTrainer(Trainer):
                     self.tp_group, _ = torch.distributed.new_subgroups_by_enumeration(
                         [list(range(i * self.vllm_tensor_parallel_size, (i + 1) * self.vllm_tensor_parallel_size)) for i in range(self.accelerator.num_processes // self.vllm_tensor_parallel_size)]
                     )
-
+                max_all_tokens = self.max_prompt_length + self.max_completion_length
                 self.llm = LLM(
                     model=model.name_or_path,
                     tensor_parallel_size=args.vllm_tensor_parallel_size,
                     gpu_memory_utilization=self.vllm_gpu_memory_utilization,
                     max_num_seqs=self.args.per_device_train_batch_size * self.vllm_tensor_parallel_size * self.args.gradient_accumulation_steps,
-                    max_model_len=self.max_prompt_length + self.max_completion_length,
+                    max_model_len=max_all_tokens,
                     distributed_executor_backend="external_launcher",
                     # Feed identical seed for tp groups to ensure sampling results are the same across workers
                     seed=self.accelerator.process_index // self.vllm_tensor_parallel_size,
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
-                    max_num_batched_tokens=4096,
+                    max_num_batched_tokens=max_all_tokens*2,
                     trust_remote_code=True,
                 )
 

@@ -27,7 +27,7 @@ logging_steps: 10
 bf16: True
 gradient_checkpointing: True
 log_completions: True
-max_prompt_length: 5120
+max_prompt_length: 6000
 max_completion_length: 512
 wandb_log_unique_prompts: True
 # beta: 0.1
