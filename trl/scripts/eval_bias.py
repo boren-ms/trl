@@ -233,9 +233,11 @@ class Evaluation:
     def log_metrics_results(self, metrics, results, name=None):
         if not self.is_main:
             return
-        pfx = f"metric/{name}_" if name else "metric/"
+        pfx = "metric_{}/".format("vllm" if self.use_vllm else "hf")
+        if name:
+            pfx += f"{name}_"
+            
         metrics = {k if "/" in k else f"{pfx}{k}": v for k, v in metrics.items()}  # skip prefix for keys with slashes
-
         self.rank_log("Logging metrics:")
         for key, value in metrics.items():
             self.rank_log(f"{key}: {value}")
