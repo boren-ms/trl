@@ -361,8 +361,8 @@ class OnlineDPOTrainer(Trainer):
         """
         Same as `tokenize_row` but for audio models. This processes both the audio and text data.
         """
-        processor, tokenizer = processing_class, processing_class.tokenizer  # the processing class is a processor
-        
+        processor = processing_class  # the processing class is a processor
+
         # Process the prompt with audio
         if "audio" in feature and feature["audio"] is not None:
             processed_features = processor(audio=feature["audio"], text=feature["prompt"], add_special_tokens=False)
@@ -376,7 +376,7 @@ class OnlineDPOTrainer(Trainer):
             prompt_input_ids = input_ids[0]  # Take first sequence
         else:
             prompt_input_ids = input_ids
-        
+
         output = {
             "prompt_input_ids": prompt_input_ids,
         }
@@ -389,7 +389,7 @@ class OnlineDPOTrainer(Trainer):
                 output["input_features"] = input_features[0]
             else:
                 output["input_features"] = input_features
-                
+
         if "attention_mask" in processed_features:
             attention_mask = processed_features["attention_mask"]
             # Handle potential batch dimension - note: this is different from prompt_attention_mask
@@ -519,7 +519,7 @@ class OnlineDPOTrainer(Trainer):
         # policies with different tokenizers / chat templates.
         inputs = [{"prompt": prompt} for prompt in prompts]
         inputs = [maybe_apply_chat_template(x, self.processing_class) for x in inputs]
-        
+
         # Use different processing for audio vs text-only models
         if self.is_audio_model:
             inputs = [self.process_row(x, self.processing_class) for x in inputs]
@@ -531,20 +531,20 @@ class OnlineDPOTrainer(Trainer):
         inputs = self._prepare_inputs(inputs)
         prompt_ids = inputs["prompt_input_ids"].repeat(2, 1)
         prompt_mask = inputs["prompt_attention_mask"].repeat(2, 1)
-        
+
         # Prepare generation kwargs with vision inputs if available
         generation_kwargs = {
             "input_ids": prompt_ids,
             "attention_mask": prompt_mask,
             "generation_config": self.generation_config,
         }
-        
+
         # Add audio-specific inputs for multimodal models
         if "input_features" in inputs:
             generation_kwargs["input_features"] = inputs["input_features"].repeat(2, 1, 1)
         if "audio_attention_mask" in inputs:
             generation_kwargs["attention_mask"] = inputs["audio_attention_mask"].repeat(2, 1)
-            
+
         with unwrap_model_for_generation(
             model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
         ) as unwrapped_model:
@@ -578,7 +578,7 @@ class OnlineDPOTrainer(Trainer):
         model_kwargs = {
             "attention_mask": prompt_completion_mask
         }
-        
+
         # Add audio-specific inputs if available
         if "input_features" in audio_kwargs:
             model_kwargs["input_features"] = audio_kwargs["input_features"]
