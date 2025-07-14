@@ -41,6 +41,7 @@ from transformers import (
     is_apex_available,
     is_wandb_available,
 )
+from transformers.models.auto.modeling_auto import MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES
 from transformers.trainer_utils import EvalPrediction, seed_worker
 from transformers.training_args import OptimizerNames
 from transformers.utils import is_peft_available, is_sagemaker_mp_enabled, logging
@@ -174,6 +175,7 @@ class OnlineDPOTrainer(Trainer):
         self.reward_processing_class = reward_processing_class
         self.judge = judge
         self.is_encoder_decoder = model.config.is_encoder_decoder
+        self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
 
         if args.missing_eos_penalty is not None and judge is not None:
             raise ValueError("`missing_eos_penalty` is not supported when `judge` is provided.")
@@ -354,6 +356,36 @@ class OnlineDPOTrainer(Trainer):
         batch = {f"prompt_{key}": value for key, value in batch.items()}
         return batch
 
+    @staticmethod
+    def process_row(feature, processing_class):
+        """
+        Same as `tokenize_row` but for vision models. This processes both the image and text data.
+        """
+        processor, tokenizer = processing_class, processing_class.tokenizer  # the processing class is a processor
+        
+        # Process the prompt with images
+        if "images" in feature and feature["images"] is not None:
+            processed_features = processor(images=feature["images"], text=feature["prompt"], add_special_tokens=False)
+        else:
+            # Fallback for text-only data
+            processed_features = processor(text=feature["prompt"], add_special_tokens=False)
+
+        prompt_input_ids = processed_features["input_ids"][0] if isinstance(processed_features["input_ids"][0], list) else processed_features["input_ids"]
+        
+        output = {
+            "prompt_input_ids": prompt_input_ids,
+        }
+
+        # Add vision-specific features if available
+        if "pixel_values" in processed_features:
+            output["pixel_values"] = processed_features["pixel_values"][0] if processed_features["pixel_values"].dim() > 3 else processed_features["pixel_values"]
+        if "pixel_attention_mask" in processed_features:
+            output["pixel_attention_mask"] = processed_features["pixel_attention_mask"][0] if processed_features["pixel_attention_mask"].dim() > 2 else processed_features["pixel_attention_mask"]
+        if "image_sizes" in processed_features:
+            output["image_sizes"] = processed_features["image_sizes"][0] if isinstance(processed_features["image_sizes"], list) and len(processed_features["image_sizes"]) > 0 else processed_features.get("image_sizes")
+
+        return output
+
     # Same as Trainer.get_train_dataloader but skip the "remove_unused_columns".
     @wraps(Trainer.get_train_dataloader)
     def get_train_dataloader(self) -> DataLoader:
@@ -461,7 +493,9 @@ class OnlineDPOTrainer(Trainer):
         completion_ids = torch.tensor(completion_ids, device=self.accelerator.device)
         completion_mask = torch.tensor(completion_mask, device=self.accelerator.device)
 
-        return prompt_ids, prompt_mask, completion_ids, completion_mask
+        # Return empty vision data for vLLM compatibility
+        vision_data = {}
+        return prompt_ids, prompt_mask, completion_ids, completion_mask, vision_data
 
     def _generate(self, model, prompts):
         eos_token_id = self.processing_class.eos_token_id
@@ -471,28 +505,54 @@ class OnlineDPOTrainer(Trainer):
         # policies with different tokenizers / chat templates.
         inputs = [{"prompt": prompt} for prompt in prompts]
         inputs = [maybe_apply_chat_template(x, self.processing_class) for x in inputs]
-        inputs = [self.tokenize_row(x, self.is_encoder_decoder, self.processing_class) for x in inputs]
+        
+        # Use different processing for vision vs text-only models
+        if self.is_vision_model:
+            inputs = [self.process_row(x, self.processing_class) for x in inputs]
+        else:
+            inputs = [self.tokenize_row(x, self.is_encoder_decoder, self.processing_class) for x in inputs]
         inputs = self.data_collator(inputs)
 
         # Sample 2 completions per prompt of size `max_new_tokens` from the model
         inputs = self._prepare_inputs(inputs)
         prompt_ids = inputs["prompt_input_ids"].repeat(2, 1)
         prompt_mask = inputs["prompt_attention_mask"].repeat(2, 1)
+        
+        # Prepare generation kwargs with vision inputs if available
+        generation_kwargs = {
+            "input_ids": prompt_ids,
+            "attention_mask": prompt_mask,
+            "generation_config": self.generation_config,
+        }
+        
+        # Add vision-specific inputs for multimodal models
+        if "pixel_values" in inputs:
+            generation_kwargs["pixel_values"] = inputs["pixel_values"].repeat(2, 1, 1, 1)
+        if "pixel_attention_mask" in inputs:
+            generation_kwargs["pixel_attention_mask"] = inputs["pixel_attention_mask"].repeat(2, 1, 1)
+        if "image_sizes" in inputs:
+            generation_kwargs["image_sizes"] = inputs["image_sizes"].repeat(2, 1)
+            
         with unwrap_model_for_generation(
             model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
         ) as unwrapped_model:
-            output = unwrapped_model.generate(
-                input_ids=prompt_ids,
-                attention_mask=prompt_mask,
-                generation_config=self.generation_config,
-            )
+            output = unwrapped_model.generate(**generation_kwargs)
 
         completion_ids = output[:, prompt_ids.size(1) :]
         completion_ids, completion_mask = truncate_right(completion_ids, eos_token_id, pad_token_id)
 
-        return prompt_ids, prompt_mask, completion_ids, completion_mask
+        # Prepare vision data to return
+        vision_data = {}
+        if "pixel_values" in inputs:
+            vision_data["pixel_values"] = inputs["pixel_values"].repeat(2, 1, 1, 1)
+        if "pixel_attention_mask" in inputs:
+            vision_data["pixel_attention_mask"] = inputs["pixel_attention_mask"].repeat(2, 1, 1)
+        if "image_sizes" in inputs:
+            vision_data["image_sizes"] = inputs["image_sizes"].repeat(2, 1)
 
-    def _forward(self, model, prompt_ids, prompt_mask, completion_ids, completion_mask):
+        return prompt_ids, prompt_mask, completion_ids, completion_mask, vision_data
+
+    def _forward(self, model, prompt_ids, prompt_mask, completion_ids, completion_mask, **vision_kwargs):
         # Get the number of tokens to truncate from prompt
         num_tokens_to_truncate = max(prompt_ids.size(1) + completion_ids.size(1) - self.max_length, 0)
 
@@ -504,8 +564,21 @@ class OnlineDPOTrainer(Trainer):
         prompt_completion_ids = torch.cat((prompt_ids, completion_ids), dim=1)
         prompt_completion_mask = torch.cat((prompt_mask, completion_mask), dim=1)
 
+        # Prepare model kwargs with vision inputs
+        model_kwargs = {
+            "attention_mask": prompt_completion_mask
+        }
+        
+        # Add vision-specific inputs if available
+        if "pixel_values" in vision_kwargs:
+            model_kwargs["pixel_values"] = vision_kwargs["pixel_values"]
+        if "pixel_attention_mask" in vision_kwargs:
+            model_kwargs["pixel_attention_mask"] = vision_kwargs["pixel_attention_mask"]
+        if "image_sizes" in vision_kwargs:
+            model_kwargs["image_sizes"] = vision_kwargs["image_sizes"]
+
         # Get the logprobs of the completions from the model
-        output = model(prompt_completion_ids, attention_mask=prompt_completion_mask)
+        output = model(prompt_completion_ids, **model_kwargs)
 
         # There is 1 offset, because the model predict the next token
         logits = output.logits[:, prompt_ids.size(1) - 1 : -1]
@@ -523,19 +596,19 @@ class OnlineDPOTrainer(Trainer):
         batch_size = len(prompts)
 
         if self.args.use_vllm:
-            prompt_ids, prompt_mask, completion_ids, completion_mask = self._generate_vllm(model, prompts)
+            prompt_ids, prompt_mask, completion_ids, completion_mask, vision_data = self._generate_vllm(model, prompts)
         else:
-            prompt_ids, prompt_mask, completion_ids, completion_mask = self._generate(model, prompts)
+            prompt_ids, prompt_mask, completion_ids, completion_mask, vision_data = self._generate(model, prompts)
 
         contain_eos_token = torch.any(completion_ids == self.processing_class.eos_token_id, dim=-1)
 
-        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask)
+        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **vision_data)
         with torch.no_grad():
             if self.ref_model is not None:
-                ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask)
+                ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask, **vision_data)
             else:  # peft case: we just need to disable the adapter
                 with self.model.disable_adapter():
-                    ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask)
+                    ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **vision_data)
 
         # Decode the completions, and format them if the input is conversational
         device = logprobs.device
