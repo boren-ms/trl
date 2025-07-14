@@ -532,14 +532,14 @@ class OnlineDPOTrainer(Trainer):
         prompt_ids = inputs["prompt_input_ids"].repeat(2, 1)
         prompt_mask = inputs["prompt_attention_mask"].repeat(2, 1)
 
-        # Prepare generation kwargs with vision inputs if available
+        # Prepare generation kwargs with audio inputs if available
         generation_kwargs = {
             "input_ids": prompt_ids,
             "attention_mask": prompt_mask,
             "generation_config": self.generation_config,
         }
 
-        # Add audio-specific inputs for multimodal models
+        # Add audio-specific inputs for audio models
         if "input_features" in inputs:
             generation_kwargs["input_features"] = inputs["input_features"].repeat(2, 1, 1)
         if "audio_attention_mask" in inputs:
