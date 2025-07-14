@@ -41,7 +41,7 @@ from transformers import (
     is_apex_available,
     is_wandb_available,
 )
-from transformers.models.auto.modeling_auto import MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES
+from transformers.models.auto.modeling_auto import MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING_NAMES
 from transformers.trainer_utils import EvalPrediction, seed_worker
 from transformers.training_args import OptimizerNames
 from transformers.utils import is_peft_available, is_sagemaker_mp_enabled, logging
@@ -175,7 +175,7 @@ class OnlineDPOTrainer(Trainer):
         self.reward_processing_class = reward_processing_class
         self.judge = judge
         self.is_encoder_decoder = model.config.is_encoder_decoder
-        self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
+        self.is_audio_model = model.config.model_type in MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING_NAMES.keys()
 
         if args.missing_eos_penalty is not None and judge is not None:
             raise ValueError("`missing_eos_penalty` is not supported when `judge` is provided.")
@@ -359,13 +359,13 @@ class OnlineDPOTrainer(Trainer):
     @staticmethod
     def process_row(feature, processing_class):
         """
-        Same as `tokenize_row` but for vision models. This processes both the image and text data.
+        Same as `tokenize_row` but for audio models. This processes both the audio and text data.
         """
         processor, tokenizer = processing_class, processing_class.tokenizer  # the processing class is a processor
         
-        # Process the prompt with images
-        if "images" in feature and feature["images"] is not None:
-            processed_features = processor(images=feature["images"], text=feature["prompt"], add_special_tokens=False)
+        # Process the prompt with audio
+        if "audio" in feature and feature["audio"] is not None:
+            processed_features = processor(audio=feature["audio"], text=feature["prompt"], add_special_tokens=False)
         else:
             # Fallback for text-only data
             processed_features = processor(text=feature["prompt"], add_special_tokens=False)
@@ -381,29 +381,22 @@ class OnlineDPOTrainer(Trainer):
             "prompt_input_ids": prompt_input_ids,
         }
 
-        # Add vision-specific features if available
-        if "pixel_values" in processed_features:
-            pixel_values = processed_features["pixel_values"]
+        # Add audio-specific features if available
+        if "input_features" in processed_features:
+            input_features = processed_features["input_features"]
             # Handle potential batch dimension
-            if hasattr(pixel_values, 'dim') and pixel_values.dim() > 3:
-                output["pixel_values"] = pixel_values[0]
+            if hasattr(input_features, 'dim') and input_features.dim() > 2:
+                output["input_features"] = input_features[0]
             else:
-                output["pixel_values"] = pixel_values
+                output["input_features"] = input_features
                 
-        if "pixel_attention_mask" in processed_features:
-            pixel_attention_mask = processed_features["pixel_attention_mask"]
-            # Handle potential batch dimension
-            if hasattr(pixel_attention_mask, 'dim') and pixel_attention_mask.dim() > 2:
-                output["pixel_attention_mask"] = pixel_attention_mask[0]
+        if "attention_mask" in processed_features:
+            attention_mask = processed_features["attention_mask"]
+            # Handle potential batch dimension - note: this is different from prompt_attention_mask
+            if hasattr(attention_mask, 'dim') and attention_mask.dim() > 2:
+                output["audio_attention_mask"] = attention_mask[0]
             else:
-                output["pixel_attention_mask"] = pixel_attention_mask
-                
-        if "image_sizes" in processed_features:
-            image_sizes = processed_features["image_sizes"]
-            if isinstance(image_sizes, list) and len(image_sizes) > 0:
-                output["image_sizes"] = image_sizes[0]
-            else:
-                output["image_sizes"] = image_sizes
+                output["audio_attention_mask"] = attention_mask
 
         return output
 
@@ -514,9 +507,9 @@ class OnlineDPOTrainer(Trainer):
         completion_ids = torch.tensor(completion_ids, device=self.accelerator.device)
         completion_mask = torch.tensor(completion_mask, device=self.accelerator.device)
 
-        # Return empty vision data for vLLM compatibility
-        vision_data = {}
-        return prompt_ids, prompt_mask, completion_ids, completion_mask, vision_data
+        # Return empty audio data for vLLM compatibility
+        audio_data = {}
+        return prompt_ids, prompt_mask, completion_ids, completion_mask, audio_data
 
     def _generate(self, model, prompts):
         eos_token_id = self.processing_class.eos_token_id
@@ -527,8 +520,8 @@ class OnlineDPOTrainer(Trainer):
         inputs = [{"prompt": prompt} for prompt in prompts]
         inputs = [maybe_apply_chat_template(x, self.processing_class) for x in inputs]
         
-        # Use different processing for vision vs text-only models
-        if self.is_vision_model:
+        # Use different processing for audio vs text-only models
+        if self.is_audio_model:
             inputs = [self.process_row(x, self.processing_class) for x in inputs]
         else:
             inputs = [self.tokenize_row(x, self.is_encoder_decoder, self.processing_class) for x in inputs]
@@ -546,13 +539,11 @@ class OnlineDPOTrainer(Trainer):
             "generation_config": self.generation_config,
         }
         
-        # Add vision-specific inputs for multimodal models
-        if "pixel_values" in inputs:
-            generation_kwargs["pixel_values"] = inputs["pixel_values"].repeat(2, 1, 1, 1)
-        if "pixel_attention_mask" in inputs:
-            generation_kwargs["pixel_attention_mask"] = inputs["pixel_attention_mask"].repeat(2, 1, 1)
-        if "image_sizes" in inputs:
-            generation_kwargs["image_sizes"] = inputs["image_sizes"].repeat(2, 1)
+        # Add audio-specific inputs for multimodal models
+        if "input_features" in inputs:
+            generation_kwargs["input_features"] = inputs["input_features"].repeat(2, 1, 1)
+        if "audio_attention_mask" in inputs:
+            generation_kwargs["attention_mask"] = inputs["audio_attention_mask"].repeat(2, 1)
             
         with unwrap_model_for_generation(
             model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
@@ -562,18 +553,16 @@ class OnlineDPOTrainer(Trainer):
         completion_ids = output[:, prompt_ids.size(1) :]
         completion_ids, completion_mask = truncate_right(completion_ids, eos_token_id, pad_token_id)
 
-        # Prepare vision data to return
-        vision_data = {}
-        if "pixel_values" in inputs:
-            vision_data["pixel_values"] = inputs["pixel_values"].repeat(2, 1, 1, 1)
-        if "pixel_attention_mask" in inputs:
-            vision_data["pixel_attention_mask"] = inputs["pixel_attention_mask"].repeat(2, 1, 1)
-        if "image_sizes" in inputs:
-            vision_data["image_sizes"] = inputs["image_sizes"].repeat(2, 1)
+        # Prepare audio data to return
+        audio_data = {}
+        if "input_features" in inputs:
+            audio_data["input_features"] = inputs["input_features"].repeat(2, 1, 1)
+        if "audio_attention_mask" in inputs:
+            audio_data["audio_attention_mask"] = inputs["audio_attention_mask"].repeat(2, 1)
 
-        return prompt_ids, prompt_mask, completion_ids, completion_mask, vision_data
+        return prompt_ids, prompt_mask, completion_ids, completion_mask, audio_data
 
-    def _forward(self, model, prompt_ids, prompt_mask, completion_ids, completion_mask, **vision_kwargs):
+    def _forward(self, model, prompt_ids, prompt_mask, completion_ids, completion_mask, **audio_kwargs):
         # Get the number of tokens to truncate from prompt
         num_tokens_to_truncate = max(prompt_ids.size(1) + completion_ids.size(1) - self.max_length, 0)
 
@@ -585,18 +574,18 @@ class OnlineDPOTrainer(Trainer):
         prompt_completion_ids = torch.cat((prompt_ids, completion_ids), dim=1)
         prompt_completion_mask = torch.cat((prompt_mask, completion_mask), dim=1)
 
-        # Prepare model kwargs with vision inputs
+        # Prepare model kwargs with audio inputs
         model_kwargs = {
             "attention_mask": prompt_completion_mask
         }
         
-        # Add vision-specific inputs if available
-        if "pixel_values" in vision_kwargs:
-            model_kwargs["pixel_values"] = vision_kwargs["pixel_values"]
-        if "pixel_attention_mask" in vision_kwargs:
-            model_kwargs["pixel_attention_mask"] = vision_kwargs["pixel_attention_mask"]
-        if "image_sizes" in vision_kwargs:
-            model_kwargs["image_sizes"] = vision_kwargs["image_sizes"]
+        # Add audio-specific inputs if available
+        if "input_features" in audio_kwargs:
+            model_kwargs["input_features"] = audio_kwargs["input_features"]
+        if "audio_attention_mask" in audio_kwargs:
+            # Note: for audio models, this might override the text attention_mask
+            # We'll keep the text attention_mask as primary and handle audio separately if needed
+            model_kwargs["encoder_attention_mask"] = audio_kwargs["audio_attention_mask"]
 
         # Get the logprobs of the completions from the model
         output = model(prompt_completion_ids, **model_kwargs)
@@ -617,19 +606,19 @@ class OnlineDPOTrainer(Trainer):
         batch_size = len(prompts)
 
         if self.args.use_vllm:
-            prompt_ids, prompt_mask, completion_ids, completion_mask, vision_data = self._generate_vllm(model, prompts)
+            prompt_ids, prompt_mask, completion_ids, completion_mask, audio_data = self._generate_vllm(model, prompts)
         else:
-            prompt_ids, prompt_mask, completion_ids, completion_mask, vision_data = self._generate(model, prompts)
+            prompt_ids, prompt_mask, completion_ids, completion_mask, audio_data = self._generate(model, prompts)
 
         contain_eos_token = torch.any(completion_ids == self.processing_class.eos_token_id, dim=-1)
 
-        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **vision_data)
+        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **audio_data)
         with torch.no_grad():
             if self.ref_model is not None:
-                ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask, **vision_data)
+                ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask, **audio_data)
             else:  # peft case: we just need to disable the adapter
                 with self.model.disable_adapter():
-                    ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **vision_data)
+                    ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **audio_data)
 
         # Decode the completions, and format them if the input is conversational
         device = logprobs.device
