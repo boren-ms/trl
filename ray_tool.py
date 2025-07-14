@@ -135,6 +135,11 @@ def is_valid_model_path(model_dir):
 
 
 def scan_models(input_dir):
+    """Scan the input directory for valid model paths."""
+    if not bf.exists(input_dir) or not bf.isdir(input_dir):
+        return []
+    if is_valid_model_path(input_dir):
+        return [input_dir]
     paths = []
     for p in bf.scandir(input_dir):
         if p.is_file:
@@ -143,7 +148,6 @@ def scan_models(input_dir):
             paths.append(p.path)
         else:
             paths += scan_models(p.path)
-
     return paths
 
 
