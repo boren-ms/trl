@@ -83,13 +83,17 @@ def launch_evaluation(model_path, config_file=None):
 
 
 
-def main(model_name, job_name=None, config_file=None, forced=False):
+def main(model_path, config=None, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
     init_ray()
     list_nodes()
 
-    print(f"Model name: {model_name}")
-    model_dir, remote_model_dir = get_output_dirs(Path(model_name).stem, job_name=job_name)
+    print(f"Model path: {model_path}")
+    model_path= Path(model_path)
+    job_name = model_path.parent if model_path.parent else None
+    model_name = model_path.stem
+
+    model_dir, remote_model_dir = get_output_dirs(model_name, job_name=job_name)
 
     results = []
     print("Preparing environment on all nodes...")
@@ -124,7 +128,7 @@ def main(model_name, job_name=None, config_file=None, forced=False):
     watcher = run_output_watcher(local_dir=model_dir, remote_dir=remote_model_dir, interval=600, sync_all=True)
     
     print(f"Evaluating {model_dir} ")
-    run_nodes(launch_evaluation, model_dir, config_file)
+    run_nodes(launch_evaluation, model_dir, config)
     watcher.flush.remote()
     print("All tasks completed.")
 
