@@ -75,6 +75,52 @@ def hf2vllm_config(hf_config):
     vllm_params["n"] = vllm_params.get("n", 1)
     return vllm_params
 
+def hack_package(package_path, replace=False):
+    """hack the processor config file to remove unnecessary keys and rename some keys."""
+    if not Path(package_path).exists():
+        print(f"Model path {package_path} is not local path, skip to hack.")
+        return
+    chat_temp_file = Path(package_path) / "chat_template.json"
+    chat_temp_file.unlink(missing_ok=True)
+
+    preprocessor_conf = Path(package_path) / "preprocessor_config.json"
+    assert preprocessor_conf.exists(), f"{preprocessor_conf} does not exist."
+    print(f"Loading PreProcessor Config: {preprocessor_conf}")
+    data = json.load(open(preprocessor_conf, "r", encoding="utf-8"))
+    print("Original PreProcessor Config:")
+    print(json.dumps(data, indent=4))
+    key_mapping = {
+        "auto_map": None,
+        "image_processor_type": None,
+        "processor_class": None,
+        "feature_extractor_type": None,
+        "audio_compression_rate": "compression_rate",
+        "audio_downsample_rate": "qformer_compression_rate",
+        "audio_feat_stride": "feat_stride",
+        "dynamic_hd": None,
+    }
+
+    if set(data.keys()) == set(key_mapping.keys()):
+        print("All keys match the config, skip to hack.")
+        return
+
+    # Filter out keys with None values from key_mapping
+    new_data = {}
+    for key, old_key in key_mapping.items():
+        if key in data:
+            new_data[key] = data[key]
+        elif old_key is not None and old_key in data:
+            new_data[key] = data[old_key]
+        else:
+            raise KeyError(f"Key '{key}[{old_key}]' not found.")
+    print("New PreProcessor Config:")
+    print(json.dumps(new_data, indent=4))
+    if not replace:
+        return
+    with open(preprocessor_conf, "wt") as f:
+        json.dump(new_data, f, indent=4)
+    print(f"Updated config file: {preprocessor_conf}")
+
 
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
@@ -91,7 +137,7 @@ class Evaluation:
 
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
         self.generation_config.update(**(generation_config or {}))
-
+        hack_package(self.model_path, True)
         self._prepare_model()
         if self.is_main:
             init_wandb(job_name=self.job_name, config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size}, output_dir=self.wandb_dir)
