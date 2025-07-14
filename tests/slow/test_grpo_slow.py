@@ -41,7 +41,7 @@ class GRPOTrainerSlowTester(unittest.TestCase):
     def setUp(self):
         self.train_dataset = load_dataset("trl-internal-testing/zen", "standard_prompt_only", split="train")
         self.eval_dataset = load_dataset("trl-internal-testing/zen", "standard_prompt_only", split="test")
-        self.max_length = 128
+        self.max_length = 8  # reduced from 128 to improve CI performance
 
     def tearDown(self):
         gc.collect()
