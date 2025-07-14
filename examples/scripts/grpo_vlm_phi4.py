@@ -51,7 +51,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from datasets import load_dataset
-from transformers import AutoModelForVision2Seq, AutoModelForSequenceClassification, AutoProcessor
+from transformers import AutoModelForSequenceClassification, AutoModelForVision2Seq, AutoProcessor
 
 from trl import GRPOConfig, GRPOTrainer, ModelConfig, ScriptArguments, TrlParser, get_peft_config
 from trl.rewards import think_format_reward
@@ -115,12 +115,12 @@ def main(script_args, training_args, model_args):
     model = AutoModelForVision2Seq.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code
     )
-    
+
     # Load processor instead of just tokenizer for VLM
     processor = AutoProcessor.from_pretrained(
-        model_args.model_name_or_path, 
+        model_args.model_name_or_path,
         trust_remote_code=model_args.trust_remote_code,
-        do_image_splitting=script_args.do_image_splitting
+        do_image_splitting=script_args.do_image_splitting,
     )
     tokenizer = processor.tokenizer
 
@@ -134,9 +134,7 @@ def main(script_args, training_args, model_args):
         # For VLM reward models, we might need a vision-language reward model
         # For now, using sequence classification as fallback
         reward_model = AutoModelForSequenceClassification.from_pretrained(
-            script_args.reward_model_name_or_path, 
-            trust_remote_code=model_args.trust_remote_code, 
-            num_labels=1
+            script_args.reward_model_name_or_path, trust_remote_code=model_args.trust_remote_code, num_labels=1
         )
         reward_funcs.append(reward_model)
 
@@ -185,7 +183,9 @@ def main(script_args, training_args, model_args):
 def make_parser(subparsers: argparse._SubParsersAction = None):
     dataclass_types = (GRPOVLMScriptArguments, GRPOConfig, ModelConfig)
     if subparsers is not None:
-        parser = subparsers.add_parser("grpo_vlm", help="Run the GRPO VLM training script", dataclass_types=dataclass_types)
+        parser = subparsers.add_parser(
+            "grpo_vlm", help="Run the GRPO VLM training script", dataclass_types=dataclass_types
+        )
     else:
         parser = TrlParser(dataclass_types)
     return parser

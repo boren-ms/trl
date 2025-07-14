@@ -15,7 +15,7 @@
 """
 Online DPO training script for phi4 multi-modality (vision-language) models.
 
-This script combines the Online DPO training capabilities with support for 
+This script combines the Online DPO training capabilities with support for
 vision-language models, specifically designed for phi4 multi-modal models.
 
 Usage:
@@ -47,7 +47,7 @@ python examples/scripts/online_dpo_vlm_phi4.py \
 
 import torch
 from datasets import load_dataset
-from transformers import AutoModelForVision2Seq, AutoModelForSequenceClassification, AutoProcessor, GenerationConfig
+from transformers import AutoModelForSequenceClassification, AutoModelForVision2Seq, AutoProcessor, GenerationConfig
 
 from trl import (
     HfPairwiseJudge,
@@ -105,7 +105,7 @@ if __name__ == "__main__":
             truncation=True,
             truncation_side="left",  # since we judge the completion, truncating left is more appropriate
         )
-        reward_tokenizer = reward_processor.tokenizer if hasattr(reward_processor, 'tokenizer') else reward_processor
+        reward_tokenizer = reward_processor.tokenizer if hasattr(reward_processor, "tokenizer") else reward_processor
     else:
         reward_model = None
         reward_processor = None
@@ -128,13 +128,13 @@ if __name__ == "__main__":
     tokenizer = processor.tokenizer
 
     # Set up chat template for phi4 or fallback to simple template
-    if hasattr(processor, 'chat_template') and processor.chat_template is not None:
+    if hasattr(processor, "chat_template") and processor.chat_template is not None:
         pass  # Use existing chat template
-    elif hasattr(tokenizer, 'chat_template') and tokenizer.chat_template is not None:
+    elif hasattr(tokenizer, "chat_template") and tokenizer.chat_template is not None:
         pass  # Use tokenizer's chat template
     else:
-        # Fallback to simple chat template
-        if hasattr(processor, 'chat_template'):
+        # Fallback to simple chat template for phi4 and other models
+        if hasattr(processor, "chat_template"):
             processor.chat_template = SIMPLE_CHAT_TEMPLATE
         else:
             tokenizer.chat_template = SIMPLE_CHAT_TEMPLATE
