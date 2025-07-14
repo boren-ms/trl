@@ -15,10 +15,11 @@ from ray_tool import (
     prepare_local_output,
     init_ray,
     list_nodes,
-    get_output_dirs,
+    get_local_path,
     run_output_watcher,
     sync_folder,
     is_valid_model_path,
+    scan_models,
 )
 
 
@@ -81,52 +82,60 @@ def launch_evaluation(model_path, config_file=None):
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
+def evaluate_model(remote_model_dir, config=None):
+    """Evaluate the model using the specified configuration."""
+    
+    print(f"Evaluating {remote_model_dir}")
+    local_mode_dir = get_local_path(remote_model_dir)
+    
+    print("Preparing models from ",  remote_model_dir)
+    run_nodes(prepare_local_output, local_dir=local_mode_dir, remote_dir=remote_model_dir)
+    print("Syncing outputs from head to other nodes...")
+    run_nodes(sync_folder, str(local_mode_dir))
+    
+    print("Watching on ", local_mode_dir) 
+    watcher = run_output_watcher(local_dir=local_mode_dir, remote_dir=remote_model_dir, interval=120, sync_all=True)
 
+    print(f"Evaluating {local_mode_dir} with config {config}")
+    run_nodes(launch_evaluation, local_mode_dir, config)
+    watcher.flush.remote()
+    print("Evaluation completed on ", local_mode_dir)
+
+
+def search_models(model_path):
+    """Search for the model path in the local filesystem."""
+    remote_model_dir = f"{ORNG_USER.output_path}/{model_path}"
+    model_paths = scan_models(remote_model_dir)
+
+    if not model_paths:
+        print(f"Found no models from {remote_model_dir}, switching to data folder")
+        model_path = f"{ORNG_USER.home_path}/data/ckp/hf_models/{model_path}"
+        if is_valid_model_path(model_path):
+            model_paths += scan_models(model_path)
+    return model_paths
 
 def main(model_path, config=None, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
     init_ray()
     list_nodes()
-
-    print(f"Model path: {model_path}")
-    model_dir, remote_model_dir = get_output_dirs(model_path)
+    
+    print(f"Root model path: {model_path}")
+    model_paths = search_models(model_path)
+    if not model_paths:
+        print(f"No models found for {model_path}, existing evaluation.")
+        return
 
     results = []
     print("Preparing environment on all nodes...")
     results += run_nodes(prepare_env, forced=forced, waiting=False)
-
     print("Preparing data on all nodes...")
     results += run_nodes(prepare_data, forced=forced, waiting=False)
-
     print("Releasing GPUs on all nodes...")
     results += run_nodes(release_gpus, waiting=False)
-
-    print("Preparing local models")
-    results += run_nodes(prepare_local_output, local_dir=model_dir, remote_dir=remote_model_dir, waiting=False)
-
-    # Ensure all tasks are completed before proceeding
     ray.get(results)
-    print("Syncing outputs from head to other nodes...")
-    run_nodes(sync_folder, str(model_dir))
     
-    if not is_valid_model_path(model_dir):  # for baseline models
-        print(f"Model [{model_path}] is not valid in {model_dir}, switching to prepared data checkpoints folder")
-        rel_path = f"data/ckp/hf_models/{model_path}"
-        model_dir = Path.home() / rel_path
-        remote_model_dir = f"{ORNG_USER.home_path}/{rel_path}"
-
-    if not is_valid_model_path(model_dir):
-        print(f"Model [{model_path}] is not valid in {model_dir}")
-        print(f"Exiting evaluation, please double check model [{model_path}]")
-        return
-    
-    print("Starting output watcher on head node...")
-    watcher = run_output_watcher(local_dir=model_dir, remote_dir=remote_model_dir, interval=600, sync_all=True)
-    
-    print(f"Evaluating {model_dir} ")
-    run_nodes(launch_evaluation, model_dir, config)
-    watcher.flush.remote()
-    print("All tasks completed.")
+    for model_path in model_paths:
+        evaluate_model(model_path, config)
 
 
 if __name__ == "__main__":

@@ -830,16 +830,17 @@ def chkp_index(name, default=-1):
 
 def find_chkps(model_dir, specified=None):
     """Find all checkpoint directories in the model directory."""
-    chkps = [d for d in Path(model_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
+    chkps = [d for d in bf.scandir(model_dir) if d.is_dir and d.name.startswith("checkpoint-")]
     if not chkps:
         return []
     chkps = sorted(chkps, key=lambda d: chkp_index(d.name), reverse=True)
     idxs = [chkp_index(chkp.name) for chkp in chkps]
     if specified is None:
-        return chkps
+        return [f.path for f in chkps]
 
     if isinstance(specified, int):
         specified = [specified]
     specified =  [i if i >= 0 else idxs[i] for i in map(to_int, specified)]
     
     return [chkp for chkp in chkps if chkp_index(chkp.name)  in specified]
+

@@ -116,25 +116,35 @@ def is_package_version(package_name, target_version):
 
 def is_valid_model_path(model_dir):
     """Check if the model path is valid."""
-    model_dir = Path(model_dir)
-    if not model_dir.exists():
-        print(f"Model path {model_dir} does not exist.")
+    if not bf.exists(model_dir):
+        # print(f"Model path {model_dir} does not exist.")
         return False
-    if not model_dir.is_dir():
-        print(f"Model path {model_dir} is not a directory.")
+    if not bf.isdir(model_dir):
+        # print(f"Model path {model_dir} is not a directory.")
         return False
-    
     if any(is_valid_model_path(chkp) for chkp in find_chkps(model_dir)):
         return True
-
-    config_file = model_dir / "config.json"
-    if not config_file.exists():
-        print(f"Config file {config_file} does not exist in the model directory.")
+    config_file = f"{model_dir}/config.json"
+    if not bf.exists(config_file):
+        # print(f"Config file {config_file} does not exist in the model directory.")
         return False
-    if not any(model_dir.glob("*.safetensors")):
-        print(f"No .safetensors files found in {model_dir}.")
+    if not any(bf.glob(f"{model_dir}/*.safetensors")):
+        # print(f"No .safetensors files found in {model_dir}.")
         return False
     return True
+
+
+def scan_models(input_dir):
+    paths = []
+    for p in bf.scandir(input_dir):
+        if p.is_file:
+            continue
+        if is_valid_model_path(p.path):
+            paths.append(p.path)
+        else:
+            paths += scan_models(p.path)
+
+    return paths
 
 
 def get_region():
@@ -184,11 +194,25 @@ def get_output_dirs(rel_path=None):
     """Get the remote output directory based on the job name."""
     # job_name = job_name or os.environ.get("RCALL_JOB_NAME", None)
     remote_output_dir = f"{ORNG_USER.output_path}"
-    local_output_dir = Path.home() / "outputs" 
+    local_output_dir = Path.home() / "outputs"
     if rel_path:
         remote_output_dir = f"{remote_output_dir}/{rel_path}"
         local_output_dir = local_output_dir / rel_path
     return str(local_output_dir), remote_output_dir
+
+
+def get_local_path(file_path):
+    """Get the local path for the remote path."""
+    if not file_path.startswith("az://"):
+        return file_path
+    return file_path.replace(ORNG_USER.home_path, str(Path.home()))
+
+
+def get_remote_path(file_path):
+    """Get the remote path for the local path."""
+    if file_path.startswith("az://"):
+        return file_path
+    return file_path.replace(str(Path.home()), ORNG_USER.home_path)
 
 
 @ray.remote
