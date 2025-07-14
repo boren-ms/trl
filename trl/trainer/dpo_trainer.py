@@ -396,7 +396,7 @@ class DPOTrainer(Trainer):
             if args.per_device_train_batch_size == 1:
                 warnings.warn(
                     "You are using a per_device_train_batch_size of 1 with padding-free training. Using a batch size "
-                    "of 1 anihilate the benefits of padding-free training. Please consider increasing the batch size "
+                    "of 1 annihilate the benefits of padding-free training. Please consider increasing the batch size "
                     "to at least 2."
                 )
         self.padding_free = args.padding_free

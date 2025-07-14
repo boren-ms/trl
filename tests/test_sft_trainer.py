@@ -453,7 +453,7 @@ class SFTTrainerTester(unittest.TestCase):
 
     def test_uncorrect_data(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            # Shoud work as SFTTrainer natively supports conversational lm dataset
+            # Should work as SFTTrainer natively supports conversational lm dataset
             training_args = SFTConfig(
                 output_dir=tmp_dir,
                 per_device_train_batch_size=2,
