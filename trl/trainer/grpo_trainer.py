@@ -13,6 +13,11 @@
 # limitations under the License.
 
 import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 import textwrap
 import warnings
 from collections import defaultdict, deque
@@ -74,6 +79,16 @@ if is_liger_kernel_available():
 if is_vllm_available():
     from vllm import LLM, SamplingParams
     from vllm.sampling_params import GuidedDecodingParams
+
+    # Validate vLLM version compatibility
+    try:
+        import vllm
+        vllm_version = vllm.__version__
+        logger.info(f"Using vLLM version: {vllm_version}")
+        # Note: This implementation has been tested with vLLM v0.6+ but may work with other versions.
+        # If you encounter issues, please check vLLM version compatibility.
+    except Exception:
+        logger.warning("Could not determine vLLM version. Proceeding without version check.")
 
 if is_wandb_available():
     import wandb
@@ -656,29 +671,51 @@ class GRPOTrainer(Trainer):
                     )
 
                 if self.vllm_tensor_parallel_size > 1:
+                    # Ensure torch distributed is initialized before creating tensor parallel groups
+                    if not torch.distributed.is_initialized():
+                        raise RuntimeError(
+                            "Distributed training must be initialized when using vllm_tensor_parallel_size > 1. "
+                            "Make sure to run with multiple GPUs or set vllm_tensor_parallel_size=1."
+                        )
+                    
                     # Create subgroups of ranks for TP, each group with `vllm_tensor_parallel_size` ranks.
                     # For example, if world_size=8 and vllm_tensor_parallel_size=2 → groups: [0,1], [2,3], [4,5], [6,7]
-                    self.tp_group, _ = torch.distributed.new_subgroups_by_enumeration(
-                        [
-                            list(range(i * self.vllm_tensor_parallel_size, (i + 1) * self.vllm_tensor_parallel_size))
-                            for i in range(self.accelerator.num_processes // self.vllm_tensor_parallel_size)
-                        ]
-                    )
+                    try:
+                        self.tp_group, _ = torch.distributed.new_subgroups_by_enumeration(
+                            [
+                                list(range(i * self.vllm_tensor_parallel_size, (i + 1) * self.vllm_tensor_parallel_size))
+                                for i in range(self.accelerator.num_processes // self.vllm_tensor_parallel_size)
+                            ]
+                        )
+                    except Exception as e:
+                        raise RuntimeError(
+                            f"Failed to create tensor parallel groups for vLLM colocate mode: {e}. "
+                            f"This might be due to incompatible distributed setup."
+                        ) from e
+                else:
+                    self.tp_group = None
 
-                self.llm = LLM(
-                    model=model.name_or_path,
-                    tensor_parallel_size=args.vllm_tensor_parallel_size,
-                    gpu_memory_utilization=self.vllm_gpu_memory_utilization,
-                    max_num_seqs=self.args.per_device_train_batch_size
-                    * self.vllm_tensor_parallel_size
-                    * self.args.gradient_accumulation_steps,
-                    max_model_len=self.max_prompt_length + self.max_completion_length,
-                    distributed_executor_backend="external_launcher",
-                    # Feed identical seed for tp groups to ensure sampling results are the same across workers
-                    seed=self.accelerator.process_index // self.vllm_tensor_parallel_size,
-                    # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
-                    max_num_batched_tokens=4096,
-                )
+                try:
+                    self.llm = LLM(
+                        model=model.name_or_path,
+                        tensor_parallel_size=args.vllm_tensor_parallel_size,
+                        gpu_memory_utilization=self.vllm_gpu_memory_utilization,
+                        max_num_seqs=self.args.per_device_train_batch_size
+                        * self.vllm_tensor_parallel_size
+                        * self.args.gradient_accumulation_steps,
+                        max_model_len=self.max_prompt_length + self.max_completion_length,
+                        distributed_executor_backend="external_launcher",
+                        # Feed identical seed for tp groups to ensure sampling results are the same across workers
+                        seed=self.accelerator.process_index // self.vllm_tensor_parallel_size,
+                        # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there s not enough memory
+                        max_num_batched_tokens=4096,
+                    )
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Failed to initialize vLLM in colocate mode: {e}. "
+                        f"This might be due to insufficient memory (try lowering vllm_gpu_memory_utilization), "
+                        f"incompatible model, or vLLM version issues."
+                    ) from e
 
             # vLLM specific sampling arguments
             self.guided_decoding_regex = args.vllm_guided_decoding_regex
@@ -898,6 +935,17 @@ class GRPOTrainer(Trainer):
         entropies = torch.cat(all_entropies, dim=0) if compute_entropy else None
         return {"logps": logps, "entropies": entropies}
 
+    def _get_vllm_model(self):
+        """Safely access the vLLM internal model with proper error handling."""
+        try:
+            return self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+        except AttributeError as e:
+            raise RuntimeError(
+                f"Failed to access vLLM internal model structure. This is likely due to a vLLM version "
+                f"incompatibility. The internal API structure may have changed. Error: {e}"
+            ) from e
+
+
     def _sync_fsdp_params_to_vllm(self, module: nn.Module, prefix: str = "", visited=None):
         """Memory-efficient post-order traversal of FSDP modules to extract full parameters and sync with vLLM."""
         if visited is None:
@@ -923,7 +971,7 @@ class GRPOTrainer(Trainer):
                     if self.vllm_mode == "server" and self.accelerator.is_main_process:
                         self.vllm_client.update_named_param(full_name, param.data)
                     elif self.vllm_mode == "colocate":
-                        llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                        llm_model = self._get_vllm_model()
                         llm_model.load_weights([(full_name, param.data)])
 
     @profiling_decorator
@@ -965,7 +1013,7 @@ class GRPOTrainer(Trainer):
                         if self.vllm_mode == "server" and self.accelerator.is_main_process:
                             self.vllm_client.update_named_param(name, param.data)
                         elif self.vllm_mode == "colocate":
-                            llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                            llm_model = self._get_vllm_model()
                             llm_model.load_weights([(name, param.data)])
                 # Unmerge adapters while parameters are still gathered
                 self.model.unmerge_adapter()
@@ -980,7 +1028,7 @@ class GRPOTrainer(Trainer):
                         if self.vllm_mode == "server" and self.accelerator.is_main_process:
                             self.vllm_client.update_named_param(name, param.data)
                         elif self.vllm_mode == "colocate":
-                            llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                            llm_model = self._get_vllm_model()
                             llm_model.load_weights([(name, param.data)])
 
         # Reset cache on vLLM
@@ -1158,11 +1206,24 @@ class GRPOTrainer(Trainer):
                 sampling_params = SamplingParams(**generation_kwargs)
 
                 if self.vllm_tensor_parallel_size > 1:
+                    # Validate that tensor parallel group was properly initialized
+                    if self.tp_group is None:
+                        raise RuntimeError(
+                            "Tensor parallel group is not initialized but vllm_tensor_parallel_size > 1. "
+                            "This should not happen if distributed setup was correct."
+                        )
+                    
                     # Gather prompts from all ranks in the TP group and flatten.
                     # Each rank starts with its own prompts; after gathering, all ranks see the full group set.
                     orig_size = len(prompts_text)
                     gathered_prompts = [None for _ in range(self.vllm_tensor_parallel_size)]
-                    torch.distributed.all_gather_object(gathered_prompts, prompts_text, group=self.tp_group)
+                    try:
+                        torch.distributed.all_gather_object(gathered_prompts, prompts_text, group=self.tp_group)
+                    except Exception as e:
+                        raise RuntimeError(
+                            f"Failed to gather prompts across tensor parallel group: {e}. "
+                            f"This might indicate an issue with the distributed setup."
+                        ) from e
                     all_prompts_text = [p for sublist in gathered_prompts for p in sublist]
                 else:
                     all_prompts_text = prompts_text
@@ -1171,11 +1232,26 @@ class GRPOTrainer(Trainer):
                     all_outputs = self.llm.generate(all_prompts_text, sampling_params=sampling_params, use_tqdm=False)
 
                 completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
-
                 if self.vllm_tensor_parallel_size > 1:
-                    # Slice completions for this rank within its TP group.
+                    # Validate and slice completions for this rank within its TP group.
                     # Each rank generates all outputs — we keep only our share.
-                    local_rank_in_group = torch.distributed.get_rank(group=self.tp_group)
+                    try:
+                        local_rank_in_group = torch.distributed.get_rank(group=self.tp_group)
+                    except Exception as e:
+                        raise RuntimeError(
+                            f"Failed to get rank in tensor parallel group: {e}. "
+                            f"This indicates an issue with the distributed group setup."
+                        ) from e
+                    
+                    tp_slice = slice(local_rank_in_group * orig_size, (local_rank_in_group + 1) * orig_size)
+                    
+                    # Validate that we have enough outputs for slicing
+                    if len(completion_ids) < (local_rank_in_group + 1) * orig_size:
+                        raise RuntimeError(
+                            f"Not enough completion outputs for tensor parallel slicing. "
+                            f"Expected at least {(local_rank_in_group + 1) * orig_size} outputs, "
+                            f"but got {len(completion_ids)}. This might indicate a generation failure."
+                        )
                     tp_slice = slice(local_rank_in_group * orig_size, (local_rank_in_group + 1) * orig_size)
                     completion_ids = completion_ids[tp_slice]
 
