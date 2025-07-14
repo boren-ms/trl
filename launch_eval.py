@@ -114,16 +114,21 @@ def search_models(model_path):
             model_paths += scan_models(model_path)
     return model_paths
 
-def main(model_path, config=None, forced=False):
+def main(model_path="", config=None, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
     init_ray()
     list_nodes()
     
-    print(f"Root model path: {model_path}")
+    print(f"Search models: {model_path if model_path else 'default'}")
     model_paths = search_models(model_path)
     if not model_paths:
         print(f"No models found for {model_path}, existing evaluation.")
         return
+    else:
+        print(f"Found {len(model_paths)} models")
+        for i, model_path in enumerate(model_paths):
+            print(f"[{i}] Model: {model_path}")
+    
 
     results = []
     print("Preparing environment on all nodes...")
