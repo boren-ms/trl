@@ -91,11 +91,15 @@ logger = logging.get_logger(__name__)
 
 class OnlineDPOTrainer(Trainer):
     r"""
-    Initialize OnlineDPOTrainer.
+    Online Direct Preference Optimization (DPO) Trainer with multi-modal support.
+    
+    This trainer supports both text-only and multi-modal (audio + text) training while maintaining
+    full backward compatibility with existing text-only workflows.
 
     Args:
         model (`transformers.PreTrainedModel` or `torch.nn.Module`):
-            The model to train, preferably an `AutoModelForCausalLM`.
+            The model to train, preferably an `AutoModelForCausalLM`. For multi-modal training,
+            use a model that supports multi-modal inputs (e.g., audio + text).
         ref_model (`transformers.PreTrainedModel` or `torch.nn.Module` or `None`):
             The reference model to use for training. If None is specified, the reference model will be created from the
             model.
@@ -110,13 +114,17 @@ class OnlineDPOTrainer(Trainer):
             (`DPODataCollatorWithPadding`) will be used which will pad the sequences to the maximum length of the
             sequences in the batch, given a dataset of paired sequences.
         train_dataset (`datasets.Dataset`):
-            The dataset to use for training.
+            The dataset to use for training. Supports both text-only and multi-modal datasets.
+            
+            Text-only format: [{"prompt": "Your text prompt"}, ...]
+            Multi-modal format: [{"prompt": "Describe the audio", "audio_path": "/path/to/audio.wav"}, ...]
+            Mixed format: Mix of text-only and multi-modal samples in the same dataset.
         eval_dataset (`datasets.Dataset`):
-            The dataset to use for evaluation.
+            The dataset to use for evaluation. Same format requirements as train_dataset.
         processing_class (`PreTrainedTokenizerBase` or `BaseImageProcessor` or `FeatureExtractionMixin` or `ProcessorMixin`, *optional*):
-            Processing class used to process the data. If provided, will be used to automatically process the inputs
-            for the model, and it will be saved along the model to make it easier to rerun an interrupted training or
-            reuse the fine-tuned model.
+            Processing class used to process the data. For text-only training, use AutoTokenizer.
+            For multi-modal training, use AutoProcessor that handles both text and audio inputs.
+            The trainer automatically detects input type and processes accordingly.
         peft_config (`dict`):
             The peft config to use for training.
         compute_metrics (`Callable[[EvalPrediction], dict]`, *optional*):
@@ -128,6 +136,41 @@ class OnlineDPOTrainer(Trainer):
             The optimizer and scheduler to use for training.
         preprocess_logits_for_metrics (`Callable[[torch.Tensor, torch.Tensor], torch.Tensor]`):
             The function to use to preprocess the logits before computing the metrics.
+            
+    Example:
+        Text-only training (backward compatible):
+        ```python
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from trl import OnlineDPOTrainer, OnlineDPOConfig
+        
+        model = AutoModelForCausalLM.from_pretrained("model_name")
+        tokenizer = AutoTokenizer.from_pretrained("model_name")
+        
+        trainer = OnlineDPOTrainer(
+            model=model,
+            reward_model=reward_model,
+            args=OnlineDPOConfig(...),
+            train_dataset=text_dataset,  # [{"prompt": "text"}, ...]
+            processing_class=tokenizer,
+        )
+        ```
+        
+        Multi-modal training (new capability):
+        ```python
+        from transformers import AutoModelForCausalLM, AutoProcessor
+        from trl import OnlineDPOTrainer, OnlineDPOConfig
+        
+        model = AutoModelForCausalLM.from_pretrained("multimodal_model_name")
+        processor = AutoProcessor.from_pretrained("multimodal_model_name")
+        
+        trainer = OnlineDPOTrainer(
+            model=model,
+            reward_model=reward_model,
+            args=OnlineDPOConfig(...),
+            train_dataset=multimodal_dataset,  # [{"prompt": "text", "audio_path": "path"}, ...]
+            processing_class=processor,
+        )
+        ```
     """
 
     _tag_names = ["trl", "online-dpo"]
