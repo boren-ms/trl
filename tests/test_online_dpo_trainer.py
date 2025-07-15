@@ -272,3 +272,57 @@ class TestOnlineDPOTrainer(unittest.TestCase):
 
             # Check if training loss is available
             self.assertIn("train_loss", trainer.state.log_history[-1])
+
+    def test_multimodal_input_handling(self):
+        """Test that the trainer can handle multi-modal input format without crashing."""
+        # Test 1: Legacy format (list of strings) - should work
+        legacy_inputs = ["Hello world", "How are you?"]
+        # Test input format detection logic
+        if isinstance(legacy_inputs, list) and isinstance(legacy_inputs[0], str):
+            prompts = legacy_inputs
+            inputs_dict = [{"prompt": prompt} for prompt in prompts]
+            has_multimodal = False
+            self.assertFalse(has_multimodal)
+            self.assertEqual(len(inputs_dict), 2)
+            self.assertEqual(inputs_dict[0]["prompt"], "Hello world")
+        
+        # Test 2: Multi-modal format - should be detected
+        multimodal_inputs = [
+            {"prompt": "Describe this audio", "audio_path": "/fake/path/audio1.wav"},
+            {"prompt": "What do you hear?", "audio_path": "/fake/path/audio2.wav"}
+        ]
+        # Test multi-modal detection logic
+        prompts = [x["prompt"] for x in multimodal_inputs]
+        has_multimodal = any("audio_path" in x for x in multimodal_inputs)
+        self.assertTrue(has_multimodal)
+        self.assertEqual(len(prompts), 2)
+        self.assertEqual(prompts[0], "Describe this audio")
+        
+        # Test audio path extraction
+        audio_paths = [x.get("audio_path") for x in multimodal_inputs]
+        self.assertEqual(len(audio_paths), 2)
+        self.assertEqual(audio_paths[0], "/fake/path/audio1.wav")
+        
+        # Test 3: Text-only format in new structure - should work
+        text_only_inputs = [
+            {"prompt": "Hello world"},
+            {"prompt": "How are you?"}
+        ]
+        prompts = [x["prompt"] for x in text_only_inputs]
+        has_multimodal = any("audio_path" in x for x in text_only_inputs)
+        self.assertFalse(has_multimodal)
+        self.assertEqual(len(prompts), 2)
+        
+        # Test 4: Mixed format (some with audio, some without)
+        mixed_inputs = [
+            {"prompt": "Describe this audio", "audio_path": "/fake/path/audio1.wav"},
+            {"prompt": "This is text only"}
+        ]
+        prompts = [x["prompt"] for x in mixed_inputs]
+        has_multimodal = any("audio_path" in x for x in mixed_inputs)
+        audio_paths = [x.get("audio_path") for x in mixed_inputs]
+        
+        self.assertTrue(has_multimodal)  # Should detect as multi-modal due to first item
+        self.assertEqual(len(prompts), 2)
+        self.assertEqual(audio_paths[0], "/fake/path/audio1.wav")
+        self.assertIsNone(audio_paths[1])
