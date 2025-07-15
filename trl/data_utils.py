@@ -223,7 +223,7 @@ def maybe_apply_chat_template(
     ...     "completion": [{"role": "assistant", "content": "It is blue."}],
     ... }
     >>> apply_chat_template(example, tokenizer)
-    {'prompt': '<|user|>\nWhat color is the sky?<|end|>\n<|assistant|>\n', 'completion': 'It is blue.<|end|>\n<|endoftext|>'}
+    {'prompt': '<|user|>\nWhat color is the sky?<|end|>\n<|assistant|>\n', 'completion': 'It is blue.<|end|>\n<endoftext>'}
     ```
     """
     if is_conversational(example):
