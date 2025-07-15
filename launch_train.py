@@ -12,7 +12,7 @@ from ray_tool import (
     prepare_data,
     release_gpus,
     prepare_local_output,
-    sync_folder,
+    sync_local_dir,
     init_ray,
     list_nodes,
     get_output_dirs,
@@ -103,7 +103,7 @@ def main(config_file, forced=False):
     ray.get(results)
 
     print("Syncing outputs from head to other nodes...")
-    run_nodes(sync_folder, str(output_dir))
+    run_nodes(sync_local_dir, str(output_dir))
 
     print("Starting output watcher on head node...")
     watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)

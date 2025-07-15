@@ -396,7 +396,7 @@ def init_ray():
 
 
 @ray.remote
-def sync_folder(folder):
+def sync_local_dir(folder):
     """Sync the Folder from the remote storage."""
     head_node = head_hostname()
     cur_node = os.uname().nodename
@@ -411,6 +411,22 @@ def sync_folder(folder):
     run_cmd(cmd)
     print("Folder syncing completed.")
 
+@ray.remote
+def sync_remote_dir(remote_dir=None, local_dir=None):
+    """Sync the remote directory to the local directory."""
+    if remote_dir:
+        local_dir = local_dir or get_local_path(remote_dir)
+        print(f"Pull from  {remote_dir} to  {local_dir}")
+        cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/", f"{local_dir}/"]
+    elif local_dir:
+        remote_dir = get_remote_path(local_dir)
+        print(f"Push from  {local_dir} to  {remote_dir}")
+        cmd = ["bbb", "sync", "--concurrency", "64", f"{local_dir}/", f"{remote_dir}/"]
+    else:
+        print("No remote or local directory specified for syncing. Exiting...")
+        return
+    run_cmd(cmd)
+    print("Sync completed.")
 
 @ray.remote
 def release_gpus():
@@ -465,7 +481,7 @@ class RayTool:
     def sync_folder(self, folder=None):
         """Sync output directories across all Ray nodes."""
         folder = str(folder or Path.home() / "outputs")
-        run_nodes(sync_folder, folder)
+        run_nodes(sync_local_dir, folder)
 
     def list_nodes(self):
         """List all nodes in the Ray cluster."""
@@ -498,7 +514,7 @@ class RayTool:
         local_dir, remote_dir = get_output_dirs(rel_path)
         print(f"Preparing local output on all nodes: {local_dir} from {remote_dir}")
         run_nodes(prepare_local_output, local_dir, remote_dir)
-        run_nodes(sync_folder, local_dir)
+        run_nodes(sync_local_dir, local_dir)
 
     def prepare_all(self, rel_path=None, forced=False):
         """Prepare the environment, data, and output on all Ray nodes."""
@@ -524,6 +540,10 @@ class RayTool:
         print("Remote Data:", f"{ORNG_USER.data_path}/{rel_path}")
         print("Remote Output:", f"{ORNG_USER.output_path}/{rel_path}")
 
+    def sync_remote_dir(self, remote_dir=None, local_dir=None):
+        """Sync a remote directory to the local directory."""
+        print(f"Syncing from {remote_dir} to {local_dir}")
+        run_nodes(sync_remote_dir, remote_dir, local_dir)
 
 if __name__ == "__main__":
     """Main entry point for the RayTool."""

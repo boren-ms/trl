@@ -18,7 +18,7 @@ from ray_tool import (
     get_local_path,
     get_remote_path,
     run_output_watcher,
-    sync_folder,
+    sync_local_dir,
     is_valid_model_path,
     scan_models,
 )
@@ -98,7 +98,7 @@ def evaluate_model(remote_model_dir=None, local_model_dir=None, config=None):
         raise ValueError("Either remote_model_dir or local_model_dir must be provided.")
  
     print("Syncing outputs from head to other nodes...")
-    run_nodes(sync_folder, str(local_model_dir))
+    run_nodes(sync_local_dir, str(local_model_dir))
     
     print("Watching on ", local_model_dir) 
     watcher = run_output_watcher(local_dir=local_model_dir, remote_dir=remote_model_dir, interval=120, sync_all=True)
