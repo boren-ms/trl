@@ -141,7 +141,7 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
             for i in range(len(examples)):
                 response_token_ids_start_idx = None
 
-                for idx in np.where(batch["labels"][i] == self.response_token_ids[0])[0]:
+                for idx in (batch["labels"][i] == self.response_token_ids[0]).nonzero(as_tuple=True)[0]:
                     # `response_token_ids` is `'### Response:\n'`, here we are just making sure that the token IDs match
                     if (
                         self.response_token_ids
@@ -168,7 +168,7 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
                 response_token_ids_idxs = []
                 human_token_ids_idxs = []
 
-                for assistant_idx in np.where(batch["labels"][i] == self.response_token_ids[0])[0]:
+                for assistant_idx in (batch["labels"][i] == self.response_token_ids[0]).nonzero(as_tuple=True)[0]:
                     # find the indexes of the start of a response.
                     if (
                         self.response_token_ids
@@ -186,7 +186,7 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
                     batch["labels"][i, :] = self.ignore_index
 
                 human_token_ids = self.instruction_token_ids
-                for human_idx in np.where(batch["labels"][i] == human_token_ids[0])[0]:
+                for human_idx in (batch["labels"][i] == human_token_ids[0]).nonzero(as_tuple=True)[0]:
                     # find the indexes of the start of a human answer.
                     if human_token_ids == batch["labels"][i][human_idx : human_idx + len(human_token_ids)].tolist():
                         human_token_ids_idxs.append(human_idx)
@@ -234,14 +234,15 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
                 (
                     indices_q[flattened_position_ids == 0],
                     torch.tensor(
-                        flattened_position_ids.size(), device=flattened_position_ids.device, dtype=torch.int32
+                        [flattened_position_ids.size(0)], device=flattened_position_ids.device, dtype=torch.int32
                     ),
                 )
             ).unsqueeze(0)
             batch["cu_seq_lens_k"] = batch["cu_seq_lens_q"]
 
             # Determine maximum sequence lengths to prevent graph breaks during further computations.
-            batch["max_length_k"] = torch.tensor([flattened_position_ids.max().item() + 1])
+            max_len_val = flattened_position_ids.max().item() + 1
+            batch["max_length_k"] = torch.tensor([max_len_val], device=flattened_position_ids.device)
             batch["max_length_q"] = batch["max_length_k"]
 
         return batch

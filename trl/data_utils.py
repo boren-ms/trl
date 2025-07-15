@@ -336,15 +336,23 @@ def extract_prompt(example: dict[str, Sequence]) -> dict[str, Sequence]:
 
     For more details, see [`maybe_extract_prompt`].
     """
-    for idx in range(min(len(example["chosen"]), len(example["rejected"]))):
-        if example["chosen"][idx] != example["rejected"][idx]:
-            if example["chosen"][idx - 1] == " ":  # remove space before the prompt
+    chosen = example["chosen"]
+    rejected = example["rejected"]
+    min_len = min(len(chosen), len(rejected))
+    
+    # Find the first differing index more efficiently
+    idx = min_len  # default to the full length if no difference found
+    for i in range(min_len):
+        if chosen[i] != rejected[i]:
+            idx = i
+            if idx > 0 and chosen[idx - 1] == " ":  # remove space before the prompt
                 idx -= 1
             break
+    
     return {
-        "prompt": example["chosen"][:idx],
-        "chosen": example["chosen"][idx:],
-        "rejected": example["rejected"][idx:],
+        "prompt": chosen[:idx],
+        "chosen": chosen[idx:],
+        "rejected": rejected[idx:],
     }
 
 

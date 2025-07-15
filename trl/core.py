@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import gc
+import random
 import warnings
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -78,14 +79,15 @@ def masked_whiten(values: torch.Tensor, mask: torch.Tensor, shift_mean: bool = T
 
 class LengthSampler:
     """
-    Samples a length
+    Samples a length efficiently using Python's built-in random module.
     """
 
     def __init__(self, min_value: int, max_value: int):
-        self.values = list(range(min_value, max_value))
+        self.min_value = min_value
+        self.max_value = max_value
 
     def __call__(self) -> int:
-        return np.random.choice(self.values)
+        return random.randint(self.min_value, self.max_value - 1)
 
 
 class PPODecorators:
