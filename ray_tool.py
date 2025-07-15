@@ -151,6 +151,20 @@ def scan_models(input_dir):
     return paths
 
 
+def search_models(model_path=None):
+    """Search for the model path in the local filesystem."""
+    model_path = model_path or ""
+    remote_model_dir = f"{ORNG_USER.output_path}/{model_path}"
+    model_paths = scan_models(remote_model_dir)
+
+    if not model_paths:
+        print(f"Found no models from {remote_model_dir}, switching to data folder")
+        model_path = f"{ORNG_USER.home_path}/data/ckp/hf_models/{model_path}"
+        if is_valid_model_path(model_path):
+            model_paths += scan_models(model_path)
+    return model_paths
+
+
 def get_region():
     """Get the region of the Kubernetes cluster from the environment variable."""
     rcall_kube_cluster = os.environ.get("RCALL_KUBE_CLUSTER", "")
@@ -204,13 +218,15 @@ def get_output_dirs(rel_path=None):
         local_output_dir = local_output_dir / rel_path
     return str(local_output_dir), remote_output_dir
 
+
 def is_remote_path(file_path):
     """Check if the file path is a remote path."""
     return str(file_path).startswith("az://")
 
+
 def get_local_path(file_path):
     """Get the local path for the remote path."""
-    file_path=str(file_path)
+    file_path = str(file_path)
     if not is_remote_path(file_path):
         return file_path
     return file_path.replace(ORNG_USER.home_path, str(Path.home()))
@@ -218,7 +234,7 @@ def get_local_path(file_path):
 
 def get_remote_path(file_path):
     """Get the remote path for the local path."""
-    file_path=str(file_path)
+    file_path = str(file_path)
     if is_remote_path(file_path):
         return file_path
     return file_path.replace(str(Path.home()), ORNG_USER.home_path)
@@ -416,6 +432,7 @@ def sync_local_dir(folder):
     run_cmd(cmd)
     print("Folder syncing completed.")
 
+
 @ray.remote
 def sync_remote_dir(dir_path, push=None):
     """Sync the remote directory to the local directory."""
@@ -427,7 +444,7 @@ def sync_remote_dir(dir_path, push=None):
         local_dir = dir_path if Path(dir_path).is_absolute() else Path.home() / dir_path
         remote_dir = get_remote_path(local_dir)
         push = True if push is None else push
-    
+
     local_dir = str(local_dir).rstrip("/")
     remote_dir = str(remote_dir).rstrip("/")
 
@@ -445,6 +462,7 @@ def sync_remote_dir(dir_path, push=None):
             return
     run_cmd(cmd)
     print("Sync completed.")
+
 
 @ray.remote
 def release_gpus():
@@ -561,6 +579,18 @@ class RayTool:
     def sync_remote_dir(self, dir_path, push=None):
         """Sync a remote directory to the local directory."""
         run_nodes(sync_remote_dir, dir_path, push=push)
+
+    def search_models(self, model_path=None):
+        """Search for models in the remote storage."""
+        model_paths = search_models(model_path)
+        if not model_paths:
+            print(f"No models found for {model_path}.")
+        else:
+            print(f"Found {len(model_paths)} models:")
+            for i, path in enumerate(model_paths):
+                print(f"[{i}] {path}")
+        return model_paths
+
 
 if __name__ == "__main__":
     """Main entry point for the RayTool."""

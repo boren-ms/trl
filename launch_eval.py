@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 import fire
 from ray_tool import (
-    ORNG_USER,
     run_nodes,
     update_envs,
     prepare_env,
@@ -19,8 +18,7 @@ from ray_tool import (
     get_remote_path,
     run_output_watcher,
     sync_local_dir,
-    is_valid_model_path,
-    scan_models,
+    search_models
 )
 
 
@@ -109,17 +107,6 @@ def evaluate_model(remote_model_dir=None, local_model_dir=None, config=None):
     print("Evaluation completed on ", local_model_dir)
 
 
-def search_models(model_path):
-    """Search for the model path in the local filesystem."""
-    remote_model_dir = f"{ORNG_USER.output_path}/{model_path}"
-    model_paths = scan_models(remote_model_dir)
-
-    if not model_paths:
-        print(f"Found no models from {remote_model_dir}, switching to data folder")
-        model_path = f"{ORNG_USER.home_path}/data/ckp/hf_models/{model_path}"
-        if is_valid_model_path(model_path):
-            model_paths += scan_models(model_path)
-    return model_paths
 
 def main(model_path="", config=None, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
