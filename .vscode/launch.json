@@ -52,7 +52,7 @@
             "justMyCode": false,
             "args": [
                 "--config",
-                "/root/code/trl/orng_conf/grpo_bias_vllm_colocate_debug.yaml",
+                "orng_conf/old_conf/grpo_bias_vllm_colocate_debug.yaml",
                 // "/root/code/trl/orng_conf/grpo_bias_debug.yaml",
             ]
         }
