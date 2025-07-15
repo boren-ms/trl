@@ -204,17 +204,20 @@ def get_output_dirs(rel_path=None):
         local_output_dir = local_output_dir / rel_path
     return str(local_output_dir), remote_output_dir
 
+def is_remote_path(file_path):
+    """Check if the file path is a remote path."""
+    return file_path.startswith("az://")
 
 def get_local_path(file_path):
     """Get the local path for the remote path."""
-    if not file_path.startswith("az://"):
+    if not is_remote_path(file_path):
         return file_path
     return file_path.replace(ORNG_USER.home_path, str(Path.home()))
 
 
 def get_remote_path(file_path):
     """Get the remote path for the local path."""
-    if file_path.startswith("az://"):
+    if is_remote_path(file_path):
         return file_path
     return file_path.replace(str(Path.home()), ORNG_USER.home_path)
 
@@ -412,19 +415,32 @@ def sync_local_dir(folder):
     print("Folder syncing completed.")
 
 @ray.remote
-def sync_remote_dir(remote_dir=None, local_dir=None):
+def sync_remote_dir(dir_path, push=None):
     """Sync the remote directory to the local directory."""
-    if remote_dir:
-        local_dir = local_dir or get_local_path(remote_dir)
-        print(f"Pull from  {remote_dir} to  {local_dir}")
-        cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/", f"{local_dir}/"]
-    elif local_dir:
-        remote_dir = get_remote_path(local_dir)
-        print(f"Push from  {local_dir} to  {remote_dir}")
-        cmd = ["bbb", "sync", "--concurrency", "64", f"{local_dir}/", f"{remote_dir}/"]
+    if is_remote_path(dir_path):
+        local_dir = get_local_path(dir_path)
+        remote_dir = dir_path
+        push = False if push is None else push
     else:
-        print("No remote or local directory specified for syncing. Exiting...")
-        return
+        local_dir = dir_path if Path(dir_path).is_absolute() else Path.home() / dir_path
+        remote_dir = get_remote_path(local_dir)
+        push = True if push is None else push
+    
+    local_dir = str(local_dir).strip("/")
+    remote_dir = str(remote_dir).strip("/")
+    
+    if push:
+        print(f"Push from {local_dir} to {remote_dir}")
+        cmd = ["bbb", "sync", "--concurrency", "64", f"{local_dir}/", f"{remote_dir}/"]
+        if not bf.exists(local_dir):
+            print(f"Local directory {local_dir} does not exist, skipping sync.")
+            return
+    else:
+        print(f"Pull from {remote_dir} to  {local_dir}")
+        cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/", f"{local_dir}/"]
+        if not bf.exists(remote_dir):
+            print(f"Remote directory {remote_dir} does not exist, skipping sync.")
+            return
     run_cmd(cmd)
     print("Sync completed.")
 
