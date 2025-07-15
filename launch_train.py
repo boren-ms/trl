@@ -18,7 +18,7 @@ from ray_tool import (
     get_output_dirs,
     run_output_watcher
 )
-from launch_eval import launch_evaluation
+from launch_eval import evaluate_model
 
 @ray.remote
 def launch_training(config_file, output_dir):
@@ -113,7 +113,7 @@ def main(config_file, forced=False):
     print("Training completed on all nodes.")
 
     print("Launching evaluation on all nodes")
-    run_nodes(launch_evaluation, model_path=str(output_dir))
+    evaluate_model(local_model_dir=output_dir)
     print("Evaluation completed on all nodes.")
 
     watcher.flush.remote() 

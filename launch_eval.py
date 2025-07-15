@@ -16,6 +16,7 @@ from ray_tool import (
     init_ray,
     list_nodes,
     get_local_path,
+    get_remote_path,
     run_output_watcher,
     sync_folder,
     is_valid_model_path,
@@ -82,24 +83,30 @@ def launch_evaluation(model_path, config_file=None):
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
-def evaluate_model(remote_model_dir, config=None):
+def evaluate_model(remote_model_dir=None, local_model_dir=None, config=None):
     """Evaluate the model using the specified configuration."""
     
-    print(f"Evaluating {remote_model_dir}")
-    local_mode_dir = get_local_path(remote_model_dir)
-    
-    print("Preparing models from ",  remote_model_dir)
-    run_nodes(prepare_local_output, local_dir=local_mode_dir, remote_dir=remote_model_dir)
+    if remote_model_dir:
+        print(f"Evaluating {remote_model_dir}")
+        local_model_dir = get_local_path(remote_model_dir)
+        print("Preparing models from ",  remote_model_dir)
+        run_nodes(prepare_local_output, local_dir=local_model_dir, remote_dir=remote_model_dir)
+    elif local_model_dir:
+        print(f"Evaluating {local_model_dir}")
+        remote_model_dir = get_remote_path(local_model_dir)
+    else:
+        raise ValueError("Either remote_model_dir or local_model_dir must be provided.")
+ 
     print("Syncing outputs from head to other nodes...")
-    run_nodes(sync_folder, str(local_mode_dir))
+    run_nodes(sync_folder, str(local_model_dir))
     
-    print("Watching on ", local_mode_dir) 
-    watcher = run_output_watcher(local_dir=local_mode_dir, remote_dir=remote_model_dir, interval=120, sync_all=True)
+    print("Watching on ", local_model_dir) 
+    watcher = run_output_watcher(local_dir=local_model_dir, remote_dir=remote_model_dir, interval=120, sync_all=True)
 
-    print(f"Evaluating {local_mode_dir} with config {config}")
-    run_nodes(launch_evaluation, local_mode_dir, config)
+    print(f"Evaluating {local_model_dir} with config {config}")
+    run_nodes(launch_evaluation, local_model_dir, config)
     watcher.flush.remote()
-    print("Evaluation completed on ", local_mode_dir)
+    print("Evaluation completed on ", local_model_dir)
 
 
 def search_models(model_path):
@@ -140,7 +147,7 @@ def main(model_path="", config=None, forced=False):
     ray.get(results)
     
     for model_path in model_paths:
-        evaluate_model(model_path, config)
+        evaluate_model(remote_model_dir=model_path, config=config)
 
 
 if __name__ == "__main__":
