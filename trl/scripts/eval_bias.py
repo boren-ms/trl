@@ -34,6 +34,10 @@ class EvalArguments:
         default=None,
         metadata={"help": "Path to the model."},
     )
+    lora_merged: bool = field(
+        default=True,
+        metadata={"help": "Whether LoRA is merged."},
+    )
     checkpoints: Optional[list[str]] = field(
         default=None,
         metadata={"help": "Checkpoint indices to evaluate."},
