@@ -27,7 +27,7 @@ def formatting_prompts_func(example):
     # Inject eos_token as a string before tokenization, because they are not always added
     # See: https://github.com/huggingface/transformers/issues/22794 and
     # https://github.com/huggingface/trl/issues/1623
-    if tokenizer.eos_token:  # usually something like "</s>" for GPT2 or "<|endoftext|>"
+    if tokenizer.eos_token:  # usually something like "</s>" for GPT2 or "<endoftext>"
         text += f"{tokenizer.eos_token}"
 
     return text
