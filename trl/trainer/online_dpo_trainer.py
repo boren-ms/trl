@@ -427,6 +427,19 @@ class OnlineDPOTrainer(Trainer):
 
         return self.accelerator.prepare(eval_dataloader)
 
+    def _prepare_prompts_for_generation(self, inputs):
+        """Prepare prompts for generation, handling both text-only and multimodal inputs."""
+        prompts = inputs["prompt"]
+        has_audio = "audio_path" in inputs and inputs["audio_path"] is not None
+        
+        if has_audio:
+            # Create multimodal prompts with audio
+            audios = [sf_read(p) for p in inputs["audio_path"]]
+            return [{"prompt": p, "multi_modal_data": {"audio": [a]}} 
+                   for p, a in zip(prompts, audios)]
+        else:
+            return prompts
+
     def _generate_vllm(self, model, inputs):
         eos_token_id = self.processing_class.eos_token_id
         pad_token_id = self.processing_class.pad_token_id
@@ -435,21 +448,9 @@ class OnlineDPOTrainer(Trainer):
         llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
         llm_model.load_weights(model.state_dict().items())
 
-        prompts = inputs["prompt"]
-        has_audio = "audio_path" in inputs and inputs["audio_path"] is not None
-        
-        if has_audio:
-            # Create multimodal prompts with audio
-            audios = [sf_read(p) for p in inputs["audio_path"]]
-            multimodal_prompts = [{"prompt": p, "multi_modal_data": {"audio": [a]}} 
-                                for p, a in zip(prompts, audios)]
-            outputs = self.llm.generate(multimodal_prompts, self.generation_config, use_tqdm=False)
-        else:
-            # Text-only generation
-            if is_conversational({"prompt": prompts[0]}):
-                outputs = self.llm.chat(prompts, self.generation_config, use_tqdm=False)
-            else:
-                outputs = self.llm.generate(prompts, self.generation_config, use_tqdm=False)
+        # Prepare prompts and generate using unified approach
+        generation_prompts = self._prepare_prompts_for_generation(inputs)
+        outputs = self.llm.generate(generation_prompts, self.generation_config, use_tqdm=False)
 
         completion_ids = [list(output.outputs[i].token_ids) for i in range(2) for output in outputs]
         prompt_ids = [list(output.prompt_token_ids) for _ in range(2) for output in outputs]
@@ -510,13 +511,12 @@ class OnlineDPOTrainer(Trainer):
         with unwrap_model_for_generation(
             model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
         ) as unwrapped_model:
-            generation_kwargs = {
-                "input_ids": prompt_ids,
-                "attention_mask": prompt_mask,
-                "generation_config": self.generation_config,
+            output = unwrapped_model.generate(
+                input_ids=prompt_ids,
+                attention_mask=prompt_mask,
+                generation_config=self.generation_config,
                 **additional_inputs
-            }
-            output = unwrapped_model.generate(**generation_kwargs)
+            )
 
         completion_ids = output[:, prompt_ids.size(1) :]
         completion_ids, completion_mask = truncate_right(completion_ids, eos_token_id, pad_token_id)
