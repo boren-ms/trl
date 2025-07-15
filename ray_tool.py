@@ -210,6 +210,7 @@ def is_remote_path(file_path):
 
 def get_local_path(file_path):
     """Get the local path for the remote path."""
+    file_path=str(file_path)
     if not is_remote_path(file_path):
         return file_path
     return file_path.replace(ORNG_USER.home_path, str(Path.home()))
@@ -217,6 +218,7 @@ def get_local_path(file_path):
 
 def get_remote_path(file_path):
     """Get the remote path for the local path."""
+    file_path=str(file_path)
     if is_remote_path(file_path):
         return file_path
     return file_path.replace(str(Path.home()), ORNG_USER.home_path)
@@ -426,9 +428,9 @@ def sync_remote_dir(dir_path, push=None):
         remote_dir = get_remote_path(local_dir)
         push = True if push is None else push
     
-    local_dir = str(local_dir).strip("/")
-    remote_dir = str(remote_dir).strip("/")
-    
+    local_dir = str(local_dir).rstrip("/")
+    remote_dir = str(remote_dir).rstrip("/")
+
     if push:
         print(f"Push from {local_dir} to {remote_dir}")
         cmd = ["bbb", "sync", "--concurrency", "64", f"{local_dir}/", f"{remote_dir}/"]
