@@ -206,7 +206,7 @@ def get_output_dirs(rel_path=None):
 
 def is_remote_path(file_path):
     """Check if the file path is a remote path."""
-    return file_path.startswith("az://")
+    return str(file_path).startswith("az://")
 
 def get_local_path(file_path):
     """Get the local path for the remote path."""
@@ -556,10 +556,9 @@ class RayTool:
         print("Remote Data:", f"{ORNG_USER.data_path}/{rel_path}")
         print("Remote Output:", f"{ORNG_USER.output_path}/{rel_path}")
 
-    def sync_remote_dir(self, remote_dir=None, local_dir=None):
+    def sync_remote_dir(self, dir_path, push=None):
         """Sync a remote directory to the local directory."""
-        print(f"Syncing from {remote_dir} to {local_dir}")
-        run_nodes(sync_remote_dir, remote_dir, local_dir)
+        run_nodes(sync_remote_dir, dir_path, push=push)
 
 if __name__ == "__main__":
     """Main entry point for the RayTool."""
