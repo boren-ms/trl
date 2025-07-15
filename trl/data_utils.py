@@ -836,11 +836,11 @@ def find_chkps(model_dir, specified=None):
     chkps = sorted(chkps, key=lambda d: chkp_index(d.name), reverse=True)
     idxs = [chkp_index(chkp.name) for chkp in chkps]
     if specified is None:
-        return [f.path for f in chkps]
+        return [chkp.path for chkp in chkps]
 
     if isinstance(specified, int):
         specified = [specified]
-    specified =  [i if i >= 0 else idxs[i] for i in map(to_int, specified)]
-    
-    return [chkp for chkp in chkps if chkp_index(chkp.name)  in specified]
 
+    specified = [i if i >= 0 else idxs[i] for i in map(to_int, specified) if -i <= len(idxs)]
+
+    return [chkp.path for chkp in chkps if chkp_index(chkp.name) in specified]
