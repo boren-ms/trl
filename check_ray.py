@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import fire
-from ray_utils import init_ray
+from ray_tool import init_ray
 
 def main():
     """Main entry."""
