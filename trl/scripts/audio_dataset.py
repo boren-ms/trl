@@ -12,6 +12,17 @@ from trl.data_utils import sf_read
 prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
 
 
+def stream_shuffle(ds, **kwargs):
+    """Process the dataset."""
+    streaming = kwargs.get("streaming", False)
+    if streaming:
+        ds = ds.to_iterable_dataset(num_shards=kwargs.get("num_shards", 1))
+    num_egs = kwargs.get("num_egs", None)
+    if num_egs is not None:
+        ds = ds.take(num_egs)
+    return ds
+
+
 def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs):
     """Create a dataset from the given split."""
     data_files = [jsonl_path] if isinstance(jsonl_path, str) else jsonl_path
@@ -117,17 +128,6 @@ def openasr_dataset(**kwargs):
         split=split,
     )
     ds = stream_shuffle(ds, **kwargs)
-    return ds
-
-
-def stream_shuffle(ds, **kwargs):
-    """Process the dataset."""
-    streaming = kwargs.get("streaming", False)
-    if streaming:
-        ds = ds.to_iterable_dataset(num_shards=kwargs.get("num_shards", 1))
-    num_egs = kwargs.get("num_egs", None)
-    if num_egs is not None:
-        ds = ds.take(num_egs)
     return ds
 
 
