@@ -1,0 +1,40 @@
+use_vllm: false
+batch_size: 128
+generation_config:
+    max_new_tokens: 1024
+    do_sample: false
+# model_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
+lora_merged: false
+model_path: /root/data/ckp/hf_models/phi4_mm_bias
+# model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+eval_data:
+    - nickname: clean_no
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    - nickname: other_no
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+    - nickname: clean_100
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+      bias_key: distractors
+    - nickname: other_100
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+      bias_key: distractors
+    - nickname: clean_500
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
+      bias_key: distractors
+    - nickname: other_500
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
+      bias_key: distractors
+    - nickname: clean_1000
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
+      bias_key: distractors
+    - nickname: other_1000
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
+      bias_key: distractors
