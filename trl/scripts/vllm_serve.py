@@ -26,6 +26,7 @@ from typing import Optional
 import torch
 
 from trl import TrlParser
+from trl.data_utils import sf_read
 from trl.import_utils import (
     is_fastapi_available,
     is_pydantic_available,
@@ -96,12 +97,16 @@ class WeightSyncWorkerExtension:
                 Total number of participating processes in the update group.
         """
         if self.pynccl_comm is not None:
-            raise RuntimeError("Weight update group already initialized. Call close_communicator first.")
+            print("Communicator is already initialized, but coming a new init request.")
+            print("Closing previous communicator, and re-init with new client.")
+            self.close_communicator()
+            # raise RuntimeError("Weight update group already initialized. Call close_communicator first.")
 
         # Get the rank of the current worker in the global world group.
         rank = get_world_group().rank
 
         # Create a stateless process group to manage communication between training processes and vLLM workers.
+        print(f"Init communicator: Rank: {rank}, world_size: {world_size}")
         pg = StatelessProcessGroup.create(host=host, port=port, rank=rank, world_size=world_size)
 
         # Initialize the NCCL-based communicator for weight synchronization.
@@ -215,7 +220,7 @@ class ScriptArguments:
         metadata={"help": "Host address to run the server on."},
     )
     port: int = field(
-        default=8000,
+        default=26400,  # skip to use 8000 to avoid conflicts with other services
         metadata={"help": "Port to run the server on."},
     )
     gpu_memory_utilization: float = field(

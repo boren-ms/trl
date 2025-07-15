@@ -103,7 +103,7 @@ class VLLMClient:
         self,
         base_url: Optional[str] = None,
         host: str = "0.0.0.0",
-        server_port: int = 8000,
+        server_port: int = 26400,  # Default port for vLLM server
         group_port: int = 51216,
         connection_timeout: float = 0.0,
     ):
@@ -166,6 +166,7 @@ class VLLMClient:
     def generate(
         self,
         prompts: list[str],
+        audios: Optional[list[str]] = None,
         n: int = 1,
         repetition_penalty: float = 1.0,
         temperature: float = 1.0,
@@ -173,15 +174,18 @@ class VLLMClient:
         top_k: int = -1,
         min_p: float = 0.0,
         max_tokens: int = 16,
+        stop_token_ids: Optional[list[int]] = None,
         guided_decoding_regex: Optional[str] = None,
         generation_kwargs: Optional[dict] = None,
-    ) -> list[list[int]]:
+    ) -> dict:
         """
         Generates model completions for the provided prompts.
 
         Args:
             prompts (`list[str]`):
                 List of text prompts for which the model will generate completions.
+            audios (`list[str]`):
+                List of audio paths for which the model will generate completions.
             n (`int`, *optional*, defaults to `1`):
                 Number of completions to generate for each prompt.
             repetition_penalty (`float`, *optional*, defaults to `1.0`):
@@ -212,6 +216,7 @@ class VLLMClient:
             url,
             json={
                 "prompts": prompts,
+                "audios": audios,
                 "n": n,
                 "repetition_penalty": repetition_penalty,
                 "temperature": temperature,
@@ -219,12 +224,13 @@ class VLLMClient:
                 "top_k": top_k,
                 "min_p": min_p,
                 "max_tokens": max_tokens,
+                "stop_token_ids": stop_token_ids,
                 "guided_decoding_regex": guided_decoding_regex,
                 "generation_kwargs": generation_kwargs or {},
             },
         )
         if response.status_code == 200:
-            return response.json()["completion_ids"]
+            return response.json()
         else:
             raise Exception(f"Request failed: {response.status_code}, {response.text}")
 

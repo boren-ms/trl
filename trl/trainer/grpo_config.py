@@ -53,6 +53,8 @@ class GRPOConfig(TrainingArguments):
         num_generations (`int` or `None`, *optional*, defaults to `8`):
             Number of generations per prompt to sample. The effective batch size (num_processes * per_device_batch_size
             * gradient_accumulation_steps) must be evenly divisible by this value.
+        num_eval_generations (`int` or `None`, *optional*, defaults to None):
+            Number of generations per prompt to sample for evaluation. Default to use the num_generations
         max_completion_length (`int` or `None`, *optional*, defaults to `256`):
             Maximum length of the generated completion.
         ds3_gather_for_generation (`bool`, *optional*, defaults to `True`):
@@ -72,6 +74,8 @@ class GRPOConfig(TrainingArguments):
             Number of optimization steps per generation. If `None`, it defaults to gradient_accumulation_steps.
         temperature (`float`, defaults to `1.0`):
             Temperature for sampling. The higher the temperature, the more random the completions.
+        eval_temperature (`float`, defaults to `0.0`):
+            Temperature for eval sampling. The higher the temperature, the more random the completions.
         top_p (`float`, *optional*, defaults to `1.0`):
             Float that controls the cumulative probability of the top tokens to consider. Must be in (0, 1]. Set to
             `1.0` to consider all tokens.
@@ -270,6 +274,12 @@ class GRPOConfig(TrainingArguments):
             "* gradient_accumulation_steps) must be evenly divisible by this value."
         },
     )
+    num_eval_generations: Optional[int] = field(
+        default=None,
+        metadata={
+            "help": "Number of generations per prompt to sample for evaluation. Default to use the num_generations"
+        },
+    )
     max_completion_length: Optional[int] = field(
         default=256,
         metadata={"help": "Maximum length of the generated completion."},
@@ -305,6 +315,10 @@ class GRPOConfig(TrainingArguments):
     temperature: float = field(
         default=1.0,
         metadata={"help": "Temperature for sampling. The higher the temperature, the more random the completions."},
+    )
+    eval_temperature: float = field(
+        default=0.0,
+        metadata={"help": "Temperature for eval sampling. The higher the temperature, the more random the completions."},
     )
     top_p: float = field(
         default=1.0,

@@ -22,6 +22,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 
+from more_itertools import chunked, unique_everseen
 import datasets
 import torch
 import torch.utils.data
@@ -43,13 +44,13 @@ from transformers import (
     TrainerCallback,
     is_wandb_available,
 )
-from transformers.trainer_utils import seed_worker
-from transformers.utils import is_datasets_available, is_flash_attn_2_available, is_peft_available, is_rich_available
+from transformers.trainer_utils import seed_worker, EvalLoopOutput, has_length
+from transformers.utils import is_datasets_available, is_flash_attn_2_available, is_peft_available, logging
 
-from ..data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template
+from ..data_utils import apply_chat_template, is_conversational, sf_read, maybe_apply_chat_template
 from ..extras.profiling import profiling_context, profiling_decorator
 from ..extras.vllm_client import VLLMClient
-from ..import_utils import is_liger_kernel_available, is_vllm_available
+from ..import_utils import is_liger_kernel_available, is_vllm_available, is_rich_available
 from ..models import prepare_deepspeed, prepare_fsdp, unwrap_model_for_generation
 from ..models.utils import _ForwardRedirection
 from .callbacks import SyncRefModelCallback
@@ -77,6 +78,8 @@ if is_vllm_available():
 
 if is_wandb_available():
     import wandb
+
+logger = logging.get_logger(__name__)
 
 # What we call a reward function is a callable that takes a list of prompts and completions and returns a list of
 # rewards. When it's a string, it's a model ID, so it's loaded as a pretrained model.
@@ -201,8 +204,8 @@ def nanstd(tensor: torch.Tensor) -> torch.Tensor:
 
 
 def split_tensor_dict(
-    tensor_dict: dict[str, Optional[torch.Tensor]], num_chunks: int
-) -> list[dict[str, Optional[torch.Tensor]]]:
+    tensor_dict: dict[str, Optional[Union[torch.Tensor, dict]]], num_chunks: int
+) -> list[dict[str, Optional[Union[torch.Tensor, dict]]]]:
     """
     Splits a dictionary of tensors along the first dimension into `num_chunks` equal parts.
 
