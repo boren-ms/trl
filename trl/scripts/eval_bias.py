@@ -285,11 +285,12 @@ def evaluate_model(model_path, datasets, **kwargs):
     """Evaluate a model on the given evaluation data."""
     evaluator = Evaluation(
         model_path=model_path,
-        use_vllm=kwargs.get("use_vllm", True),
+        use_vllm=kwargs.get("use_vllm", False),
         batch_size=kwargs.get("batch_size", 8),
         output_dir=kwargs.get("output_dir", None),
         job_name=kwargs.get("job_name", None),
         wandb_dir=kwargs.get("wandb_dir", None),
+        lora_merged=kwargs.get("lora_merged", True),
         generation_config=kwargs.get("generation_config", None),
     )
     evaluator.evaluate_all(datasets, step=chkp_index(Path(model_path).name, 0))
