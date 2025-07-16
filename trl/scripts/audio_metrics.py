@@ -192,20 +192,29 @@ class EditDistance(object):
 
         return self.get_result(refs, hyps)
 
+def text_norm(txt):
+    """Normalize tokens by removing leading and trailing whitespace."""
+    norm = EnglishTextNormalizer()
+    norm.replacers = {}
+    if isinstance(txt, str):
+        return norm(txt.strip())
+    elif isinstance(txt, list):
+        return [norm(x) for x in txt]
+    else:
+        raise ValueError(f"Unsupported type for text normalization: {type(txt)}. Expected str or list of str.")
 
 def calc_wers(refs, hyps):
     """Calculate WER, U-WER, and B-WER."""
     wer = WordError()
     u_wer = WordError()
     b_wer = WordError()
-    norm = EnglishTextNormalizer()
     # norm = lambda x: x
     for uttid, ref in refs.items():
         if uttid not in hyps:
             continue
-        ref_tokens = norm(ref["text"]).split()
-        biasing_words = ref["biasing_words"]
-        hyp_tokens = norm(hyps[uttid]).split()
+        ref_tokens = text_norm(ref["text"]).split()
+        biasing_words = text_norm(ref["biasing_words"])
+        hyp_tokens = text_norm(hyps[uttid]).split()
         ed = EditDistance()
         result = ed.align(ref_tokens, hyp_tokens)
         for code, ref_idx, hyp_idx in zip(result.codes, result.refs, result.hyps):
