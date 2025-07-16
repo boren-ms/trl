@@ -1,0 +1,20 @@
+{
+  "dataset_name": "openasr",
+  "name": "librispeech",
+  "split": "test.clean",
+  "num_egs": 1000,
+  "streaming": false,
+  "biasing": {
+    "bias_prob": 0.9,
+    "hit_prob": 0.9,
+    "max_piece_len": 1,
+    "max_num": 2
+  },
+  "simu_perference": {
+    "error_range": [0.1, 0.25],
+    "delete_prob": 0.1,
+    "substitute_prob": 0.1,
+    "insert_prob": 0.05
+  },
+  "load_audio": true
+}
