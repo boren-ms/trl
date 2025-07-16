@@ -475,18 +475,21 @@ class OnlineDPOTrainer(Trainer):
 
         return prompt_ids, prompt_mask, completion_ids, completion_mask
 
-    def _generate(self, model, inputs):
-        eos_token_id = self.processing_class.eos_token_id
-        pad_token_id = self.processing_class.pad_token_id
-
+    def _process_inputs_for_generation(self, inputs):
+        """Process inputs for generation, handling both text-only and multimodal cases."""
         prompts = inputs["prompt"]
         has_audio = "audio_path" in inputs and inputs["audio_path"] is not None
         
+        # Create inputs list and apply chat template
         if has_audio:
-            # Process multimodal inputs with audio
             inputs_list = [{"prompt": p, "audio_path": ap} for p, ap in zip(prompts, inputs["audio_path"])]
-            inputs_list = [maybe_apply_chat_template(x, self.processing_class) for x in inputs_list]
-            
+        else:
+            inputs_list = [{"prompt": prompt} for prompt in prompts]
+        
+        inputs_list = [maybe_apply_chat_template(x, self.processing_class) for x in inputs_list]
+        
+        # Process inputs based on modality
+        if has_audio:
             audios = [sf_read(p) for p in inputs["audio_path"]]
             processed_inputs = self.processing_class(
                 text=[x["prompt"] for x in inputs_list], audios=audios, return_tensors="pt"
@@ -498,15 +501,20 @@ class OnlineDPOTrainer(Trainer):
                               for k, v in processed_inputs.items() 
                               if k not in ["input_ids", "attention_mask"]}
         else:
-            # Process text-only inputs
-            inputs_list = [{"prompt": prompt} for prompt in prompts]
-            inputs_list = [maybe_apply_chat_template(x, self.processing_class) for x in inputs_list]
             inputs_list = [self.tokenize_row(x, self.is_encoder_decoder, self.processing_class) for x in inputs_list]
             tokenized_inputs = self.data_collator(inputs_list)
             tokenized_inputs = self._prepare_inputs(tokenized_inputs)
             prompt_ids = tokenized_inputs["prompt_input_ids"].repeat(2, 1)
             prompt_mask = tokenized_inputs["prompt_attention_mask"].repeat(2, 1)
             additional_inputs = {}
+            
+        return prompt_ids, prompt_mask, additional_inputs
+
+    def _generate(self, model, inputs):
+        eos_token_id = self.processing_class.eos_token_id
+        pad_token_id = self.processing_class.pad_token_id
+
+        prompt_ids, prompt_mask, additional_inputs = self._process_inputs_for_generation(inputs)
 
         with unwrap_model_for_generation(
             model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
