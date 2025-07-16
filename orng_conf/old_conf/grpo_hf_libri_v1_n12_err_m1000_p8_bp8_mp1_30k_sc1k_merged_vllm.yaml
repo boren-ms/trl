@@ -1,0 +1,44 @@
+train_data:
+    dataset_name: tsv
+    # num_egs: 5000
+    # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
+    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    biasing:
+        buffer_size: 10000
+        max_piece_len: 1
+        max_num: 500
+        bias_prob: 0.8
+        hit_prob: 0.8
+        log_interval: 1000 # print biasing every 10000 samples
+        new_sampling: True
+        # common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
+        # common_word_num: 1000
+reward_funcs: [reward_word_error, reward_bias_error]
+reward_weights: [1, 1]
+model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
+# model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf_merged/
+# model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
+# job_name: phi4_mm_bias_grpo
+report_to: [wandb]
+learning_rate: 1e-5
+lr_scheduler_type: cosine
+output_dir: ./output
+per_device_train_batch_size: 24
+num_generations: 12
+logging_steps: 10
+bf16: True
+gradient_checkpointing: True
+log_completions: True
+max_prompt_length: 6000
+max_completion_length: 512
+wandb_log_unique_prompts: True
+# beta: 0.1
+epsilon_high: 0.28
+save_steps: 100
+use_vllm: True
+vllm_mode: colocate
+vllm_tensor_parallel_size: 1
+vllm_gpu_memory_utilization: 0.3
+# vllm_server_host: ${VLLM_SERVER_HOST} # dev-n1-wus2-0
+# vllm_server_port: 26500
+# resume_from_checkpoint: True
