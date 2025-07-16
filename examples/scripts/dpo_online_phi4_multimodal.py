@@ -33,9 +33,7 @@ from trl import (
     OnlineDPOTrainer,
     ScriptArguments,
     TrlParser,
-    get_kbit_device_map,
     get_peft_config,
-    get_quantization_config,
 )
 from trl.trainer.utils import SIMPLE_CHAT_TEMPLATE
 from trl.scripts.audio_utils import init_model
@@ -80,16 +78,6 @@ def main():
         model_id=model_args.model_name_or_path or "microsoft/Phi-4-multimodal-instruct",
         lora_merged=not getattr(model_args, 'use_peft', False)
     )
-    
-    # Set up model configuration for training
-    torch_dtype = (
-        model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
-    )
-    quantization_config = get_quantization_config(model_args)
-    
-    # Configure device mapping for quantization if needed
-    if quantization_config is not None:
-        model.to(device=get_kbit_device_map())
 
     # Set up chat template
     tokenizer = processor.tokenizer
