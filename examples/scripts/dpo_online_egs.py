@@ -6,23 +6,22 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModelForSequen
 from pathlib import Path
 
 import os
-os.environ["WANDB_MODE"] = "offline"
+
+os.environ["WANDB_MODE"] = "online"
+os.environ["WANDB_ENTITY"] = "genai"
 # %%
-# huggingface-cli login          
-# huggingface-cli download trl-lib/Qwen2-0.5B-Reward --local-dir Qwen2-0.5B-Reward --repo-type model                                                                                                                                             
-model_path =  f"{Path.home()}/data/ckp/hf_models/Qwen2.5-0.5B-Instruct"
-reward_model_path =  f"{Path.home()}/data/ckp/hf_models/Qwen2-0.5B-Reward"
+model_path = f"{Path.home()}/data/ckp/hf_models/Qwen2.5-0.5B-Instruct"
+reward_model_path = f"{Path.home()}/data/ckp/hf_models/Qwen2-0.5B-Reward"
 # %%
-data_path =  f"{Path.home()}/data/gsm8k"
+data_path = f"{Path.home()}/data/gsm8k"
 dataset = load_dataset(str(data_path), data_files={"train": "train.parquet", "test": "test.parquet"}, split="train")
-#%%
+# %%
 reward_model = AutoModelForSequenceClassification.from_pretrained((reward_model_path), num_labels=1)
 reward_tokenizer = AutoTokenizer.from_pretrained((reward_model_path))
 model = AutoModelForCausalLM.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-
-training_args = OnlineDPOConfig(output_dir="Qwen2-0.5B-OnlineDPO")
-#%%
+# %%
+training_args = OnlineDPOConfig(output_dir="Qwen2-0.5B-OnlineDPO", per_device_train_batch_size=2)  # Reduce batch size to avoid OOM
 trainer = OnlineDPOTrainer(
     model=model,
     reward_model=reward_model,
