@@ -318,33 +318,33 @@ def reward_bias_accuracy(completions, **kwargs):
 def reward_word_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[0].error_count for wer in wers]  # WER
+    return [-wer[0].error_count for wer in wers]  # WER
 
 
 def reward_unbias_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[1].error_count for wer in wers]  # U-WER
+    return [-wer[1].error_count for wer in wers]  # U-WER
 
 
 def reward_bias_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[2].error_count for wer in wers]  # B-WER
+    return [-wer[2].error_count for wer in wers]  # B-WER
 
 def reward_word_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[0].error_rate for wer in wers]  # WER
+    return [-wer[0].error_rate for wer in wers]  # WER
 
 
 def reward_unbias_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[1].error_rate for wer in wers]  # U-WER
+    return [-wer[1].error_rate for wer in wers]  # U-WER
 
 
 def reward_bias_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[2].error_rate for wer in wers]  # B-WER
+    return [-wer[2].error_rate for wer in wers]  # B-WER
