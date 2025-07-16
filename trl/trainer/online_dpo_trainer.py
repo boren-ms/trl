@@ -45,7 +45,7 @@ from transformers.trainer_utils import EvalPrediction, seed_worker
 from transformers.training_args import OptimizerNames
 from transformers.utils import is_peft_available, is_sagemaker_mp_enabled, logging
 
-from ..data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template
+from ..data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template, sf_read
 from ..import_utils import is_vllm_available
 from ..models import create_reference_model
 from ..models.utils import unwrap_model_for_generation
@@ -427,7 +427,20 @@ class OnlineDPOTrainer(Trainer):
 
         return self.accelerator.prepare(eval_dataloader)
 
-    def _generate_vllm(self, model, prompts):
+    def _prepare_prompts_for_generation(self, inputs):
+        """Prepare prompts for generation, handling both text-only and multimodal inputs."""
+        prompts = inputs["prompt"]
+        has_audio = "audio_path" in inputs and inputs["audio_path"] is not None
+        
+        if has_audio:
+            # Create multimodal prompts with audio
+            audios = [sf_read(p) for p in inputs["audio_path"]]
+            return [{"prompt": p, "multi_modal_data": {"audio": [a]}} 
+                   for p, a in zip(prompts, audios)]
+        else:
+            return prompts
+
+    def _generate_vllm(self, model, inputs):
         eos_token_id = self.processing_class.eos_token_id
         pad_token_id = self.processing_class.pad_token_id
 
@@ -435,10 +448,9 @@ class OnlineDPOTrainer(Trainer):
         llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
         llm_model.load_weights(model.state_dict().items())
 
-        if is_conversational({"prompt": prompts[0]}):
-            outputs = self.llm.chat(prompts, self.generation_config, use_tqdm=False)
-        else:
-            outputs = self.llm.generate(prompts, self.generation_config, use_tqdm=False)
+        # Prepare prompts and generate using unified approach
+        generation_prompts = self._prepare_prompts_for_generation(inputs)
+        outputs = self.llm.generate(generation_prompts, self.generation_config, use_tqdm=False)
 
         completion_ids = [list(output.outputs[i].token_ids) for i in range(2) for output in outputs]
         prompt_ids = [list(output.prompt_token_ids) for _ in range(2) for output in outputs]
@@ -463,21 +475,47 @@ class OnlineDPOTrainer(Trainer):
 
         return prompt_ids, prompt_mask, completion_ids, completion_mask
 
-    def _generate(self, model, prompts):
+    def _process_inputs_for_generation(self, inputs):
+        """Process inputs for generation, handling both text-only and multimodal cases."""
+        prompts = inputs["prompt"]
+        has_audio = "audio_path" in inputs and inputs["audio_path"] is not None
+        
+        # Create inputs list and apply chat template
+        if has_audio:
+            inputs_list = [{"prompt": p, "audio_path": ap} for p, ap in zip(prompts, inputs["audio_path"])]
+        else:
+            inputs_list = [{"prompt": prompt} for prompt in prompts]
+        
+        inputs_list = [maybe_apply_chat_template(x, self.processing_class) for x in inputs_list]
+        
+        # Process inputs based on modality
+        if has_audio:
+            audios = [sf_read(p) for p in inputs["audio_path"]]
+            processed_inputs = self.processing_class(
+                text=[x["prompt"] for x in inputs_list], audios=audios, return_tensors="pt"
+            )
+            processed_inputs = self._prepare_inputs(processed_inputs)
+            prompt_ids = processed_inputs["input_ids"].repeat(2, 1)
+            prompt_mask = processed_inputs["attention_mask"].repeat(2, 1)
+            additional_inputs = {k: v.repeat(2, 1) if v.dim() > 1 else v.repeat(2) 
+                              for k, v in processed_inputs.items() 
+                              if k not in ["input_ids", "attention_mask"]}
+        else:
+            inputs_list = [self.tokenize_row(x, self.is_encoder_decoder, self.processing_class) for x in inputs_list]
+            tokenized_inputs = self.data_collator(inputs_list)
+            tokenized_inputs = self._prepare_inputs(tokenized_inputs)
+            prompt_ids = tokenized_inputs["prompt_input_ids"].repeat(2, 1)
+            prompt_mask = tokenized_inputs["prompt_attention_mask"].repeat(2, 1)
+            additional_inputs = {}
+            
+        return prompt_ids, prompt_mask, additional_inputs
+
+    def _generate(self, model, inputs):
         eos_token_id = self.processing_class.eos_token_id
         pad_token_id = self.processing_class.pad_token_id
 
-        # Apply chat template and tokenize the input. We do this on-the-fly to enable the use of reward models and
-        # policies with different tokenizers / chat templates.
-        inputs = [{"prompt": prompt} for prompt in prompts]
-        inputs = [maybe_apply_chat_template(x, self.processing_class) for x in inputs]
-        inputs = [self.tokenize_row(x, self.is_encoder_decoder, self.processing_class) for x in inputs]
-        inputs = self.data_collator(inputs)
+        prompt_ids, prompt_mask, additional_inputs = self._process_inputs_for_generation(inputs)
 
-        # Sample 2 completions per prompt of size `max_new_tokens` from the model
-        inputs = self._prepare_inputs(inputs)
-        prompt_ids = inputs["prompt_input_ids"].repeat(2, 1)
-        prompt_mask = inputs["prompt_attention_mask"].repeat(2, 1)
         with unwrap_model_for_generation(
             model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
         ) as unwrapped_model:
@@ -485,6 +523,7 @@ class OnlineDPOTrainer(Trainer):
                 input_ids=prompt_ids,
                 attention_mask=prompt_mask,
                 generation_config=self.generation_config,
+                **additional_inputs
             )
 
         completion_ids = output[:, prompt_ids.size(1) :]
@@ -523,9 +562,9 @@ class OnlineDPOTrainer(Trainer):
         batch_size = len(prompts)
 
         if self.args.use_vllm:
-            prompt_ids, prompt_mask, completion_ids, completion_mask = self._generate_vllm(model, prompts)
+            prompt_ids, prompt_mask, completion_ids, completion_mask = self._generate_vllm(model, inputs)
         else:
-            prompt_ids, prompt_mask, completion_ids, completion_mask = self._generate(model, prompts)
+            prompt_ids, prompt_mask, completion_ids, completion_mask = self._generate(model, inputs)
 
         contain_eos_token = torch.any(completion_ids == self.processing_class.eos_token_id, dim=-1)
 
