@@ -491,7 +491,7 @@ def list_gpus():
 
 @ray.remote
 def job_log(cmd="tail", key=None, n=100, log_dir=None):
-    log_dir = str(log_dir or os.environ.get("RCALL_LOGDIR", Path.home() / "results/*"))
+    log_dir = str(log_dir or os.environ.get("RCALL_LOGDIR", Path.home() / "results"))
     pattern = f"*{key}*" if key else "*"
     cmd = f"{cmd} -n {n}  {log_dir}/{pattern}.log"
     print(f"Tailing logs in {log_dir} with command: {cmd}")
@@ -501,10 +501,10 @@ def job_log(cmd="tail", key=None, n=100, log_dir=None):
 class RayTool:
     """A command-line tool for managing Ray clusters and nodes."""
 
-    def __init__(self, head_only=False):
+    def __init__(self, head=False):
         """Initialize the RayTool class."""
         init_ray()
-        self.head_only = head_only
+        self.head_only = head
         print("Ray cluster initialized.")
         
     def _run_nodes(self, fun, *args, **kwargs):
