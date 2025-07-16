@@ -4,6 +4,7 @@ from collections import deque
 from enum import Enum
 from whisper_normalizer.english import EnglishTextNormalizer
 
+
 class Code(Enum):
     match = 1
     substitution = 2
@@ -202,14 +203,16 @@ def text_norm(txt):
     else:
         raise ValueError(f"Unsupported type for text normalization: {type(txt)}. Expected str or list of str.")
 
+
 def find_word_indices(text, pieces):
     indexs = []
     for piece in pieces:
         for m in re.finditer(re.escape(piece), text):
-            start_idx = len(text[:m.start()].split()) # previous words
+            start_idx = len(text[: m.start()].split())  # previous words
             piece_len = len(piece.split())
             indexs.extend(range(start_idx, start_idx + piece_len))
     return indexs
+
 
 def calc_wers(refs, hyps):
     """Calculate WER, U-WER, and B-WER."""
@@ -285,8 +288,8 @@ def compute_biasing_metrics(results):
 def compute_wers(results):
     """compute WER, U-WER, and B-WER"""
     # Extract reference and hypothesis pairs from groups
-    refs = {result["id"]: extract_keywords(result["ref"]) for result in results}
-    hyps = {result["id"]: result["hyp"] for result in results}
+    refs = {result.get("id", i): extract_keywords(result["ref"]) for i, result in enumerate(results)}
+    hyps = {result.get("id", i): result["hyp"] for i, result in enumerate(results)}
     # Calculate WER, U-WER, and B-WER
     wer, u_wer, b_wer = calc_wers(refs, hyps)
     return wer, u_wer, b_wer
@@ -372,3 +375,50 @@ def reward_bias_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
     return [-wer[2].error_rate for wer in wers]  # B-WER
+
+
+if __name__ == "__main__":
+    pairs = [
+        {
+            "hyp": "Who was it she was in love with? The story will tell, I took upon myself to reply. Oh, I can't wait for the story. The story won't tell, said *douglas* Not in any literal, vulgar way. Nor is the pity then.",
+            "ref": "who was it she was in love with the story will tell i took upon myself to reply oh i can't wait for the story the story won't tell said *douglas* not in any *literal* vulgar way *more's* the pity then",
+        },
+        {
+            "hyp": "The air and the earth are curiously *mated* and *intermingled* as if the one were the breath of the other,",
+            "ref": "the air and the earth are curiously *mated* and *intermingled* as if the one were the breath of the other",
+        },
+        {
+            "hyp": "These thoughts agitated me all day, and my imagination scarcely *calmed* down after several hours' sleep.",
+            "ref": "these thoughts agitated me all day and my imagination scarcely *calmed* down after several hours sleep",
+        },
+        {
+            "hyp": "The task will not be difficult, returned David, hesitating, though I greatly fear your presence would rather increase than,*mitigate* his unhappy fortunes.",
+            "ref": "the task will not be difficult returned david *hesitating* though i greatly fear your presence would rather increase than *mitigate* ,his unhappy fortunes",
+        },
+        {
+            "hyp": "it was silent and gloomy, *beeing* *tenanted* *solely* by the *captive* and lighted by the dying *embers* of a fire which had been,used for the purpose of *cookery*",
+            "ref": "it was silent and gloomy being *tenanted* *solely* by the *captive* and lighted by the dying *embers* of a fire which had been used ,for the *purposed* of *cookery*",
+        },
+        {
+            "hyp": "or of the habits of our people it is quite impossible.",
+            "ref": "or of the habits of our people it is quite impossible",
+        },
+        {
+            "hyp": "To be or not to be, that is the question Whether 'tis *nobler* in the mind to suffer the *slings* and arrows what? No, *hamlet*,speaking",
+            "ref": "to be or not to be that is the question whether tis *nobler* in the mind to suffer the *slings* and arrows what no *hamlet* ,speaking",
+        },
+        {
+            "hyp": "By quick *marches* through these *inaccessible* mountains, that general *freed* himself from the superior forces of the,*covenanters*",
+            "ref": "by quick *marches* through these *inaccessible* mountains that general *freed* himself from the superior forces of the ,*covenanters*",
+        },
+        {
+            "hyp": "This *nobleman's* character, though celebrated for political courage and conduct, was very low for military *prowess* and after some,*skirmishes* in which he was *worsted* he here allowed *montrose* to escape him.",
+            "ref": "this *nobleman's* character though celebrated for political courage and conduct was very low for military *prowess* and after some ,*skirmishes* in which he was *worsted* he here allowed *montrose* to escape him",
+        },
+    ]
+
+    for pair in pairs:
+        wer, u_wer, b_wer = compute_wers([pair])
+        print(f"WER: {wer.get_result_string()}")
+        print(f"U-WER: {u_wer.get_result_string()}")
+        print(f"B-WER: {b_wer.get_result_string()}")
