@@ -1,6 +1,7 @@
 
 # %%
 from trl.scripts.audio_metrics import compute_wers
+from trl.scripts.audio_rewards import compute_match,word_match, bias_match, unbias_match
 
 results = [
     {
@@ -16,5 +17,10 @@ for i, result in enumerate(results):
     print("WER:", wer.get_result_string())  # noqa
     print("U-WER:", u_wer.get_result_string())  # noqa
     print("B-WER:", b_wer.get_result_string())  # noqa
+    match = compute_match([[result]])
+    print("WER:", match.get_result_string())  # noqa
+    b_match = compute_match([[result]], bias_match)
+    print("B-WER:", b_match.get_result_string())  # noqa
+    u_match = compute_match([[result]], unbias_match)
+    print("U-WER:", u_match.get_result_string())  # noqa
 
-# %%

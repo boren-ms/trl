@@ -4,7 +4,6 @@ from collections import deque
 from enum import Enum
 from whisper_normalizer.english import EnglishTextNormalizer
 
-
 class Code(Enum):
     match = 1
     substitution = 2
@@ -43,7 +42,7 @@ class WordError(object):
     @property
     def error_count(self):
         return self.errors[Code.substitution] + self.errors[Code.insertion] + self.errors[Code.deletion]
-    
+
     @property
     def error_rate(self):
         return self.get_wer() / 100.0
@@ -192,10 +191,10 @@ class EditDistance(object):
 
         return self.get_result(refs, hyps)
 
+
 def text_norm(txt):
     """Normalize tokens by removing leading and trailing whitespace."""
     norm = EnglishTextNormalizer()
-    norm.replacers = {}
     if isinstance(txt, str):
         return norm(txt.strip())
     elif isinstance(txt, list):
@@ -203,31 +202,42 @@ def text_norm(txt):
     else:
         raise ValueError(f"Unsupported type for text normalization: {type(txt)}. Expected str or list of str.")
 
+def find_word_indices(text, pieces):
+    indexs = []
+    for piece in pieces:
+        for m in re.finditer(re.escape(piece), text):
+            start_idx = len(text[:m.start()].split()) # previous words
+            piece_len = len(piece.split())
+            indexs.extend(range(start_idx, start_idx + piece_len))
+    return indexs
+
 def calc_wers(refs, hyps):
     """Calculate WER, U-WER, and B-WER."""
     wer = WordError()
     u_wer = WordError()
     b_wer = WordError()
-    # norm = lambda x: x
     for uttid, ref in refs.items():
         if uttid not in hyps:
             continue
-        ref_tokens = text_norm(ref["text"]).split()
-        biasing_words = text_norm(ref["biasing_words"])
-        hyp_tokens = text_norm(hyps[uttid]).split()
+        tn_ref = text_norm(ref["text"])
+        tn_hyp = text_norm(hyps[uttid])
+        bias_words = text_norm(ref["biasing_words"])
+        bias_ref_indexs = find_word_indices(tn_ref, bias_words)
+        bias_hyp_indexs = find_word_indices(tn_hyp, bias_words)
+
         ed = EditDistance()
-        result = ed.align(ref_tokens, hyp_tokens)
+        result = ed.align(tn_ref.split(), tn_hyp.split())
         for code, ref_idx, hyp_idx in zip(result.codes, result.refs, result.hyps):
             if code == Code.match:
                 wer.ref_words += 1
-                if ref_tokens[ref_idx] in biasing_words:
+                if ref_idx in bias_ref_indexs:
                     b_wer.ref_words += 1
                 else:
                     u_wer.ref_words += 1
             elif code == Code.substitution:
                 wer.ref_words += 1
                 wer.errors[Code.substitution] += 1
-                if ref_tokens[ref_idx] in biasing_words:
+                if ref_idx in bias_ref_indexs:
                     b_wer.ref_words += 1
                     b_wer.errors[Code.substitution] += 1
                 else:
@@ -236,7 +246,7 @@ def calc_wers(refs, hyps):
             elif code == Code.deletion:
                 wer.ref_words += 1
                 wer.errors[Code.deletion] += 1
-                if ref_tokens[ref_idx] in biasing_words:
+                if ref_idx in bias_ref_indexs:
                     b_wer.ref_words += 1
                     b_wer.errors[Code.deletion] += 1
                 else:
@@ -244,7 +254,7 @@ def calc_wers(refs, hyps):
                     u_wer.errors[Code.deletion] += 1
             elif code == Code.insertion:
                 wer.errors[Code.insertion] += 1
-                if hyp_tokens[hyp_idx] in biasing_words:
+                if hyp_idx in bias_hyp_indexs:
                     b_wer.errors[Code.insertion] += 1
                 else:
                     u_wer.errors[Code.insertion] += 1
@@ -260,6 +270,8 @@ def extract_keywords(text):
         "biasing_words": keywords,
         "text": text,
     }
+
+
 def compute_biasing_metrics(results):
     """compute biasing metrics"""
     wer, u_wer, b_wer = compute_wers(results)
@@ -268,7 +280,8 @@ def compute_biasing_metrics(results):
         "UWER": u_wer.get_wer(),
         "BWER": b_wer.get_wer(),
     }
-    
+
+
 def compute_wers(results):
     """compute WER, U-WER, and B-WER"""
     # Extract reference and hypothesis pairs from groups
@@ -324,6 +337,7 @@ def reward_bias_accuracy(completions, **kwargs):
     wers = compute_reward_wers(completions, **kwargs)
     return [wer[2].accuracy for wer in wers]  # B-WER
 
+
 def reward_word_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
@@ -340,6 +354,7 @@ def reward_bias_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
     return [-wer[2].error_count for wer in wers]  # B-WER
+
 
 def reward_word_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
