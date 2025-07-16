@@ -64,6 +64,7 @@ from .utils import (
     print_prompt_completions_sample,
     selective_log_softmax,
 )
+from .bias_util import hf2vllm_config
 
 
 if is_peft_available():
@@ -525,7 +526,7 @@ class GRPOTrainer(Trainer):
         self.num_eval_generations = args.num_eval_generations or args.num_generations
         self.temperature = args.temperature
         self.eval_temperature = args.eval_temperature
-        
+
         self.top_p = args.top_p
         self.top_k = args.top_k
         self.min_p = args.min_p
@@ -675,7 +676,7 @@ class GRPOTrainer(Trainer):
                     # Feed identical seed for tp groups to ensure sampling results are the same across workers
                     seed=self.accelerator.process_index // self.vllm_tensor_parallel_size,
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
-                    max_num_batched_tokens=max_all_tokens*2,
+                    max_num_batched_tokens=max_all_tokens * 2,
                     trust_remote_code=True,
                 )
 
@@ -688,24 +689,22 @@ class GRPOTrainer(Trainer):
             # desynchronization and seems to lead to DeepSpeed hanging during initialization. To prevent this, we
             # synchronize all processes after vLLM has been fully initialized.
             self.accelerator.wait_for_everyone()
-        else:
-
-            generation_kwargs = {
-                "max_new_tokens": self.max_completion_length,
-                "do_sample": True,
-                "pad_token_id": processing_class.tokenizer.pad_token_id,
-                "bos_token_id": processing_class.tokenizer.bos_token_id,
-                "eos_token_id": processing_class.tokenizer.eos_token_id,
-                "temperature": self.temperature,
-                "top_p": self.top_p,
-                "top_k": self.top_k,
-                "min_p": self.min_p,
-                "repetition_penalty": self.repetition_penalty,
-                "cache_implementation": args.cache_implementation,
-            }
-            if args.generation_kwargs is not None:
-                generation_kwargs.update(args.generation_kwargs)
-            self.generation_config = GenerationConfig(**generation_kwargs)
+        generation_kwargs = {
+            "max_new_tokens": self.max_completion_length,
+            "do_sample": True,
+            "pad_token_id": processing_class.tokenizer.pad_token_id,
+            "bos_token_id": processing_class.tokenizer.bos_token_id,
+            "eos_token_id": processing_class.tokenizer.eos_token_id,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "top_k": self.top_k,
+            "min_p": self.min_p,
+            "repetition_penalty": self.repetition_penalty,
+            "cache_implementation": args.cache_implementation,
+        }
+        if args.generation_kwargs is not None:
+            generation_kwargs.update(args.generation_kwargs)
+        self.generation_config = GenerationConfig(**generation_kwargs)
 
         # Gradient accumulation requires scaled loss. Normally, loss scaling in the parent class depends on whether the
         # model accepts loss-related kwargs. Since we compute our own loss, this check is irrelevant. We set
@@ -1067,10 +1066,7 @@ class GRPOTrainer(Trainer):
         num_generations = self.num_generations if mode == "train" else self.num_eval_generations
         temperature = self.temperature if mode == "train" else self.eval_temperature
         prompts = [x["prompt"] for x in inputs]
-        prompts_text = [
-            maybe_apply_chat_template(example,  self.processing_class.tokenizer)["prompt"]
-            for example in inputs
-        ]
+        prompts_text = [maybe_apply_chat_template(example, self.processing_class.tokenizer)["prompt"] for example in inputs]
         # prompts_text = [
         #     self.processing_class.tokenizer.apply_chat_template(
         #         prompt,
@@ -1150,20 +1146,9 @@ class GRPOTrainer(Trainer):
                 else:
                     guided_decoding = None
 
-                generation_kwargs = {
-                    "n": 1,  # vLLM on each GPU generates only 1 in colocate mode
-                    "repetition_penalty": self.repetition_penalty,
-                    "temperature": temperature,
-                    "top_p": self.top_p,
-                    "top_k": -1 if self.top_k is None else self.top_k,
-                    "min_p": 0.0 if self.min_p is None else self.min_p,
-                    "max_tokens": self.max_completion_length,
-                    "stop_token_ids": self.stop_tokens_ids.flatten().tolist(),
-                    "guided_decoding": guided_decoding,
-                }
-                if self.args.generation_kwargs is not None:
-                    generation_kwargs.update(self.args.generation_kwargs)
-                sampling_params = SamplingParams(**generation_kwargs)
+                vllm_conf = hf2vllm_config(self.generation_config.to_dict())
+                vllm_conf.update({"n": 1, "guided_decoding": guided_decoding, "temperature": temperature})
+                sampling_params = SamplingParams(**vllm_conf)
 
                 if self.vllm_tensor_parallel_size > 1:
                     # Gather prompts from all ranks in the TP group and flatten.
