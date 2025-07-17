@@ -197,8 +197,12 @@ def nanstd(tensor: torch.Tensor) -> torch.Tensor:
         `torch.Tensor`:
             Standard deviation of the tensor, ignoring NaNs.
     """
-    variance = torch.nanmean((tensor - torch.nanmean(tensor, keepdim=True)) ** 2)  # Compute variance ignoring NaNs
     count = torch.sum(~torch.isnan(tensor))  # Count of non-NaN values
+    if count <= 1:
+        # Return NaN if we have 1 or fewer non-NaN values (can't compute std with Bessel's correction)
+        return torch.tensor(float("nan"), dtype=tensor.dtype, device=tensor.device)
+    
+    variance = torch.nanmean((tensor - torch.nanmean(tensor, keepdim=True)) ** 2)  # Compute variance ignoring NaNs
     variance *= count / (count - 1)  # Bessel's correction
     return torch.sqrt(variance)
 
@@ -222,18 +226,29 @@ def split_tensor_dict(tensor_dict: dict[str, Optional[Union[torch.Tensor, dict]]
     """
     first_tensor = next(tensor for tensor in tensor_dict.values() if tensor is not None)
     chunk_size = first_tensor.shape[0] // num_chunks
-    chunks = [{} for _ in range(num_chunks)]
+    
+    # Initialize empty chunks list  
+    chunks = []
+    
     for key, tensor in tensor_dict.items():
         if tensor is None:
             vals = [None] * num_chunks
-        elif isinstance(tensor, torch.Tensor):  # TODO: need to fix when len(tensor) is short than chunk_sizes, the chunk number chould be different for keys.
-            vals = torch.split(tensor, chunk_size)
+        elif isinstance(tensor, torch.Tensor):
+            vals = list(torch.split(tensor, chunk_size))
+            # Ensure we have exactly num_chunks by truncating if necessary
+            vals = vals[:num_chunks]
         elif isinstance(tensor, dict):
-            vals = split_tensor_dict(tensor, chunk_size)
+            vals = split_tensor_dict(tensor, num_chunks)  # Fixed: Use num_chunks instead of chunk_size
         else:
-            raise RuntimeError("Unknow tensor type:", tensor)
+            raise RuntimeError("Unknown tensor type:", tensor)
+        
+        # Initialize chunks list if not done yet
+        if not chunks:
+            chunks = [{} for _ in range(len(vals))]
+        
         for i, val in enumerate(vals):
-            chunks[i][key] = val
+            if i < len(chunks):  # Safety check
+                chunks[i][key] = val
 
     return chunks
 
@@ -260,17 +275,21 @@ def shuffle_tensor_dict(tensor_dict: dict[str, Optional[Union[torch.Tensor, dict
     batch_size = first_tensor.shape[0]
     permutation = torch.randperm(batch_size)
 
+    def apply_permutation(tensor_or_dict, perm):
+        """Apply the same permutation to tensor or recursively to nested dict."""
+        if tensor_or_dict is None:
+            return None
+        elif isinstance(tensor_or_dict, torch.Tensor):
+            return tensor_or_dict[perm]
+        elif isinstance(tensor_or_dict, dict):
+            return {key: apply_permutation(val, perm) for key, val in tensor_or_dict.items()}
+        else:
+            raise RuntimeError("Unknown tensor type:", tensor_or_dict)
+
     new_tensor_dict = {}
     for key, tensor in tensor_dict.items():
-        if tensor is None:
-            val = None
-        elif isinstance(tensor, torch.Tensor):
-            val = tensor[permutation]
-        elif isinstance(tensor, dict):
-            val = shuffle_tensor_dict(tensor)
-        else:
-            raise RuntimeError("Unknow tensor type:", tensor)
-        new_tensor_dict[key] = val
+        new_tensor_dict[key] = apply_permutation(tensor, permutation)
+    
     return new_tensor_dict
 
 
@@ -469,11 +488,11 @@ class GRPOTrainer(Trainer):
             processing_class = AutoTokenizer.from_pretrained(model.config._name_or_path, padding_side="left")
 
         if hasattr(processing_class, "pad_token") and processing_class.pad_token is not None:
-            processing_class.eos_token = processing_class.pad_token
+            pass  # pad_token is already set
         elif hasattr(processing_class, "tokenizer") and processing_class.tokenizer.pad_token is not None:
-            processing_class.eos_token = processing_class.tokenizer.pad_token
+            processing_class.pad_token = processing_class.tokenizer.pad_token
         else:
-            processing_class.eos_token = None
+            processing_class.pad_token = processing_class.eos_token
 
         # Reward functions
         if not isinstance(reward_funcs, list):
