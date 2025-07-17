@@ -16,17 +16,17 @@ num_generations: 4
 logging_steps: 1
 bf16: True
 gradient_checkpointing: True
-log_completions: False
+log_completions: True
 max_prompt_length: 2048
 max_completion_length: 512
 wandb_log_unique_prompts: True
 # beta: 0.1
 epsilon_high: 0.28
 save_steps: 100
-# use_vllm: True
-# vllm_mode: colocate
-# vllm_tensor_parallel_size: 1
-# vllm_gpu_memory_utilization: 0.4
+use_vllm: True
+vllm_mode: colocate
+vllm_tensor_parallel_size: 1
+vllm_gpu_memory_utilization: 0.4
 
 # vllm_server_host: ${VLLM_SERVER_HOST}
 # vllm_server_host: 10.133.219.39
@@ -49,16 +49,16 @@ train_data:
         common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 1000
 
-eval_strategy: steps
-eval_on_start: True
-eval_steps: 10
-per_device_eval_batch_size: 200
-num_eval_generations: 2
-eval_data:
-    - nickname: clean_no
-      dataset_name: ls_bias
-      jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-      data_dir: az://orngscuscresco/data/boren/data
+# eval_strategy: steps
+# eval_on_start: True
+# eval_steps: 10
+# per_device_eval_batch_size: 200
+# num_eval_generations: 2
+# eval_data:
+#     - nickname: clean_no
+#       dataset_name: ls_bias
+#       jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+#       data_dir: az://orngscuscresco/data/boren/data
     #   bias_key: null # null
     # data_dir: az://${DATA_STORAGE}/data/boren/data
     # - nickname: other_no
