@@ -42,12 +42,12 @@
             "env": {
                 "WANDB_ENTITY": "genai",
                 "WANDB_PROJECT": "biasing_debug",
-                "CUDA_VISIBLE_DEVICES": "7",
                 "RANK": "0",
                 "LOCAL_RANK": "0",
                 "WORLD_SIZE": "1",
                 "MASTER_ADDR": "localhost",
                 "MASTER_PORT": "12355",
+                "TORCHDYNAMO_DISABLE": "1",
             },
             "justMyCode": false,
             "args": [
