@@ -62,7 +62,7 @@ class GRPOScriptArguments:
         metadata={"help": "Name of the project."},
     )
     skip_run_info: bool = field(
-        default=False,
+        default=True,
         metadata={"help": "Whether to skip to load run info."},
     )
     train_data: Optional[dict] = field(
