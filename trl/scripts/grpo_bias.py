@@ -10,7 +10,7 @@ import argparse
 from dataclasses import dataclass, field
 from typing import Optional
 from datetime import datetime
-from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
+from transformers import AutoModelForCausalLM, AutoProcessor
 import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_audio_dataset

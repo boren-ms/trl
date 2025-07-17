@@ -14,7 +14,6 @@ import json
 from vllm import LLM, SamplingParams
 from pathlib import Path
 from trl.data_utils import sf_read, find_chkps, chkp_index
-from trl.trainer.bias_util import hf2vllm_config
 from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, init_wandb
 from trl.scripts.audio_metrics import compute_wers
 
@@ -61,7 +60,24 @@ class EvalArguments:
     )
 
 
-
+def hf2vllm_config(hf_config):
+    """Convert a HuggingFace GenerationConfig or dict to vLLM sampling parameters."""
+    mapping = {
+        "max_new_tokens": "max_tokens",
+        "temperature": "temperature",
+        "top_p": "top_p",
+        "top_k": "top_k",
+        "repetition_penalty": "repetition_penalty",
+        "presence_penalty": "presence_penalty",
+        "frequency_penalty": "frequency_penalty",
+        "num_return_sequences": "n",
+        "eos_token_id": "stop_token_ids",
+    }
+    vllm_params = {vllm_key: hf_config[hf_key] for hf_key, vllm_key in mapping.items() if hf_key in hf_config and hf_config[hf_key] is not None}
+    if "do_sample" in hf_config and not hf_config["do_sample"]:
+        vllm_params["temperature"] = 0.0
+    vllm_params["n"] = vllm_params.get("n", 1)
+    return vllm_params
 
 
 def hack_package(package_path, replace=False):
@@ -162,7 +178,7 @@ class Evaluation:
                 limit_mm_per_prompt={"audio": 1},
                 max_num_batched_tokens=max_all_tokens*2,
             )
-            config = hf2vllm_config(self.generation_config.to_dict(), 1) # 1best
+            config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
         else:
             model, self.processor = init_model(self.model_path, lora_merged=self.lora_merged)
