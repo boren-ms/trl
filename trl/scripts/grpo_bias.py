@@ -61,6 +61,10 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Name of the project."},
     )
+    skip_run_info: bool = field(
+        default=False,
+        metadata={"help": "Whether to skip to load run info."},
+    )
     train_data: Optional[dict] = field(
         default=None,
         metadata={"help": "Training dataset config"},
@@ -145,7 +149,7 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     return info
 
 
-def init_wandb(job_name=None, project=None, config=None, output_dir=None):
+def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_run_info=False):
     """Initialize wandb."""
     project = os.environ.get("WANDB_PROJECT", project or "biasing")
     job_name = get_job_name(job_name)
@@ -154,7 +158,7 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None):
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
     entity = os.environ.get("WANDB_ENTITY", "genai")
-    run_info = load_run_info(output_dir)
+    run_info = {} if skip_run_info else load_run_info(output_dir)
     run = wandb.init(
         entity=run_info.get("entity", entity),
         project=run_info.get("project", project),
@@ -202,7 +206,12 @@ def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(job_name=script_args.job_name, project=script_args.project, output_dir=training_args.output_dir)  # disabled for wandb for orange
+        init_wandb(
+            job_name=script_args.job_name,
+            project=script_args.project,
+            output_dir=training_args.output_dir,
+            skip_run_info=script_args.skip_run_info,
+        )  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path, lora_merged=script_args.lora_merged)
 
