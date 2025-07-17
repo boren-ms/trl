@@ -165,7 +165,7 @@ class Evaluation:
             config = hf2vllm_config(self.generation_config.to_dict(), 1) # 1best
             self.sampling_params = SamplingParams(**config)
         else:
-            model, self.processor, _ = init_model(self.model_path, lora_merged=self.lora_merged)
+            model, self.processor = init_model(self.model_path, lora_merged=self.lora_merged)
             self.model = self.accelerator.prepare(model).eval()
 
     def generate(self, batch):

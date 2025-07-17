@@ -46,8 +46,7 @@ def init_model(model_id=None, lora_merged=True):
         model.set_lora_adapter("speech")
 
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
-    gen_conf = GenerationConfig.from_pretrained(model_id, "generation_config.json")
-    return model, processor, gen_conf
+    return model, processor
 
 
 @dataclass
@@ -205,7 +204,7 @@ def main(script_args, training_args):
         print("Init Wandb")
         init_wandb(job_name=script_args.job_name, project=script_args.project, output_dir=training_args.output_dir)  # disabled for wandb for orange
 
-    model, processor, gen_conf = init_model(script_args.model_name_or_path, lora_merged=script_args.lora_merged)
+    model, processor = init_model(script_args.model_name_or_path, lora_merged=script_args.lora_merged)
 
     trainer = GRPOTrainer(
         model=model,
@@ -215,7 +214,6 @@ def main(script_args, training_args):
         eval_dataset=create_dataset(script_args.eval_data),
         processing_class=processor,
         compute_metrics=eval_biasing_metrics,
-        generation_kwargs=gen_conf.to_dict(),
     )
     print("Training...")
     trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
