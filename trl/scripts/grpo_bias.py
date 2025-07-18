@@ -202,6 +202,20 @@ def create_dataset(config):
     raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
 
 
+
+def list_modules(model, trainable=True):
+    """List trainable modules in the model and total trainable parameter size."""
+    tag = "trainable" if trainable else ""
+    print(f"List {tag} modules in the model:", {model.__class__.__name__})
+    total_params = 0
+    for name, param in model.named_parameters():
+        if trainable and not param.requires_grad:
+            continue
+        print(f"{name}: {param.numel():,} {tag} parameters")
+        total_params += param.numel()
+    print(f"Total {tag} parameters: {total_params:,}")
+    return total_params
+
 def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
@@ -214,6 +228,8 @@ def main(script_args, training_args):
         )  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path, lora_merged=script_args.lora_merged)
+    n_trainable_params = list_modules(model, trainable=True)
+    assert n_trainable_params > 0, "No trainable parameters found in the model."
 
     trainer = GRPOTrainer(
         model=model,
