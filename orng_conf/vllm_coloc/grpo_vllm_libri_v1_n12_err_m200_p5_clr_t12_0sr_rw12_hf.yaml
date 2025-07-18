@@ -1,8 +1,9 @@
 train_data:
     dataset_name: tsv
-    # num_egs: 5000
+    num_egs: 20000
     # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
-    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
+    # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     biasing:
         buffer_size: 10000
         max_piece_len: 1
