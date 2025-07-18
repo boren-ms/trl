@@ -23,7 +23,7 @@ report_to: [wandb]
 num_train_epochs: 1
 learning_rate: 1e-5
 lr_scheduler_type: const #cosine
-loss_type: grpo # bnpo
+
 scale_rewards: False
 temperature: 1.2
 output_dir: ./output
