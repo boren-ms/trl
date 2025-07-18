@@ -20,7 +20,7 @@ gradient_checkpointing: True
 log_completions: True
 max_prompt_length: 2048
 max_completion_length: 512
-# wandb_log_unique_prompts: True
+# 
 # beta: 0.1
 epsilon_high: 0.28
 save_steps: 100
