@@ -25,7 +25,9 @@ def upload_file(local_path, remote_path, overwrite=False):
         print(f"Could not stat remote file {remote_path}: {e}")
     # Copy if remote does not exist or local is newer
     if remote_mtime is None or local_mtime > remote_mtime:
-        print(f"Syncing file {local_path.name} to {remote_path} (local newer or remote missing)")
+        print(
+            f"Syncing file {local_path.name} to {remote_path} (local newer or remote missing)"
+        )
         bf.copy(local_path, remote_path, overwrite=True)
     else:
         print(f"Skipping {local_path.name}: remote is newer or same.")
@@ -48,14 +50,36 @@ class OutputWatcher:
             return
         if self.sync_all:
             print(f"Syncing all files from {self.local_dir} to {self.remote_dir}")
-            cmd = ["bbb", "sync", "--concurrency", "64", f"{self.local_dir}/", f"{self.remote_dir}/"]
+            cmd = [
+                "bbb",
+                "sync",
+                "--concurrency",
+                "64",
+                f"{self.local_dir}/",
+                f"{self.remote_dir}/",
+            ]
             run_cmd(cmd)
             return
-        print(f"Syncing files expecting checkpoints from {self.local_dir} to {self.remote_dir}")
-        cmd = ["bbb", "sync", "--concurrency", "64", f"{self.local_dir}/", f"{self.remote_dir}/", "--exclude", "checkpoint-*"]
+        print(
+            f"Syncing files expecting checkpoints from {self.local_dir} to {self.remote_dir}"
+        )
+        cmd = [
+            "bbb",
+            "sync",
+            "--concurrency",
+            "64",
+            f"{self.local_dir}/",
+            f"{self.remote_dir}/",
+            "--exclude",
+            "checkpoint-*",
+        ]
         run_cmd(cmd)
         print("Syncing latest checkpoint ...")
-        chkp_dirs = [d for d in Path(self.local_dir).iterdir() if d.is_dir() and d.name.startswith("checkpoint-")]
+        chkp_dirs = [
+            d
+            for d in Path(self.local_dir).iterdir()
+            if d.is_dir() and d.name.startswith("checkpoint-")
+        ]
         chkp_dirs = sorted(chkp_dirs, key=lambda d: chkp_index(d.name), reverse=True)
         ckhps = [chkp_index(d.name) for d in chkp_dirs]
         if not chkp_dirs:
@@ -65,8 +89,17 @@ class OutputWatcher:
         print("Latest 20 checkpoints: ", ckhps[:20])
         local_chkp_dir = chkp_dirs[0]
         print(f"Latest checkpoint: {local_chkp_dir}")
-        remote_chkp_dir = f"{self.remote_dir}/{local_chkp_dir.relative_to(self.local_dir)}"
-        cmd = ["bbb", "sync", "--concurrency", "64", f"{local_chkp_dir}/", f"{remote_chkp_dir}/"]
+        remote_chkp_dir = (
+            f"{self.remote_dir}/{local_chkp_dir.relative_to(self.local_dir)}"
+        )
+        cmd = [
+            "bbb",
+            "sync",
+            "--concurrency",
+            "64",
+            f"{local_chkp_dir}/",
+            f"{remote_chkp_dir}/",
+        ]
         print(f"Syncing latest checkpoint from {local_chkp_dir} to {remote_chkp_dir}")
         run_cmd(cmd)
         print("Sync completed.")
@@ -100,7 +133,9 @@ def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=F
     print(f"Watching  @ {head_node} every {interval/60} minutes")
     print(f"Local directory: {local_dir}")
     print(f"Remote directory: {remote_dir}")
-    watcher = OutputWatcher.options(resources={head_node: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all)
+    watcher = OutputWatcher.options(resources={head_node: 0.01}).remote(
+        local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all
+    )
     watcher.start.remote()
     return watcher
 
@@ -168,7 +203,9 @@ def search_models(model_path=None):
 def get_region():
     """Get the region of the Kubernetes cluster from the environment variable."""
     rcall_kube_cluster = os.environ.get("RCALL_KUBE_CLUSTER", "")
-    cluster_region = rcall_kube_cluster.split("-")[1] if "-" in rcall_kube_cluster else None
+    cluster_region = (
+        rcall_kube_cluster.split("-")[1] if "-" in rcall_kube_cluster else None
+    )
     return cluster_region
 
 
@@ -185,7 +222,9 @@ class UserStorage:
     def __init__(self, region=None):
         """Initialize the UserStorage with the specified region."""
         self.region = region or get_region()
-        assert self.region, "Region must be specified or set in RCALL_KUBE_CLUSTER environment variable"
+        assert (
+            self.region
+        ), "Region must be specified or set in RCALL_KUBE_CLUSTER environment variable"
         self.region_storage = REGION_STORAGES.get(self.region, "orngscuscresco")
         self.user = os.environ.get("OPENAI_USER", "boren")
 
@@ -266,7 +305,11 @@ def prepare_local_output(local_dir, remote_dir):
         run_cmd(cmd)
 
     # sync remote checkpoints to local directory
-    chkps = [(chkp_index(d.name), d.name) for d in bf.scandir(remote_dir) if d.is_dir and chkp_index(d.name) >= 0]
+    chkps = [
+        (chkp_index(d.name), d.name)
+        for d in bf.scandir(remote_dir)
+        if d.is_dir and chkp_index(d.name) >= 0
+    ]
     chkps = sorted(chkps, key=lambda x: x[0], reverse=True)
     if not chkps:
         print(f"No checkpoints found in {remote_dir}.")
@@ -275,7 +318,14 @@ def prepare_local_output(local_dir, remote_dir):
     print("Latest 20 checkpoints: ", [chkp[0] for chkp in chkps[:20]])
     latest_chkp = chkps[0][1]
     print(f"Syncing latest checkpoint ({latest_chkp}) to local directory...")
-    cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/{latest_chkp}/", f"{local_dir}/{latest_chkp}/"]
+    cmd = [
+        "bbb",
+        "sync",
+        "--concurrency",
+        "64",
+        f"{remote_dir}/{latest_chkp}/",
+        f"{local_dir}/{latest_chkp}/",
+    ]
     run_cmd(cmd)
     print("Data preparation completed.")
 
@@ -292,11 +342,20 @@ def prepare_env(forced=False):
         "vllm==0.8.5.post1",
         "trl==0.20.0.dev0",
     ]
-    if all(is_package_version(*package.split("==")) for package in packages) and not forced:
-        print(f"Required packages already installed on {hostname}, skipping installation.")
+    if (
+        all(is_package_version(*package.split("==")) for package in packages)
+        and not forced
+    ):
+        print(
+            f"Required packages already installed on {hostname}, skipping installation."
+        )
         return
-    run_cmd("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
-    run_cmd("uv pip install --system torch==2.6.0 torchvision torchaudio transformers==4.51.3  trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire")
+    run_cmd(
+        "pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl"
+    )
+    run_cmd(
+        "uv pip install --system torch==2.6.0 torchvision torchaudio transformers==4.51.3  trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire"
+    )
     run_cmd("pip install vllm==0.8.5.post1 && pip install ray==2.46.0")
     run_cmd("pip install torch==2.6.0 flash-attn ")
     run_cmd("pip uninstall -y trl")
@@ -320,8 +379,9 @@ def prepare_data(forced=False):
     rel_dirs = [
         # "gsm8k",
         # "ckp/hf_models/Qwen2.5-0.5B-Instruct",
-        "ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf_merged",
-        "ckp/hf_models/phi4_mm_bias_merged",
+        "ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf",
+        # "ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf_merged",
+        # "ckp/hf_models/phi4_mm_bias_merged",
         "ckp/hf_models/phi4_mm_bias",
         "ckp/hf_models/Phi-4-multimodal-instruct",
         "librispeech_biasing/words",
@@ -333,7 +393,14 @@ def prepare_data(forced=False):
 
     for rel_dir in rel_dirs:
         print(f"Syncing directory: {rel_dir}")
-        cmd = ["bbb", "sync", "--concurrency", "64", f"{remote_dir}/{rel_dir}", f"{local_dir}/{rel_dir}"]
+        cmd = [
+            "bbb",
+            "sync",
+            "--concurrency",
+            "64",
+            f"{remote_dir}/{rel_dir}",
+            f"{local_dir}/{rel_dir}",
+        ]
         run_cmd(cmd)
 
     rel_files = [
@@ -387,7 +454,7 @@ def run_nodes(fun, *args, waiting=True, head_only=False, **kwargs):
     results = []
     nodes = [node for node in nodes if node["Alive"]]
     if head_only:
-        nodes = nodes[:1]  # Only run on the head node    
+        nodes = nodes[:1]  # Only run on the head node
     for node in nodes:
         node_ip = node["NodeManagerAddress"]
         # Use custom resource label to ensure the function runs on this node
@@ -405,7 +472,9 @@ def list_nodes():
     nodes = ray.nodes()
     print(f"Found {len(nodes)} nodes in the cluster:")
     for node in nodes:
-        print(f" - {node['NodeName']}[{node['NodeManagerAddress']}] (Alive: {node['Alive']})")
+        print(
+            f" - {node['NodeName']}[{node['NodeManagerAddress']}] (Alive: {node['Alive']})"
+        )
     return nodes
 
 
@@ -427,7 +496,9 @@ def sync_local_dir(folder):
     if cur_node == head_node:
         print(f"Skipping checkpoint sync on head node: {cur_node}")
         return
-    print(f"Syncing checkpoints from head node: {head_node} to current node: {cur_node}")
+    print(
+        f"Syncing checkpoints from head node: {head_node} to current node: {cur_node}"
+    )
     cmd = ["rsync", "-avz", f"{head_node}:{folder}/", f"{folder}/"]
     run_cmd(cmd)
     print("Folder syncing completed.")
@@ -506,7 +577,7 @@ class RayTool:
         init_ray()
         self.head_only = head
         print("Ray cluster initialized.")
-        
+
     def _run_nodes(self, fun, *args, **kwargs):
         """Run a function on all Ray nodes."""
         return run_nodes(fun, *args, head_only=self.head_only, **kwargs)
@@ -564,14 +635,18 @@ class RayTool:
         results += self._run_nodes(prepare_data, forced=forced, waiting=False)
         local_dir, remote_dir = get_output_dirs(rel_path)
         print(f"Preparing local output on all nodes: {local_dir} from {remote_dir}")
-        results += self._run_nodes(prepare_local_output, local_dir, remote_dir, waiting=False)
+        results += self._run_nodes(
+            prepare_local_output, local_dir, remote_dir, waiting=False
+        )
         results = ray.get(results)
         self.sync_folder(local_dir)
 
     def run_output_watcher(self, rel_path=None, interval=600):
         """Run the output watcher on head."""
         local_dir, remote_dir = get_output_dirs(rel_path)
-        print(f"Running output watcher on head: {local_dir} from {remote_dir} every {interval/60} minutes")
+        print(
+            f"Running output watcher on head: {local_dir} from {remote_dir} every {interval/60} minutes"
+        )
         return run_output_watcher(local_dir, remote_dir, interval)
 
     def show_remote_dirs(self, rel_path=None):
