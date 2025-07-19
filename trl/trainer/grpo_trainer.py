@@ -953,7 +953,9 @@ class GRPOTrainer(Trainer):
                         # When module to save, remove its prefix and discard the original module
                         if "original_module" in name:
                             continue
-                        name = name.replace("modules_to_save.default.", "")
+
+                        for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
+                            name = name.replace(extra, "")
 
                         if self.vllm_mode == "server" and self.accelerator.is_main_process:
                             self.vllm_client.update_named_param(name, param.data)

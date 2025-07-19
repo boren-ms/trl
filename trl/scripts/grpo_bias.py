@@ -15,6 +15,7 @@ import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_audio_dataset
 from trl.scripts.audio_metrics import eval_biasing_metrics
+from peft import LoraConfig, get_peft_model
 
 
 def uuid4():
@@ -22,7 +23,19 @@ def uuid4():
     return short_id
 
 
-def init_model(model_id=None, lora_merged=True):
+def get_peft(model):
+    """get peft module"""
+    lora_conf = LoraConfig(target_modules=model.config.speech_lora["layer"], task_type="CAUSAL_LM")
+    peft_model = get_peft_model(model.model, lora_conf, adapter_name="fake")
+    peft_model.base_model.active_adapter.append("speech")
+    peft_model.base_model.active_adapter.append("vision")
+    peft_model.set_adapter("speech")
+    peft_model.delete_adapter("fake")
+    peft_model.delete_adapter("vision")
+    return peft_model
+
+
+def init_model(model_id=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -32,19 +45,7 @@ def init_model(model_id=None, lora_merged=True):
         torch_dtype="auto",
         _attn_implementation="flash_attention_2",
     )
-    # lora_adpater=None
-    if lora_merged:
-        print("Lora merged, delete lora adapters")
-        from peft.tuners.lora import LoraLayer
-
-        for module in model.modules():
-            if isinstance(module, LoraLayer):
-                module.delete_adapter("speech")
-                module.delete_adapter("vision")
-    else:
-        print("loading speech lora adapter")
-        model.set_lora_adapter("speech")
-
+    model = get_peft(model)
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 
@@ -202,7 +203,6 @@ def create_dataset(config):
     raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
 
 
-
 def list_modules(model, trainable=True):
     """List trainable modules in the model and total trainable parameter size."""
     tag = "trainable" if trainable else ""
@@ -215,6 +215,7 @@ def list_modules(model, trainable=True):
         total_params += param.numel()
     print(f"Total {tag} parameters: {total_params:,}")
     return total_params
+
 
 def main(script_args, training_args):
     """Train the model with GRPO."""
