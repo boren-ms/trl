@@ -26,7 +26,7 @@ eval_data:
     data_dir: az://${DATA_STORAGE}/data/boren/data
 reward_funcs: [reward_word_error, reward_bias_error]
 reward_weights: [1, 10]
-# model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
+# model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf_merged/
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 # job_name: phi4_mm_bias_grpo

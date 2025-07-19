@@ -4,7 +4,7 @@ generation_config:
   max_new_tokens: 512
   do_sample: false
 # model_path: /root/data/ckp/hf_models/phi4_mm_bias
-# model_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
+# model_path: /root/data/ckp/hf_models/phi4_mm_bias
 model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 eval_data:
   - nickname: clean_1000

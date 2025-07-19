@@ -7,7 +7,7 @@ generation_config:
 
 model_path: /root/data/ckp/hf_models/phi4_mm_bias
 # model_path: /root/outputs/dev-n2-hpe5/grpo_vllm_libri_v1_n12_err_m1000_p8_bp8_mp1_all_sc1k_seed_rw10_coloc/checkpoint-8400/
-# model_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
+# model_path: /root/data/ckp/hf_models/phi4_mm_bias
 # model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 eval_data:
     - nickname: clean_no
