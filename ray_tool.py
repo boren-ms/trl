@@ -8,7 +8,44 @@ import fire
 import time
 import blobfile as bf
 import importlib.metadata
-from trl.data_utils import chkp_index, find_chkps
+
+
+def to_int(value, default=-1):
+    """Convert a value to an integer, if possible."""
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def chkp_index(name, default=-1):
+    """Extract the checkpoint index from a checkpoint directory name."""
+    if not name.startswith("checkpoint-"):
+        return default
+    return to_int(name.split("-")[-1], default)
+
+
+def find_chkps(model_dir, specified=None):
+    """Find all checkpoint directories in the model directory."""
+    chkps = [
+        d
+        for d in bf.scandir(model_dir)
+        if d.is_dir and d.name.startswith("checkpoint-")
+    ]
+    if not chkps:
+        return []
+    chkps = sorted(chkps, key=lambda d: chkp_index(d.name), reverse=True)
+    if specified is None:
+        return [chkp.path for chkp in chkps]
+
+    if isinstance(specified, int):
+        specified = [specified]
+
+    idxs = [chkp_index(chkp.name) for chkp in reversed(chkps)]  # ascending
+    chkp_indices = [
+        i if i >= 0 else idxs[i] for i in map(to_int, specified) if -i <= len(idxs)
+    ]
+    return [chkp.path for chkp in chkps if chkp_index(chkp.name) in chkp_indices]
 
 
 def upload_file(local_path, remote_path, overwrite=False):
