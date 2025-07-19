@@ -2,7 +2,7 @@ train_data:
     dataset_name: tsv
     # num_egs: 5000
     # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
-    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
     biasing:
         buffer_size: 10000
         max_piece_len: 1
@@ -20,10 +20,9 @@ model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 # job_name: phi4_mm_bias_grpo
 report_to: [wandb]
-num_train_epochs: 1
+num_train_epochs: 2
 learning_rate: 1e-5
 lr_scheduler_type: cosine #cosine
-
 scale_rewards: False
 temperature: 1.5
 output_dir: ./output
@@ -38,7 +37,7 @@ max_completion_length: 512
 
 # beta: 0.1
 epsilon_high: 0.28
-save_steps: 100
+save_steps: 200
 use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
@@ -58,30 +57,30 @@ eval_data:
       dataset_name: ls_bias
       jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
       data_dir: az://${DATA_STORAGE}/data/boren/data
-    # - nickname: other_no
-    #   dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    #   data_dir: az://${DATA_STORAGE}/data/boren/data
+    - nickname: other_no
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+      data_dir: az://${DATA_STORAGE}/data/boren/data
     - nickname: clean_100
       dataset_name: ls_bias
       jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
       data_dir: az://${DATA_STORAGE}/data/boren/data
       bias_key: distractors # distractors
-    # - nickname: other_100
-    #   dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    #   bias_key: distractors # distractors
-    #   data_dir: az://${DATA_STORAGE}/data/boren/data
-    # - nickname: clean_500
-    #   dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
-    #   bias_key: distractors # distractors
-    #   data_dir: az://${DATA_STORAGE}/data/boren/data
-    # - nickname: other_500
-    #   dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
-    #   bias_key: distractors # distractors
-    #   data_dir: az://${DATA_STORAGE}/data/boren/data
+    - nickname: other_100
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+      bias_key: distractors # distractors
+      data_dir: az://${DATA_STORAGE}/data/boren/data
+    - nickname: clean_500
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
+      bias_key: distractors # distractors
+      data_dir: az://${DATA_STORAGE}/data/boren/data
+    - nickname: other_500
+      dataset_name: ls_bias
+      jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
+      bias_key: distractors # distractors
+      data_dir: az://${DATA_STORAGE}/data/boren/data
     # - nickname: clean_1000
     #   dataset_name: ls_bias
     #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
