@@ -30,7 +30,7 @@ bf16: True
 temperature: 1.2
 gradient_checkpointing: True
 log_completions: True
-max_prompt_length: 5000
+max_prompt_length: 6000
 max_completion_length: 512
 # 
 # beta: 0.1

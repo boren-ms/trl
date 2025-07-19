@@ -29,7 +29,7 @@ logging_steps: 10
 bf16: True
 gradient_checkpointing: True
 log_completions: True
-max_prompt_length: 5000 # increased to 6000 for colocate
+max_prompt_length: 6000 # increased to 6000 for colocate
 max_completion_length: 512
 
 # beta: 0.1
