@@ -15,24 +15,12 @@ import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_audio_dataset
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from peft import LoraConfig, get_peft_model
+from trl.scripts.utils import add_adapter_func, human_readable
 
 
 def uuid4():
     short_id = shortuuid.ShortUUID().random(length=4)
     return short_id
-
-
-def get_peft(model):
-    """get peft module"""
-    lora_conf = LoraConfig(target_modules=model.config.speech_lora["layer"], task_type="CAUSAL_LM")
-    peft_model = get_peft_model(model.model, lora_conf, adapter_name="fake")
-    peft_model.base_model.active_adapter.append("speech")
-    peft_model.base_model.active_adapter.append("vision")
-    peft_model.set_adapter("speech")
-    peft_model.delete_adapter("fake")
-    peft_model.delete_adapter("vision")
-    return peft_model
 
 
 def init_model(model_id=None):
@@ -45,7 +33,8 @@ def init_model(model_id=None):
         torch_dtype="auto",
         _attn_implementation="flash_attention_2",
     )
-    model = get_peft(model)
+    model.set_lora_adapter("speech")
+    model = add_adapter_func(model)
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 
@@ -199,18 +188,19 @@ def create_dataset(config):
     raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
 
 
-def list_modules(model, trainable=True):
+def print_modules(model, trainable=True):
     """List trainable modules in the model and total trainable parameter size."""
-    tag = "trainable" if trainable else ""
-    print(f"List {tag} modules in the model:", {model.__class__.__name__})
-    total_params = 0
+    print(f"List modules in the model:", {model.__class__.__name__})
+    n_total = 0
+    n_trainable = 0
     for name, param in model.named_parameters():
-        if trainable and not param.requires_grad:
-            continue
-        print(f"{name}: {param.numel():,} {tag} parameters")
-        total_params += param.numel()
-    print(f"Total {tag} parameters: {total_params:,}")
-    return total_params
+        n_total += param.numel()
+        if trainable and param.requires_grad:
+            print(f"{name}: {human_readable(param.numel())} trainable")
+            n_trainable += param.numel()
+    print(f"Total trainable: {human_readable(n_trainable)}")
+    print(f"Total parameter: {human_readable(n_total)}")
+    return n_total, n_trainable
 
 
 def main(script_args, training_args):
@@ -225,8 +215,8 @@ def main(script_args, training_args):
         )  # disabled for wandb for orange
 
     model, processor = init_model(script_args.model_name_or_path)
-    n_trainable_params = list_modules(model, trainable=True)
-    assert n_trainable_params > 0, "No trainable parameters found in the model."
+    _, n_trainable = print_modules(model, trainable=True)
+    assert n_trainable > 0, "No trainable parameters found in the model."
 
     trainer = GRPOTrainer(
         model=model,

@@ -63,8 +63,8 @@ from .utils import (
     pad,
     print_prompt_completions_sample,
     selective_log_softmax,
+    can_merge_adapter
 )
-
 
 if is_peft_available():
     from peft import PeftConfig, get_peft_model
@@ -931,7 +931,7 @@ class GRPOTrainer(Trainer):
         else:
             gather_if_zero3 = nullcontext
 
-        if is_peft_model(self.model):
+        if is_peft_model(self.model) or can_merge_adapter(self.model):
             # With PEFT and FSDP/DeepSpeed ZeRO Stage 3, we must gather the full model at once before merging, as
             # merging adapters in a sharded manner is not supported.
             # TODO: does this work with FSDP?
@@ -947,8 +947,9 @@ class GRPOTrainer(Trainer):
                     # DeepSpeed ZeRO-3 with PEFT
                     for name, param in self.model.named_parameters():
                         # When using PEFT, we need to recover the original parameter name and discard some parameters
-                        name = name.removeprefix("base_model.").replace(".base_layer", "")
-                        if self.model.prefix in name:
+                        name = name.removeprefix("base_model.model.").replace(".base_layer", "")
+                        
+                        if hasattr(self.model, "prefix") and self.model.prefix in name:
                             continue
                         # When module to save, remove its prefix and discard the original module
                         if "original_module" in name:
