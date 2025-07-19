@@ -2,29 +2,33 @@ train_data:
     dataset_name: tsv
     # num_egs: 5000
     # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
-    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
     biasing:
         buffer_size: 10000
         max_piece_len: 1
         max_num: 1000
-        bias_prob: 0.8
-        hit_prob: 0.8
-        log_interval: 1000 # print biasing every 10000 samples
+        # bias_prob: 0.8
+        hit_prob: 0.5
+        log_interval: 10000 # print biasing every 10000 samples
         new_sampling: True
         common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 1000
-reward_funcs: [reward_word_error, reward_bias_error]
+reward_funcs: [reward_unbias_error, reward_bias_error]
 reward_weights: [1, 1]
-model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
+model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 # job_name: phi4_mm_bias_grpo
 report_to: [wandb]
+num_train_epochs: 2
 learning_rate: 1e-5
-lr_scheduler_type: cosine
+lr_scheduler_type: cosine #cosine
+scale_rewards: False
+temperature: 1.0
 output_dir: ./output
 per_device_train_batch_size: 24
-num_generations: 12
+num_generations: 4
 logging_steps: 10
 bf16: True
 gradient_checkpointing: True
@@ -34,7 +38,7 @@ max_completion_length: 512
 
 # beta: 0.1
 epsilon_high: 0.28
-save_steps: 100
+save_steps: 200
 use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
@@ -45,8 +49,8 @@ vllm_gpu_memory_utilization: 0.35
 
 
 eval_strategy: steps
-eval_on_start: True
-eval_steps: 400
+eval_on_start: False
+eval_steps: 200
 per_device_eval_batch_size: 200
 num_eval_generations: 2
 eval_data:
