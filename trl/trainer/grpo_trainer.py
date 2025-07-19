@@ -947,7 +947,7 @@ class GRPOTrainer(Trainer):
                     # DeepSpeed ZeRO-3 with PEFT
                     for name, param in self.model.named_parameters():
                         # When using PEFT, we need to recover the original parameter name and discard some parameters
-                        name = name.removeprefix("base_model.model.").replace(".base_layer", "")
+                        name = name.removeprefix("base_model.").replace(".base_layer", "")
                         if self.model.prefix in name:
                             continue
                         # When module to save, remove its prefix and discard the original module
