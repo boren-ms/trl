@@ -78,10 +78,6 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Path to the model."},
     )
-    lora_merged: bool = field(
-        default=True,
-        metadata={"help": "Whether LoRA is merged."},
-    )
     reward_funcs: Optional[str] = field(
         default=None,
         metadata={"help": "Reward functions to use. Can be a list of functions or a single function."},
@@ -228,7 +224,7 @@ def main(script_args, training_args):
             skip_run_info=script_args.skip_run_info,
         )  # disabled for wandb for orange
 
-    model, processor = init_model(script_args.model_name_or_path, lora_merged=script_args.lora_merged)
+    model, processor = init_model(script_args.model_name_or_path)
     n_trainable_params = list_modules(model, trainable=True)
     assert n_trainable_params > 0, "No trainable parameters found in the model."
 

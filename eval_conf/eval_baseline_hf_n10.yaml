@@ -4,7 +4,7 @@ generation_config:
     max_new_tokens: 1024
     do_sample: false
 # model_path: /root/data/ckp/hf_models/phi4_mm_bias
-# lora_merged: false
+# 
 model_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
 checkpoints: [-1, -2, -3, -4, -5, -6, -7, -8, -9, -10]
 # model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
