@@ -29,7 +29,7 @@ logging_steps: 10
 bf16: True
 gradient_checkpointing: True
 log_completions: True
-max_prompt_length: 6000
+max_prompt_length: 5000
 max_completion_length: 512
 
 # beta: 0.1
@@ -38,7 +38,7 @@ save_steps: 100
 use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
-vllm_gpu_memory_utilization: 0.3
+vllm_gpu_memory_utilization: 0.355
 # vllm_server_host: ${VLLM_SERVER_HOST} # dev-n1-wus2-0
 # vllm_server_port: 26500
 # resume_from_checkpoint: True
