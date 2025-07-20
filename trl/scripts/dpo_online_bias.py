@@ -22,7 +22,7 @@ from trl import OnlineDPOConfig, OnlineDPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
 from trl.scripts.shared_utils import (
     init_model, is_master, get_job_name, save_run_info, load_run_info,
-    init_wandb, create_dataset
+    init_wandb, create_dataset, setup_reward_model_and_tokenizer, setup_judge
 )
 
 
@@ -61,35 +61,6 @@ class OnlineDPOScriptArguments:
     )
 
 
-def setup_reward_model_and_tokenizer(script_args, model_kwargs):
-    """Setup reward model and tokenizer if provided."""
-    if script_args.reward_model_path is not None:
-        reward_model = AutoModelForSequenceClassification.from_pretrained(
-            script_args.reward_model_path,
-            num_labels=1,
-            trust_remote_code=True,
-            **model_kwargs,
-        )
-        reward_tokenizer = AutoTokenizer.from_pretrained(
-            script_args.reward_model_path,
-            trust_remote_code=True,
-            truncation=True,
-            truncation_side="left",  # since we judge the completion, truncating left is more appropriate
-        )
-        return reward_model, reward_tokenizer
-    return None, None
-
-
-def setup_judge(script_args):
-    """Setup judge if provided."""
-    if script_args.judge is not None:
-        from trl import HfPairwiseJudge, OpenAIPairwiseJudge, PairRMJudge
-        JUDGES = {"pair_rm": PairRMJudge, "openai": OpenAIPairwiseJudge, "hf": HfPairwiseJudge}
-        judge_cls = JUDGES[script_args.judge]
-        return judge_cls()
-    return None
-
-
 def main(script_args, training_args):
     """Train the model with Online DPO."""
     if is_master():
@@ -111,10 +82,10 @@ def main(script_args, training_args):
     )
 
     # Setup reward model and tokenizer
-    reward_model, reward_tokenizer = setup_reward_model_and_tokenizer(script_args, model_kwargs)
+    reward_model, reward_tokenizer = setup_reward_model_and_tokenizer(script_args.reward_model_path, model_kwargs)
 
     # Setup judge
-    judge = setup_judge(script_args)
+    judge = setup_judge(script_args.judge)
 
     # Set processor padding
     if processor.tokenizer.pad_token_id is None:

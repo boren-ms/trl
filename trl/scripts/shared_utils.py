@@ -152,3 +152,33 @@ def create_dataset(config):
         from trl.scripts.audio_dataset import create_audio_dataset
         return create_audio_dataset(**config)
     raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
+
+
+def setup_reward_model_and_tokenizer(reward_model_path, model_kwargs):
+    """Setup reward model and tokenizer if provided."""
+    if reward_model_path is not None:
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+        reward_model = AutoModelForSequenceClassification.from_pretrained(
+            reward_model_path,
+            num_labels=1,
+            trust_remote_code=True,
+            **model_kwargs,
+        )
+        reward_tokenizer = AutoTokenizer.from_pretrained(
+            reward_model_path,
+            trust_remote_code=True,
+            truncation=True,
+            truncation_side="left",  # since we judge the completion, truncating left is more appropriate
+        )
+        return reward_model, reward_tokenizer
+    return None, None
+
+
+def setup_judge(judge_name):
+    """Setup judge if provided."""
+    if judge_name is not None:
+        from trl import HfPairwiseJudge, OpenAIPairwiseJudge, PairRMJudge
+        JUDGES = {"pair_rm": PairRMJudge, "openai": OpenAIPairwiseJudge, "hf": HfPairwiseJudge}
+        judge_cls = JUDGES[judge_name]
+        return judge_cls()
+    return None
