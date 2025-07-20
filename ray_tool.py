@@ -414,8 +414,9 @@ def prepare_data(forced=False):
     print(f"Remote directory: {remote_dir}")
 
     rel_dirs = [
-        # "gsm8k",
-        # "ckp/hf_models/Qwen2.5-0.5B-Instruct",
+        "gsm8k",
+        "ckp/hf_models/Qwen2.5-0.5B-Instruct",
+        "ckp/hf_models/Qwen2-0.5B-Reward",
         "ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf",
         # "ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf_merged",
         # "ckp/hf_models/phi4_mm_bias_merged",
