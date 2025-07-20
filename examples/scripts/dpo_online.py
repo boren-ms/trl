@@ -63,6 +63,7 @@ from trl.trainer.utils import SIMPLE_CHAT_TEMPLATE
 
 JUDGES = {"pair_rm": PairRMJudge, "openai": OpenAIPairwiseJudge, "hf": HfPairwiseJudge}
 
+
 if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, OnlineDPOConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
