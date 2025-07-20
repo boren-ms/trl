@@ -22,8 +22,28 @@ from trl import OnlineDPOConfig, OnlineDPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
 from trl.scripts.shared_utils import (
     init_model, is_master, get_job_name, save_run_info, load_run_info,
-    init_wandb, create_dataset, setup_reward_model_and_tokenizer, setup_judge
+    init_wandb, create_dataset, setup_judge
 )
+
+
+def setup_reward_model_and_tokenizer(reward_model_path, model_kwargs):
+    """Setup reward model and tokenizer if provided."""
+    if reward_model_path is not None:
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+        reward_model = AutoModelForSequenceClassification.from_pretrained(
+            reward_model_path,
+            num_labels=1,
+            trust_remote_code=True,
+            **model_kwargs,
+        )
+        reward_tokenizer = AutoTokenizer.from_pretrained(
+            reward_model_path,
+            trust_remote_code=True,
+            truncation=True,
+            truncation_side="left",  # since we judge the completion, truncating left is more appropriate
+        )
+        return reward_model, reward_tokenizer
+    return None, None
 
 
 @dataclass
@@ -63,13 +83,13 @@ class OnlineDPOScriptArguments:
 
 def main(script_args, training_args):
     """Train the model with Online DPO."""
-    if is_master():
-        print("Init Wandb")
-        init_wandb(
-            job_name=script_args.job_name, 
-            project=script_args.project, 
-            output_dir=training_args.output_dir
-        )
+    print("Init Wandb")
+    init_wandb(
+        job_name=script_args.job_name, 
+        project=script_args.project, 
+        output_dir=training_args.output_dir,
+        master_only=True
+    )
 
     # Initialize model and processor
     model, processor = init_model(script_args.model_name_or_path)

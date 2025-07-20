@@ -18,7 +18,7 @@ except ImportError:
     LoraLayer = None
 
 
-def init_model(model_id=None, lora_merged=True):
+def init_model(model_id=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -29,35 +29,30 @@ def init_model(model_id=None, lora_merged=True):
         _attn_implementation="flash_attention_2",
     )
     
-    if lora_merged:
-        print("LoRA merged, delete lora adapters")
-        if LoraLayer is not None:
-            for module in model.modules():
-                if isinstance(module, LoraLayer):
-                    try:
-                        module.delete_adapter("speech")
-                        module.delete_adapter("vision")
-                    except Exception:
-                        pass  # Adapter might not exist
-    else:
-        print("Loading speech lora adapter")
-        if hasattr(model, 'set_lora_adapter'):
-            try:
-                model.set_lora_adapter("speech")
-            except Exception as e:
-                print(f"Warning: Could not set speech LoRA adapter: {e}")
-
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+    return model, processor
+
+
+def init_model_grpo(model_id=None):
+    """Initialize the model and processor with GRPO-specific settings."""
+    from trl.scripts.utils import add_adapter_func
+    model, processor = init_model(model_id)
+    model = add_adapter_func(model)
     return model, processor
 
 
 def is_master():
     """Check if the current process is the master process."""
-    local_rank = os.environ.get("LOCAL_RANK", "0")
-    rank = os.environ.get("RANK", "0")
-    print("LocalRank:", local_rank)
-    print("Rank:", rank)
-    return local_rank == "0" and rank == "0"
+    try:
+        from accelerate import PartialState
+        return PartialState().is_main_process
+    except ImportError:
+        # Fallback to environment variables if accelerate is not available
+        local_rank = os.environ.get("LOCAL_RANK", "0")
+        rank = os.environ.get("RANK", "0")
+        print("LocalRank:", local_rank)
+        print("Rank:", rank)
+        return local_rank == "0" and rank == "0"
 
 
 def get_job_name(jobname=None):
@@ -113,8 +108,30 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     return info
 
 
-def init_wandb(job_name=None, project=None, config=None, output_dir=None):
+def print_modules(model, trainable=True):
+    """List trainable modules in the model and total trainable parameter size."""
+    from trl.scripts.utils import human_readable
+    print(f"List modules in the model:", {model.__class__.__name__})
+    n_total = 0
+    n_trainable = 0
+    for name, param in model.named_parameters():
+        n_total += param.numel()
+        if trainable and param.requires_grad:
+            print(f"{name}: {human_readable(param.numel())} trainable")
+            n_trainable += param.numel()
+    print(f"Total trainable: {human_readable(n_trainable)}")
+    print(f"Total parameter: {human_readable(n_total)}")
+    return n_total, n_trainable
+
+
+def init_wandb(job_name=None, project=None, config=None, output_dir=None, master_only=True, skip_run_info=False):
     """Initialize wandb."""
+    if master_only and not is_master():
+        return None
+        
+    import os
+    import wandb
+    
     project = os.environ.get("WANDB_PROJECT", project or "biasing")
     job_name = get_job_name(job_name)
     print(f"Project Name: {project}, Run Name: {job_name}")
@@ -122,7 +139,7 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None):
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
     entity = os.environ.get("WANDB_ENTITY", "genai")
-    run_info = load_run_info(output_dir)
+    run_info = {} if skip_run_info else load_run_info(output_dir)
     run = wandb.init(
         entity=run_info.get("entity", entity),
         project=run_info.get("project", project),
@@ -133,7 +150,9 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None):
     )
     print("wandb offline: ", run.settings._offline)  # Should be True
     print("wandb mode: ", run.settings.mode)  # Should be "offline"
-    save_run_info(run, output_dir)
+    if not skip_run_info:
+        save_run_info(run, output_dir)
+    return run
 
 
 
@@ -152,26 +171,6 @@ def create_dataset(config):
         from trl.scripts.audio_dataset import create_audio_dataset
         return create_audio_dataset(**config)
     raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
-
-
-def setup_reward_model_and_tokenizer(reward_model_path, model_kwargs):
-    """Setup reward model and tokenizer if provided."""
-    if reward_model_path is not None:
-        from transformers import AutoModelForSequenceClassification, AutoTokenizer
-        reward_model = AutoModelForSequenceClassification.from_pretrained(
-            reward_model_path,
-            num_labels=1,
-            trust_remote_code=True,
-            **model_kwargs,
-        )
-        reward_tokenizer = AutoTokenizer.from_pretrained(
-            reward_model_path,
-            trust_remote_code=True,
-            truncation=True,
-            truncation_side="left",  # since we judge the completion, truncating left is more appropriate
-        )
-        return reward_model, reward_tokenizer
-    return None, None
 
 
 def setup_judge(judge_name):
