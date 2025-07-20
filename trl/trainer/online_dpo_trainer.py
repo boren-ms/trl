@@ -227,7 +227,7 @@ class OnlineDPOTrainer(Trainer):
 
         # Define the collator is not provided
         if data_collator is None:
-            data_collator = DPODataCollatorWithPadding(pad_token_id=processing_class.pad_token_id)
+            data_collator = DPODataCollatorWithPadding(pad_token_id=processing_class.tokenizer.pad_token_id)
 
         self.max_length = args.max_length
 
@@ -249,44 +249,7 @@ class OnlineDPOTrainer(Trainer):
             self.stats["objective/scores_margin"] = []
             self.stats["objective/scores"] = []
 
-        if args.use_vllm:
-            if not is_vllm_available():
-                raise ImportError(
-                    "vLLM is not available and `use_vllm` is set to True. Please install vLLM with "
-                    "`pip install vllm` to use it."
-                )
-            self.generation_config = SamplingParams(
-                n=2,  # 2 generations per prompt
-                max_tokens=args.max_new_tokens,
-                temperature=args.temperature,
-                top_k=50,
-                top_p=1.0,
-                detokenize=False,  # to avoid vllm to decode (we don't need it)
-            )
-            # vLLM dynamically adjusts the size of the key-value cache based on available GPU memory at instantiation.
-            # A larger cache size improves speed, so we would expect gpu_memory_utilization=1.
-            # However, at this stage, the optimizer's weights are not yet loaded onto the GPU; they will be loaded
-            # after the first optimizer step and remain in GPU memory throughout training. So we must reserve enough
-            # space for them. Setting gpu_memory_utilization to 0.55 seems to work well in practice.
-            self.llm = LLM(
-                model=model.name_or_path,
-                gpu_memory_utilization=args.gpu_memory_utilization,
-                dtype=torch.float32,
-                # When release by vLLM, we would be able to distribute the model on multiple GPUs
-                # See https://github.com/vllm-project/vllm/pull/12071
-                # tensor_parallel_size=torch.cuda.device_count(),
-                # distributed_executor_backend="external_launcher",
-            )
-        else:
-            self.generation_config = GenerationConfig(
-                max_new_tokens=args.max_new_tokens,
-                temperature=args.temperature,
-                top_k=50,
-                top_p=1.0,
-                do_sample=True,
-                use_cache=False if args.gradient_checkpointing else True,
-            )
-
+       
         # The trainer estimates the number of FLOPs (floating-point operations) using the number of elements in the
         # input tensor associated with the key "input_ids". However, in Online DPO, the sampled data does not include
         # the "input_ids" key. As a result, the trainer issues the warning: "Could not estimate the number of tokens
@@ -307,6 +270,50 @@ class OnlineDPOTrainer(Trainer):
             optimizers=optimizers,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
+        if args.use_vllm:
+            if not is_vllm_available():
+                raise ImportError(
+                    "vLLM is not available and `use_vllm` is set to True. Please install vLLM with "
+                    "`pip install vllm` to use it."
+                )
+            self.generation_config = SamplingParams(
+                n=2,  # 2 generations per prompt
+                max_tokens=args.max_new_tokens,
+                temperature=args.temperature,
+                top_k=50,
+                top_p=1.0,
+                detokenize=False,  # to avoid vllm to decode (we don't need it)
+            )
+            # vLLM dynamically adjusts the size of the key-value cache based on available GPU memory at instantiation.
+            # A larger cache size improves speed, so we would expect gpu_memory_utilization=1.
+            # However, at this stage, the optimizer's weights are not yet loaded onto the GPU; they will be loaded
+            # after the first optimizer step and remain in GPU memory throughout training. So we must reserve enough
+            # space for them. Setting gpu_memory_utilization to 0.55 seems to work well in practice.
+            # self.llm = LLM(
+            #     model=model.name_or_path,
+            #     gpu_memory_utilization=args.gpu_memory_utilization,
+            #     dtype=torch.float32,
+            #     # When release by vLLM, we would be able to distribute the model on multiple GPUs
+            #     # See https://github.com/vllm-project/vllm/pull/12071
+            #     # tensor_parallel_size=torch.cuda.device_count(),
+            #     # distributed_executor_backend="external_launcher",
+            # )
+            self.llm = LLM(
+                model=model.name_or_path,
+                gpu_memory_utilization=args.vllm_gpu_memory_utilization,
+                distributed_executor_backend="external_launcher",
+                seed=self.accelerator.process_index,
+                trust_remote_code=True,
+            )
+        else:
+            self.generation_config = GenerationConfig(
+                max_new_tokens=args.max_new_tokens,
+                temperature=args.temperature,
+                top_k=50,
+                top_p=1.0,
+                do_sample=True,
+                use_cache=False if args.gradient_checkpointing else True,
+            )
 
         # Add tags for models that have been loaded with the correct transformers version
         if hasattr(self.model, "add_model_tags"):
@@ -329,6 +336,10 @@ class OnlineDPOTrainer(Trainer):
                 self.ref_model = self.ref_model.to(self.accelerator.device)
             if self.reward_model is not None:
                 self.reward_model = self.reward_model.to(self.accelerator.device)
+
+    @property
+    def tokenizer(self):
+        return self.processing_class.tokenizer
 
     @property
     def beta(self):
@@ -441,8 +452,8 @@ class OnlineDPOTrainer(Trainer):
             return prompts
 
     def _generate_vllm(self, model, inputs):
-        eos_token_id = self.processing_class.eos_token_id
-        pad_token_id = self.processing_class.pad_token_id
+        eos_token_id = self.processing_class.tokenizer.eos_token_id
+        pad_token_id = self.processing_class.tokenizer.pad_token_id
 
         # Load the latest weights
         llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model

@@ -22,40 +22,39 @@ from trl.scripts.audio_metrics import eval_biasing_metrics
 from trl.scripts.shared_utils import init_model, init_wandb, create_dataset
 
 
-def setup_reward_model_and_tokenizer(reward_model_path, model_kwargs):
+def init_reward_model(reward_path, **kwargs):
     """Setup reward model and tokenizer if provided."""
-    if reward_model_path is not None:
-        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    if not reward_path:
+        return None, None
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-        reward_model = AutoModelForSequenceClassification.from_pretrained(
-            reward_model_path,
-            num_labels=1,
-            trust_remote_code=True,
-            **model_kwargs,
-        )
-        reward_tokenizer = AutoTokenizer.from_pretrained(
-            reward_model_path,
-            trust_remote_code=True,
-            truncation=True,
-            truncation_side="left",  # since we judge the completion, truncating left is more appropriate
-        )
-        return reward_model, reward_tokenizer
-    return None, None
+    reward_model = AutoModelForSequenceClassification.from_pretrained(
+        reward_path,
+        num_labels=1,
+        trust_remote_code=True,
+        **kwargs,
+    )
+    reward_tokenizer = AutoTokenizer.from_pretrained(
+        reward_path,
+        trust_remote_code=True,
+        truncation=True,
+        truncation_side="left",  # since we judge the completion, truncating left is more appropriate
+    )
+    return reward_model, reward_tokenizer
 
 
 def setup_judge(judge_name):
     """Setup judge if provided."""
-    if judge_name is not None:
-        from trl import HfPairwiseJudge, OpenAIPairwiseJudge, PairRMJudge
-
-        JUDGES = {
-            "pair_rm": PairRMJudge,
-            "openai": OpenAIPairwiseJudge,
-            "hf": HfPairwiseJudge,
-        }
-        judge_cls = JUDGES[judge_name]
-        return judge_cls()
-    return None
+    if not judge_name:
+        return 
+    from trl import HfPairwiseJudge, OpenAIPairwiseJudge, PairRMJudge
+    JUDGES = {
+        "pair_rm": PairRMJudge,
+        "openai": OpenAIPairwiseJudge,
+        "hf": HfPairwiseJudge,
+    }
+    judge_cls = JUDGES[judge_name]
+    return judge_cls()
 
 
 @dataclass
@@ -70,6 +69,10 @@ class OnlineDPOScriptArguments:
         default=None,
         metadata={"help": "Name of the project."},
     )
+    skip_run_info: bool =  field(
+        default=False,
+        metadata={"help": "whether skip the run info from checkpoint"},
+    )
     train_data: Optional[dict] = field(
         default=None,
         metadata={"help": "Training dataset config"},
@@ -83,42 +86,26 @@ class OnlineDPOScriptArguments:
         metadata={"help": "Path to the model."},
     )
 
-    reward_model_path: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to the reward model."},
-    )
-    judge: Optional[str] = field(
-        default=None,
-        metadata={"help": "Name of the judge to use."},
-    )
+
 
 
 def main(script_args, training_args):
     """Train the model with Online DPO."""
-    print("Init Wandb")
     init_wandb(
         job_name=script_args.job_name,
         project=script_args.project,
         output_dir=training_args.output_dir,
+        skip_run_info=script_args.skip_run_info,
     )
 
     # Initialize model and processor
     model, processor = init_model(script_args.model_name_or_path)
 
-    # Setup model kwargs for consistency
-    model_kwargs = dict(
-        torch_dtype="auto",
-        use_cache=False if training_args.gradient_checkpointing else True,
-        trust_remote_code=True,
-    )
-
     # Setup reward model and tokenizer
-    reward_model, reward_tokenizer = setup_reward_model_and_tokenizer(
-        script_args.reward_model_path, model_kwargs
-    )
+    reward_model, reward_tokenizer = init_reward_model(training_args.reward_model_path)
 
     # Setup judge
-    judge = setup_judge(script_args.judge)
+    judge = setup_judge(training_args.judge)
 
     # Set processor padding
     if processor.tokenizer.pad_token_id is None:
@@ -135,7 +122,7 @@ def main(script_args, training_args):
         eval_dataset=create_dataset(script_args.eval_data),
         processing_class=processor,
         reward_processing_class=reward_tokenizer,
-        compute_metrics=eval_biasing_metrics,
+        # compute_metrics=eval_biasing_metrics,
     )
 
     print("Training...")
