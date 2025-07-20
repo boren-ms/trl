@@ -19,7 +19,7 @@ except ImportError:
     LoraLayer = None
 
 
-def init_model(model_id=None, use_grpo=False):
+def init_model(model_id=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -32,10 +32,6 @@ def init_model(model_id=None, use_grpo=False):
     
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     
-    if use_grpo:
-        from trl.scripts.utils import add_adapter_func
-        model = add_adapter_func(model)
-        
     return model, processor
 
 
@@ -113,7 +109,7 @@ def print_modules(model, trainable=True):
     return n_total, n_trainable
 
 
-def init_wandb(job_name=None, project=None, config=None, output_dir=None, master_only=True):
+def init_wandb(job_name=None, project=None, config=None, output_dir=None, master_only=True, skip_run_info=False):
     """Initialize wandb."""
     if master_only and not is_master():
         return None
@@ -125,7 +121,12 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None, master
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
     entity = os.environ.get("WANDB_ENTITY", "genai")
-    run_info = load_run_info(output_dir)
+    
+    if skip_run_info:
+        run_info = {}
+    else:
+        run_info = load_run_info(output_dir)
+    
     run = wandb.init(
         entity=run_info.get("entity", entity),
         project=run_info.get("project", project),

@@ -68,10 +68,12 @@ def main(script_args, training_args):
     init_wandb(
         job_name=script_args.job_name,
         project=script_args.project,
-        output_dir=training_args.output_dir
+        output_dir=training_args.output_dir,
+        skip_run_info=script_args.skip_run_info
     )
 
-    model, processor = init_model(script_args.model_name_or_path, use_grpo=True)
+    model, processor = init_model(script_args.model_name_or_path)
+    model = add_adapter_func(model)
     _, n_trainable = print_modules(model, trainable=True)
     assert n_trainable > 0, "No trainable parameters found in the model."
 
