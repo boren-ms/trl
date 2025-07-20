@@ -214,7 +214,7 @@ def find_word_indices(text, pieces):
     return indexs
 
 
-def calc_wers(refs, hyps):
+def calc_wers(refs, hyps, tn=True):
     """Calculate WER, U-WER, and B-WER."""
     wer = WordError()
     u_wer = WordError()
@@ -222,9 +222,11 @@ def calc_wers(refs, hyps):
     for uttid, ref in refs.items():
         if uttid not in hyps:
             continue
-        tn_ref = text_norm(ref["text"])
-        tn_hyp = text_norm(hyps[uttid])
-        bias_words = text_norm(ref["biasing_words"])
+        norm = text_norm if tn else lambda x: x
+        # Normalize reference and hypothesis text
+        tn_ref = norm(ref["text"])
+        tn_hyp = norm(hyps[uttid])
+        bias_words = norm(ref["biasing_words"])
         bias_ref_indexs = find_word_indices(tn_ref, bias_words)
         bias_hyp_indexs = find_word_indices(tn_hyp, bias_words)
 
@@ -285,13 +287,13 @@ def compute_biasing_metrics(results):
     }
 
 
-def compute_wers(results):
+def compute_wers(results, tn=True):
     """compute WER, U-WER, and B-WER"""
     # Extract reference and hypothesis pairs from groups
     refs = {result.get("id", i): extract_keywords(result["ref"]) for i, result in enumerate(results)}
     hyps = {result.get("id", i): result["hyp"] for i, result in enumerate(results)}
     # Calculate WER, U-WER, and B-WER
-    wer, u_wer, b_wer = calc_wers(refs, hyps)
+    wer, u_wer, b_wer = calc_wers(refs, hyps, tn=tn)
     return wer, u_wer, b_wer
 
 
@@ -314,12 +316,12 @@ def eval_biasing_metrics(groups):
     }
 
 
-def compute_reward_wers(completions, **kwargs):
+def compute_reward_wers(completions, tn=True, **kwargs):
     """Compute rewards for a list of completions."""
     references = kwargs["text"]
     rewards = []
     for i, (completion, ref) in enumerate(zip(completions, references)):
-        rewards.append(compute_wers([{"id": i, "ref": ref, "hyp": completion}]))
+        rewards.append(compute_wers([{"id": i, "ref": ref, "hyp": completion}], tn=tn))
     return rewards
 
 
@@ -338,6 +340,24 @@ def reward_unbias_accuracy(completions, **kwargs):
 def reward_bias_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
+    return [wer[2].accuracy for wer in wers]  # B-WER
+
+
+def reward_word_plain_accuracy(completions, **kwargs):
+    """Compute the reward for a list of completions."""
+    wers = compute_reward_wers(completions, tn=False, **kwargs)
+    return [wer[0].accuracy for wer in wers]  # WER
+
+
+def reward_unbias_plain_accuracy(completions, **kwargs):
+    """Compute the reward for a list of completions."""
+    wers = compute_reward_wers(completions, tn=False, **kwargs)
+    return [wer[1].accuracy for wer in wers]  # U-WER
+
+
+def reward_bias_plain_accuracy(completions, **kwargs):
+    """Compute the reward for a list of completions."""
+    wers = compute_reward_wers(completions, tn=False, **kwargs)
     return [wer[2].accuracy for wer in wers]  # B-WER
 
 
