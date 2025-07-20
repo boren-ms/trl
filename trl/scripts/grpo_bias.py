@@ -3,15 +3,15 @@
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
-
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.utils.data_utils import create_dataset
-from trl.scripts.utils.wandb_utils import init_wandb
-from trl.scripts.utils.model_utils import init_model, print_modules
-from trl.scripts.utils.common_utils import is_master
-from trl.scripts.utils.reward_utils import load_reward_functions
-from trl.scripts.utils.argument_utils import make_parser
+from trl.scripts.shared_utils import (
+    init_model,
+    init_wandb,
+    create_dataset,
+    print_modules,
+)
+
 
 
 @dataclass
@@ -44,7 +44,9 @@ class GRPOScriptArguments:
     )
     reward_funcs: Optional[str] = field(
         default=None,
-        metadata={"help": "Reward functions to use. Can be a list of functions or a single function."},
+        metadata={
+            "help": "Reward functions to use. Can be a list of functions or a single function."
+        },
     )
 
 
@@ -56,28 +58,15 @@ def reward_functions(names=None):
     return load_reward_functions(names)
 
 
-def make_parser(subparsers: argparse._SubParsersAction = None):
-    """Create a parser for the GRPO training script."""
-    from trl.scripts.utils.argument_utils import make_parser as make_general_parser
-    dataclass_types = (GRPOScriptArguments, GRPOConfig)
-    return make_general_parser(
-        subparsers=subparsers,
-        dataclass_types=dataclass_types,
-        parser_name="grpo" if subparsers else None,
-        help_text="Run the GRPO training script" if subparsers else None
-    )
-
-
 def main(script_args, training_args):
     """Train the model with GRPO."""
-    if is_master():
-        print("Init Wandb")
-        init_wandb(
-            job_name=script_args.job_name,
-            project=script_args.project,
-            output_dir=training_args.output_dir,
-            skip_run_info=script_args.skip_run_info,
-        )  # disabled for wandb for orange
+    print("Init Wandb")
+    init_wandb(
+        job_name=script_args.job_name,
+        project=script_args.project,
+        output_dir=training_args.output_dir,
+        skip_run_info=script_args.skip_run_info,
+    )
 
     model, processor = init_model(script_args.model_name_or_path)
     _, n_trainable = print_modules(model, trainable=True)
@@ -96,6 +85,17 @@ def main(script_args, training_args):
     trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
     print("All Done.")
 
+
+def make_parser(subparsers: argparse._SubParsersAction = None):
+    """Create a parser for the GRPO training script."""
+    dataclass_types = (GRPOScriptArguments, GRPOConfig)
+    if subparsers is not None:
+        parser = subparsers.add_parser(
+            "grpo", help="Run the GRPO training script", dataclass_types=dataclass_types
+        )
+    else:
+        parser = TrlParser(dataclass_types)
+    return parser
 
 if __name__ == "__main__":
     parser = make_parser()

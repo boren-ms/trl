@@ -68,7 +68,13 @@
       title: DDPO
     - local: dpo_trainer
       title: DPO
-    - local: online_dpo_trainer
+    - sections:
+      - local: online_dpo_trainer
+        title: Online DPO Trainer
+      - local: online_dpo_training_workflow
+        title: Training Workflow
+      - local: online_dpo_workflow_diagrams
+        title: Workflow Diagrams
       title: Online DPO
     - local: gkd_trainer
       title: GKD
