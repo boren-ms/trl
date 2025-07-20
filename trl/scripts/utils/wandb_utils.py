@@ -16,11 +16,35 @@
 
 import json
 import os
+import sys
+from datetime import datetime
 from pathlib import Path
 
+import pytz
 import wandb
 
-from .job_utils import get_job_name
+
+def is_master():
+    """Check if the current process is the master process."""
+    local_rank = os.environ.get("LOCAL_RANK", "0")
+    rank = os.environ.get("RANK", "0")
+    print("LocalRank:", local_rank)
+    print("Rank:", rank)
+    return local_rank == "0" and rank == "0"
+
+
+def get_job_name(jobname=None):
+    """Get a unique job name."""
+    if jobname:
+        return jobname
+    if "--config" in sys.argv:
+        # use config file name as job name
+        config_file = sys.argv[sys.argv.index("--config") + 1]
+        jobname = Path(config_file).stem.split(".")[0]
+        return jobname
+    # use current time as job name
+    tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
+    return datetime.now(tz).strftime("%Y%m%d-%H%M%S")
 
 
 def save_run_info(run, work_dir=None, file_name="run_info.json"):

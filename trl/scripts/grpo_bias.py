@@ -1,13 +1,73 @@
 # train_grpo.py
 # %%
-from trl import GRPOTrainer
+import argparse
+from dataclasses import dataclass, field
+from typing import Optional
+
+from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.utils.argument_utils import GRPOScriptArguments, make_parser
 from trl.scripts.utils.data_utils import create_dataset
-from trl.scripts.utils.job_utils import is_master
+from trl.scripts.utils.wandb_utils import init_wandb, is_master
 from trl.scripts.utils.model_utils import init_model, print_modules
-from trl.scripts.utils.reward_utils import reward_functions
-from trl.scripts.utils.wandb_utils import init_wandb
+
+
+@dataclass
+class GRPOScriptArguments:
+    """Script arguments for the GRPO training script."""
+
+    job_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "Name of the job."},
+    )
+    project: Optional[str] = field(
+        default=None,
+        metadata={"help": "Name of the project."},
+    )
+    skip_run_info: bool = field(
+        default=False,
+        metadata={"help": "Whether to skip to load run info."},
+    )
+    train_data: Optional[dict] = field(
+        default=None,
+        metadata={"help": "Training dataset config"},
+    )
+    eval_data: Optional[dict] = field(
+        default=None,
+        metadata={"help": "Evalution dataset config"},
+    )
+    model_name_or_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to the model."},
+    )
+    reward_funcs: Optional[str] = field(
+        default=None,
+        metadata={"help": "Reward functions to use. Can be a list of functions or a single function."},
+    )
+
+
+def reward_functions(names=None):
+    """get the reward functions based on the function name."""
+    names = names or ["reward_bias_accuracy", "reward_word_accuracy"]
+    if isinstance(names, str):
+        names = [names]
+    funcs = []
+    for name in names:
+        try:
+            module = __import__("trl.scripts.audio_metrics", fromlist=[name])
+            funcs.append(getattr(module, name))
+        except (ImportError, AttributeError) as e:
+            raise ValueError(f"Reward function '{name}' not found.") from e
+    return funcs
+
+
+def make_parser(subparsers: argparse._SubParsersAction = None):
+    """Create a parser for the GRPO training script."""
+    dataclass_types = (GRPOScriptArguments, GRPOConfig)
+    if subparsers is not None:
+        parser = subparsers.add_parser("grpo", help="Run the GRPO training script", dataclass_types=dataclass_types)
+    else:
+        parser = TrlParser(dataclass_types)
+    return parser
 
 
 def main(script_args, training_args):

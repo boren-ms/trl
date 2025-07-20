@@ -14,8 +14,14 @@
 
 """Model utilities for TRL scripts."""
 
+import shortuuid
 from transformers import AutoModelForCausalLM, AutoProcessor
 from trl.scripts.utils import add_adapter_func, human_readable
+
+
+def uuid4():
+    short_id = shortuuid.ShortUUID().random(length=4)
+    return short_id
 
 
 def init_model(model_id=None):
