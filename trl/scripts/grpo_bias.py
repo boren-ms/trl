@@ -15,6 +15,7 @@ import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_audio_dataset
 from trl.scripts.audio_metrics import eval_biasing_metrics
+from trl.scripts.utils import add_adapter_func, human_readable
 
 
 def uuid4():
@@ -22,7 +23,7 @@ def uuid4():
     return short_id
 
 
-def init_model(model_id=None, lora_merged=True):
+def init_model(model_id=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -32,19 +33,8 @@ def init_model(model_id=None, lora_merged=True):
         torch_dtype="auto",
         _attn_implementation="flash_attention_2",
     )
-    # lora_adpater=None
-    if lora_merged:
-        print("Lora merged, delete lora adapters")
-        from peft.tuners.lora import LoraLayer
-
-        for module in model.modules():
-            if isinstance(module, LoraLayer):
-                module.delete_adapter("speech")
-                module.delete_adapter("vision")
-    else:
-        print("loading speech lora adapter")
-        model.set_lora_adapter("speech")
-
+    model.set_lora_adapter("speech")
+    model = add_adapter_func(model)
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 
@@ -61,6 +51,10 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Name of the project."},
     )
+    skip_run_info: bool = field(
+        default=False,
+        metadata={"help": "Whether to skip to load run info."},
+    )
     train_data: Optional[dict] = field(
         default=None,
         metadata={"help": "Training dataset config"},
@@ -72,10 +66,6 @@ class GRPOScriptArguments:
     model_name_or_path: Optional[str] = field(
         default=None,
         metadata={"help": "Path to the model."},
-    )
-    lora_merged: bool = field(
-        default=True,
-        metadata={"help": "Whether LoRA is merged."},
     )
     reward_funcs: Optional[str] = field(
         default=None,
@@ -145,7 +135,7 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     return info
 
 
-def init_wandb(job_name=None, project=None, config=None, output_dir=None):
+def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_run_info=False):
     """Initialize wandb."""
     project = os.environ.get("WANDB_PROJECT", project or "biasing")
     job_name = get_job_name(job_name)
@@ -154,7 +144,7 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None):
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
     entity = os.environ.get("WANDB_ENTITY", "genai")
-    run_info = load_run_info(output_dir)
+    run_info = {} if skip_run_info else load_run_info(output_dir)
     run = wandb.init(
         entity=run_info.get("entity", entity),
         project=run_info.get("project", project),
@@ -198,13 +188,35 @@ def create_dataset(config):
     raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
 
 
+def print_modules(model, trainable=True):
+    """List trainable modules in the model and total trainable parameter size."""
+    print(f"List modules in the model:", {model.__class__.__name__})
+    n_total = 0
+    n_trainable = 0
+    for name, param in model.named_parameters():
+        n_total += param.numel()
+        if trainable and param.requires_grad:
+            print(f"{name}: {human_readable(param.numel())} trainable")
+            n_trainable += param.numel()
+    print(f"Total trainable: {human_readable(n_trainable)}")
+    print(f"Total parameter: {human_readable(n_total)}")
+    return n_total, n_trainable
+
+
 def main(script_args, training_args):
     """Train the model with GRPO."""
     if is_master():
         print("Init Wandb")
-        init_wandb(job_name=script_args.job_name, project=script_args.project, output_dir=training_args.output_dir)  # disabled for wandb for orange
+        init_wandb(
+            job_name=script_args.job_name,
+            project=script_args.project,
+            output_dir=training_args.output_dir,
+            skip_run_info=script_args.skip_run_info,
+        )  # disabled for wandb for orange
 
-    model, processor = init_model(script_args.model_name_or_path, lora_merged=script_args.lora_merged)
+    model, processor = init_model(script_args.model_name_or_path)
+    _, n_trainable = print_modules(model, trainable=True)
+    assert n_trainable > 0, "No trainable parameters found in the model."
 
     trainer = GRPOTrainer(
         model=model,

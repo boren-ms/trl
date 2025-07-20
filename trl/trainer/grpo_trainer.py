@@ -63,8 +63,8 @@ from .utils import (
     pad,
     print_prompt_completions_sample,
     selective_log_softmax,
+    can_merge_adapter
 )
-
 
 if is_peft_available():
     from peft import PeftConfig, get_peft_model
@@ -525,7 +525,7 @@ class GRPOTrainer(Trainer):
         self.num_eval_generations = args.num_eval_generations or args.num_generations
         self.temperature = args.temperature
         self.eval_temperature = args.eval_temperature
-        
+
         self.top_p = args.top_p
         self.top_k = args.top_k
         self.min_p = args.min_p
@@ -675,7 +675,7 @@ class GRPOTrainer(Trainer):
                     # Feed identical seed for tp groups to ensure sampling results are the same across workers
                     seed=self.accelerator.process_index // self.vllm_tensor_parallel_size,
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
-                    max_num_batched_tokens=max_all_tokens*2,
+                    max_num_batched_tokens=max_all_tokens * 2,
                     trust_remote_code=True,
                 )
 
@@ -931,7 +931,7 @@ class GRPOTrainer(Trainer):
         else:
             gather_if_zero3 = nullcontext
 
-        if is_peft_model(self.model):
+        if is_peft_model(self.model) or can_merge_adapter(self.model):
             # With PEFT and FSDP/DeepSpeed ZeRO Stage 3, we must gather the full model at once before merging, as
             # merging adapters in a sharded manner is not supported.
             # TODO: does this work with FSDP?
@@ -948,12 +948,15 @@ class GRPOTrainer(Trainer):
                     for name, param in self.model.named_parameters():
                         # When using PEFT, we need to recover the original parameter name and discard some parameters
                         name = name.removeprefix("base_model.model.").replace(".base_layer", "")
-                        if self.model.prefix in name:
+                        
+                        if hasattr(self.model, "prefix") and self.model.prefix in name:
                             continue
                         # When module to save, remove its prefix and discard the original module
                         if "original_module" in name:
                             continue
-                        name = name.replace("modules_to_save.default.", "")
+
+                        for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
+                            name = name.replace(extra, "")
 
                         if self.vllm_mode == "server" and self.accelerator.is_main_process:
                             self.vllm_client.update_named_param(name, param.data)
@@ -1067,10 +1070,7 @@ class GRPOTrainer(Trainer):
         num_generations = self.num_generations if mode == "train" else self.num_eval_generations
         temperature = self.temperature if mode == "train" else self.eval_temperature
         prompts = [x["prompt"] for x in inputs]
-        prompts_text = [
-            maybe_apply_chat_template(example,  self.processing_class.tokenizer)["prompt"]
-            for example in inputs
-        ]
+        prompts_text = [maybe_apply_chat_template(example, self.processing_class.tokenizer)["prompt"] for example in inputs]
         # prompts_text = [
         #     self.processing_class.tokenizer.apply_chat_template(
         #         prompt,
