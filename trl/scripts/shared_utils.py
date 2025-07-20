@@ -6,17 +6,12 @@ import pytz
 import json
 import wandb
 from pathlib import Path
-from typing import Optional
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 from accelerate import PartialState
-
-
-
-try:
-    from peft.tuners.lora import LoraLayer
-except ImportError:
-    LoraLayer = None
+from trl.scripts.utils import add_adapter_func
+from trl.scripts.audio_dataset import create_audio_dataset
+from trl.scripts.utils import human_readable
 
 
 def init_model(model_id=None):
@@ -29,15 +24,9 @@ def init_model(model_id=None):
         torch_dtype="auto",
         _attn_implementation="flash_attention_2",
     )
-    
+    model = add_adapter_func(model)
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
-    
     return model, processor
-
-
-def is_master():
-    """Check if the current process is the master process."""
-    return PartialState().is_main_process
 
 
 def get_job_name(jobname=None):
@@ -56,8 +45,7 @@ def get_job_name(jobname=None):
 
 def save_run_info(run, work_dir=None, file_name="run_info.json"):
     """Save run identifying information to a JSON file."""
-    if work_dir is None:
-        return
+    work_dir = work_dir or Path.cwd()
     info_file = Path(work_dir) / file_name
     info_file.parent.mkdir(parents=True, exist_ok=True)
     info = {
@@ -73,8 +61,7 @@ def save_run_info(run, work_dir=None, file_name="run_info.json"):
 
 def load_run_info(work_dir=None, file_name="run_info.json"):
     """Load run info from JSON and resume the run."""
-    if work_dir is None:
-        return {}
+    work_dir = work_dir or Path.cwd()
     info_file = Path(work_dir) / file_name
     if not info_file.exists():
         print(f"Run info file {file_name} does not exist in {work_dir}.")
@@ -83,7 +70,6 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     info = json.load(info_file.open("r"))
     url = info.get("run_url", "")
     print(f"Reuse run: {url}")
-
     parts = Path(url).parts
     if url.startswith("https://msaip.wandb.io/") and len(parts) > 4:
         print("Run info from", url)
@@ -95,7 +81,6 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
 
 def print_modules(model, trainable=True):
     """List trainable modules in the model and total trainable parameter size."""
-    from trl.scripts.utils import human_readable
     print(f"List modules in the model:", {model.__class__.__name__})
     n_total = 0
     n_trainable = 0
@@ -109,11 +94,13 @@ def print_modules(model, trainable=True):
     return n_total, n_trainable
 
 
-def init_wandb(job_name=None, project=None, config=None, output_dir=None, master_only=True, skip_run_info=False):
+def init_wandb(
+    job_name=None, project=None, config=None, output_dir=None, skip_run_info=False
+):
     """Initialize wandb."""
-    if master_only and not is_master():
+    if not PartialState().is_main_process:
         return None
-        
+
     project = os.environ.get("WANDB_PROJECT", project or "biasing")
     job_name = get_job_name(job_name)
     print(f"Project Name: {project}, Run Name: {job_name}")
@@ -121,12 +108,7 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None, master
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
     entity = os.environ.get("WANDB_ENTITY", "genai")
-    
-    if skip_run_info:
-        run_info = {}
-    else:
-        run_info = load_run_info(output_dir)
-    
+    run_info = {} if skip_run_info else load_run_info(output_dir)
     run = wandb.init(
         entity=run_info.get("entity", entity),
         project=run_info.get("project", project),
@@ -141,19 +123,16 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None, master
     return run
 
 
-
 def create_dataset(config):
     """Create dataset."""
     if config is None:
         return None
     if isinstance(config, (list, tuple)):
-        from trl.scripts.audio_dataset import create_audio_dataset
         datasets = {}
         for i, cfg in enumerate(config):
             nickname = cfg.pop("nickname", f"dataset_{i}")
             datasets[nickname] = create_audio_dataset(**cfg)
         return datasets
     elif isinstance(config, dict):
-        from trl.scripts.audio_dataset import create_audio_dataset
         return create_audio_dataset(**config)
     raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")

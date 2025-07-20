@@ -17,19 +17,16 @@
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from trl import OnlineDPOConfig, OnlineDPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.shared_utils import (
-    init_model, is_master, get_job_name, save_run_info, load_run_info,
-    init_wandb, create_dataset
-)
+from trl.scripts.shared_utils import init_model, init_wandb, create_dataset
 
 
 def setup_reward_model_and_tokenizer(reward_model_path, model_kwargs):
     """Setup reward model and tokenizer if provided."""
     if reward_model_path is not None:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
         reward_model = AutoModelForSequenceClassification.from_pretrained(
             reward_model_path,
             num_labels=1,
@@ -50,7 +47,12 @@ def setup_judge(judge_name):
     """Setup judge if provided."""
     if judge_name is not None:
         from trl import HfPairwiseJudge, OpenAIPairwiseJudge, PairRMJudge
-        JUDGES = {"pair_rm": PairRMJudge, "openai": OpenAIPairwiseJudge, "hf": HfPairwiseJudge}
+
+        JUDGES = {
+            "pair_rm": PairRMJudge,
+            "openai": OpenAIPairwiseJudge,
+            "hf": HfPairwiseJudge,
+        }
         judge_cls = JUDGES[judge_name]
         return judge_cls()
     return None
@@ -95,9 +97,9 @@ def main(script_args, training_args):
     """Train the model with Online DPO."""
     print("Init Wandb")
     init_wandb(
-        job_name=script_args.job_name, 
-        project=script_args.project, 
-        output_dir=training_args.output_dir
+        job_name=script_args.job_name,
+        project=script_args.project,
+        output_dir=training_args.output_dir,
     )
 
     # Initialize model and processor
@@ -111,7 +113,9 @@ def main(script_args, training_args):
     )
 
     # Setup reward model and tokenizer
-    reward_model, reward_tokenizer = setup_reward_model_and_tokenizer(script_args.reward_model_path, model_kwargs)
+    reward_model, reward_tokenizer = setup_reward_model_and_tokenizer(
+        script_args.reward_model_path, model_kwargs
+    )
 
     # Setup judge
     judge = setup_judge(script_args.judge)
@@ -144,9 +148,9 @@ def make_parser(subparsers: argparse._SubParsersAction = None):
     dataclass_types = (OnlineDPOScriptArguments, OnlineDPOConfig)
     if subparsers is not None:
         parser = subparsers.add_parser(
-            "dpo_online_bias", 
-            help="Run the Online DPO training script with bias support", 
-            dataclass_types=dataclass_types
+            "dpo_online_bias",
+            help="Run the Online DPO training script with bias support",
+            dataclass_types=dataclass_types,
         )
     else:
         parser = TrlParser(dataclass_types)

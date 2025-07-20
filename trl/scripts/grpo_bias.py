@@ -3,12 +3,14 @@
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
-from transformers import AutoModelForCausalLM, AutoProcessor
 from trl import GRPOConfig, GRPOTrainer, TrlParser
-from trl.scripts.audio_dataset import create_audio_dataset
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.shared_utils import init_model, is_master, init_wandb, create_dataset, print_modules
-from trl.scripts.utils import add_adapter_func
+from trl.scripts.shared_utils import (
+    init_model,
+    init_wandb,
+    create_dataset,
+    print_modules,
+)
 
 
 @dataclass
@@ -69,11 +71,10 @@ def main(script_args, training_args):
         job_name=script_args.job_name,
         project=script_args.project,
         output_dir=training_args.output_dir,
-        skip_run_info=script_args.skip_run_info
+        skip_run_info=script_args.skip_run_info,
     )
 
     model, processor = init_model(script_args.model_name_or_path)
-    model = add_adapter_func(model)
     _, n_trainable = print_modules(model, trainable=True)
     assert n_trainable > 0, "No trainable parameters found in the model."
 
