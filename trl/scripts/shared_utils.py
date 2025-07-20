@@ -146,20 +146,6 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None):
     save_run_info(run, output_dir)
 
 
-def reward_functions(names=None):
-    """Get the reward functions based on the function name."""
-    names = names or ["reward_bias_accuracy", "reward_word_accuracy"]
-    if isinstance(names, str):
-        names = [names]
-    funcs = []
-    for name in names:
-        try:
-            module = __import__("trl.scripts.audio_metrics", fromlist=[name])
-            funcs.append(getattr(module, name))
-        except (ImportError, AttributeError) as e:
-            raise ValueError(f"Reward function '{name}' not found.") from e
-    return funcs
-
 
 def create_dataset(config):
     """Create dataset."""

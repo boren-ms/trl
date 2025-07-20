@@ -7,8 +7,23 @@ from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
 from trl.scripts.shared_utils import (
     init_model, is_master, get_job_name, save_run_info, load_run_info, 
-    init_wandb, reward_functions, create_dataset
+    init_wandb, create_dataset
 )
+
+
+def reward_functions(names=None):
+    """get the reward functions based on the function name."""
+    names = names or ["reward_bias_accuracy", "reward_word_accuracy"]
+    if isinstance(names, str):
+        names = [names]
+    funcs = []
+    for name in names:
+        try:
+            module = __import__("trl.scripts.audio_metrics", fromlist=[name])
+            funcs.append(getattr(module, name))
+        except (ImportError, AttributeError) as e:
+            raise ValueError(f"Reward function '{name}' not found.") from e
+    return funcs
 
 
 @dataclass
