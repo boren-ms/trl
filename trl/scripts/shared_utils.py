@@ -4,11 +4,12 @@ import os
 import sys
 import pytz
 import json
+import wandb
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
-import wandb
+from accelerate import PartialState
 
 
 
@@ -18,7 +19,7 @@ except ImportError:
     LoraLayer = None
 
 
-def init_model(model_id=None):
+def init_model(model_id=None, use_grpo=False):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -30,29 +31,17 @@ def init_model(model_id=None):
     )
     
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
-    return model, processor
-
-
-def init_model_grpo(model_id=None):
-    """Initialize the model and processor with GRPO-specific settings."""
-    from trl.scripts.utils import add_adapter_func
-    model, processor = init_model(model_id)
-    model = add_adapter_func(model)
+    
+    if use_grpo:
+        from trl.scripts.utils import add_adapter_func
+        model = add_adapter_func(model)
+        
     return model, processor
 
 
 def is_master():
     """Check if the current process is the master process."""
-    try:
-        from accelerate import PartialState
-        return PartialState().is_main_process
-    except ImportError:
-        # Fallback to environment variables if accelerate is not available
-        local_rank = os.environ.get("LOCAL_RANK", "0")
-        rank = os.environ.get("RANK", "0")
-        print("LocalRank:", local_rank)
-        print("Rank:", rank)
-        return local_rank == "0" and rank == "0"
+    return PartialState().is_main_process
 
 
 def get_job_name(jobname=None):
@@ -124,14 +113,11 @@ def print_modules(model, trainable=True):
     return n_total, n_trainable
 
 
-def init_wandb(job_name=None, project=None, config=None, output_dir=None, master_only=True, skip_run_info=False):
+def init_wandb(job_name=None, project=None, config=None, output_dir=None, master_only=True):
     """Initialize wandb."""
     if master_only and not is_master():
         return None
         
-    import os
-    import wandb
-    
     project = os.environ.get("WANDB_PROJECT", project or "biasing")
     job_name = get_job_name(job_name)
     print(f"Project Name: {project}, Run Name: {job_name}")
@@ -139,7 +125,7 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None, master
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
     entity = os.environ.get("WANDB_ENTITY", "genai")
-    run_info = {} if skip_run_info else load_run_info(output_dir)
+    run_info = load_run_info(output_dir)
     run = wandb.init(
         entity=run_info.get("entity", entity),
         project=run_info.get("project", project),
@@ -150,8 +136,7 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None, master
     )
     print("wandb offline: ", run.settings._offline)  # Should be True
     print("wandb mode: ", run.settings.mode)  # Should be "offline"
-    if not skip_run_info:
-        save_run_info(run, output_dir)
+    save_run_info(run, output_dir)
     return run
 
 
@@ -171,13 +156,3 @@ def create_dataset(config):
         from trl.scripts.audio_dataset import create_audio_dataset
         return create_audio_dataset(**config)
     raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
-
-
-def setup_judge(judge_name):
-    """Setup judge if provided."""
-    if judge_name is not None:
-        from trl import HfPairwiseJudge, OpenAIPairwiseJudge, PairRMJudge
-        JUDGES = {"pair_rm": PairRMJudge, "openai": OpenAIPairwiseJudge, "hf": HfPairwiseJudge}
-        judge_cls = JUDGES[judge_name]
-        return judge_cls()
-    return None

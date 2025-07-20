@@ -7,7 +7,7 @@ from transformers import AutoModelForCausalLM, AutoProcessor
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_audio_dataset
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.shared_utils import init_model_grpo, is_master, init_wandb, create_dataset, print_modules
+from trl.scripts.shared_utils import init_model, is_master, init_wandb, create_dataset, print_modules
 from trl.scripts.utils import add_adapter_func
 
 
@@ -68,12 +68,10 @@ def main(script_args, training_args):
     init_wandb(
         job_name=script_args.job_name,
         project=script_args.project,
-        output_dir=training_args.output_dir,
-        master_only=True,
-        skip_run_info=script_args.skip_run_info,
+        output_dir=training_args.output_dir
     )
 
-    model, processor = init_model_grpo(script_args.model_name_or_path)
+    model, processor = init_model(script_args.model_name_or_path, use_grpo=True)
     _, n_trainable = print_modules(model, trainable=True)
     assert n_trainable > 0, "No trainable parameters found in the model."
 

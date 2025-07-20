@@ -22,7 +22,7 @@ from trl import OnlineDPOConfig, OnlineDPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
 from trl.scripts.shared_utils import (
     init_model, is_master, get_job_name, save_run_info, load_run_info,
-    init_wandb, create_dataset, setup_judge
+    init_wandb, create_dataset
 )
 
 
@@ -44,6 +44,16 @@ def setup_reward_model_and_tokenizer(reward_model_path, model_kwargs):
         )
         return reward_model, reward_tokenizer
     return None, None
+
+
+def setup_judge(judge_name):
+    """Setup judge if provided."""
+    if judge_name is not None:
+        from trl import HfPairwiseJudge, OpenAIPairwiseJudge, PairRMJudge
+        JUDGES = {"pair_rm": PairRMJudge, "openai": OpenAIPairwiseJudge, "hf": HfPairwiseJudge}
+        judge_cls = JUDGES[judge_name]
+        return judge_cls()
+    return None
 
 
 @dataclass
@@ -87,8 +97,7 @@ def main(script_args, training_args):
     init_wandb(
         job_name=script_args.job_name, 
         project=script_args.project, 
-        output_dir=training_args.output_dir,
-        master_only=True
+        output_dir=training_args.output_dir
     )
 
     # Initialize model and processor
