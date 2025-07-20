@@ -63,6 +63,64 @@ from trl.trainer.utils import SIMPLE_CHAT_TEMPLATE
 
 JUDGES = {"pair_rm": PairRMJudge, "openai": OpenAIPairwiseJudge, "hf": HfPairwiseJudge}
 
+
+def setup_lora_adapter(model):
+    """Handle LoRA adapters for phi4-MM model if present."""
+    if hasattr(model, 'set_lora_adapter'):
+        try:
+            # Check if speech adapter exists and set it as active
+            model.set_lora_adapter("speech")
+            print("Set speech LoRA adapter as active")
+        except Exception as e:
+            print(f"No speech LoRA adapter found or could not be set: {e}")
+            # Try to delete and clean up adapters if lora_merged is intended
+            try:
+                from peft.tuners.lora import LoraLayer
+                for module in model.modules():
+                    if isinstance(module, LoraLayer):
+                        try:
+                            module.delete_adapter("speech")
+                            module.delete_adapter("vision")
+                        except:
+                            pass
+                print("Cleaned up LoRA adapters")
+            except ImportError:
+                pass
+
+
+def setup_processing_class(model_args, model_kwargs):
+    """Set up processing class - processor for multimodal or tokenizer for text-only."""
+    # Check if model is multimodal and use processor instead of tokenizer
+    try:
+        from transformers import AutoProcessor
+        processor = AutoProcessor.from_pretrained(
+            model_args.model_name_or_path,
+            trust_remote_code=model_args.trust_remote_code,
+            **model_kwargs,
+        )
+        # Set up processor tokenizer properties
+        if hasattr(processor, 'tokenizer'):
+            processor.tokenizer.padding_side = "left"
+            if processor.tokenizer.chat_template is None:
+                processor.tokenizer.chat_template = SIMPLE_CHAT_TEMPLATE
+            if processor.tokenizer.pad_token_id is None:
+                processor.tokenizer.pad_token = processor.tokenizer.eos_token
+        print("Using AutoProcessor for multimodal model")
+        return processor
+    except Exception as e:
+        print(f"Could not load processor, falling back to tokenizer: {e}")
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_args.model_name_or_path,
+            padding_side="left",
+            trust_remote_code=model_args.trust_remote_code,
+            **model_kwargs,
+        )
+        if tokenizer.chat_template is None:
+            tokenizer.chat_template = SIMPLE_CHAT_TEMPLATE
+        if tokenizer.pad_token_id is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        return tokenizer
+
 if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, OnlineDPOConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
@@ -85,27 +143,8 @@ if __name__ == "__main__":
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs
     )
     
-    # Handle LoRA adapters for phi4-MM model if present
-    if hasattr(model, 'set_lora_adapter'):
-        try:
-            # Check if speech adapter exists and set it as active
-            model.set_lora_adapter("speech")
-            print("Set speech LoRA adapter as active")
-        except Exception as e:
-            print(f"No speech LoRA adapter found or could not be set: {e}")
-            # Try to delete and clean up adapters if lora_merged is intended
-            try:
-                from peft.tuners.lora import LoraLayer
-                for module in model.modules():
-                    if isinstance(module, LoraLayer):
-                        try:
-                            module.delete_adapter("speech")
-                            module.delete_adapter("vision")
-                        except:
-                            pass
-                print("Cleaned up LoRA adapters")
-            except ImportError:
-                pass
+    # Set up LoRA adapter
+    setup_lora_adapter(model)
 
     if training_args.reward_model_path is not None:
         reward_model = AutoModelForSequenceClassification.from_pretrained(
@@ -130,36 +169,8 @@ if __name__ == "__main__":
     else:
         judge = None
 
-    # Check if model is multimodal and use processor instead of tokenizer
-    try:
-        from transformers import AutoProcessor
-        processor = AutoProcessor.from_pretrained(
-            model_args.model_name_or_path,
-            trust_remote_code=model_args.trust_remote_code,
-            **model_kwargs,
-        )
-        # Set up processor tokenizer properties
-        if hasattr(processor, 'tokenizer'):
-            processor.tokenizer.padding_side = "left"
-            if processor.tokenizer.chat_template is None:
-                processor.tokenizer.chat_template = SIMPLE_CHAT_TEMPLATE
-            if processor.tokenizer.pad_token_id is None:
-                processor.tokenizer.pad_token = processor.tokenizer.eos_token
-        processing_class = processor
-        print("Using AutoProcessor for multimodal model")
-    except Exception as e:
-        print(f"Could not load processor, falling back to tokenizer: {e}")
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_args.model_name_or_path,
-            padding_side="left",
-            trust_remote_code=model_args.trust_remote_code,
-            **model_kwargs,
-        )
-        if tokenizer.chat_template is None:
-            tokenizer.chat_template = SIMPLE_CHAT_TEMPLATE
-        if tokenizer.pad_token_id is None:
-            tokenizer.pad_token = tokenizer.eos_token
-        processing_class = tokenizer
+    # Set up processing class
+    processing_class = setup_processing_class(model_args, model_kwargs)
 
     dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
 

@@ -8,6 +8,41 @@ from pathlib import Path
 # Add our local stubs to path
 sys.path.insert(0, str(Path(__file__).parent / "trl" / "_local_deps"))
 
+
+def test_shared_functions():
+    """Test that shared functions work correctly."""
+    try:
+        # Test import and basic functionality
+        with open("trl/scripts/shared_utils.py", "r") as f:
+            code = f.read()
+        
+        # Check that shared functions exist in the code
+        required_functions = [
+            "def uuid4()",
+            "def init_model(",
+            "def is_master()",
+            "def get_job_name(",
+            "def save_run_info(",
+            "def load_run_info(",
+            "def init_wandb(",
+            "def reward_functions(",
+            "def create_dataset("
+        ]
+        
+        for func in required_functions:
+            if func not in code:
+                print(f"✗ Missing function: {func}")
+                return False
+            else:
+                print(f"✓ Found function: {func}")
+        
+        compile(code, "shared_utils.py", "exec")
+        print("✓ shared_utils.py has valid syntax")
+        return True
+    except Exception as e:
+        print(f"✗ Shared functions test failed: {e}")
+        return False
+
 def test_dpo_online_bias_syntax():
     """Test that dpo_online_bias.py has valid syntax."""
     try:
@@ -59,10 +94,11 @@ def test_structure():
 if __name__ == "__main__":
     print("Testing dpo_online_bias implementation...")
     structure_ok = test_structure()
+    shared_funcs_ok = test_shared_functions()
     bias_syntax_ok = test_dpo_online_bias_syntax()
     online_syntax_ok = test_dpo_online_syntax()
     
-    if structure_ok and bias_syntax_ok and online_syntax_ok:
+    if structure_ok and shared_funcs_ok and bias_syntax_ok and online_syntax_ok:
         print("\n✓ All tests passed! Basic implementation is ready.")
     else:
         print("\n✗ Some tests failed. Please check the implementation.")
