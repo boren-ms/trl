@@ -265,6 +265,10 @@ plt.show()
 
 The online DPO checkpoint gets increasingly more win rate as we scale up the model sizes. This is a good sign that the online DPO implementation is working as intended.
 
+## Detailed Training Workflow
+
+For a comprehensive understanding of the Online DPO training process including all function calls and their interactions, see the [detailed training workflow documentation](online_dpo_training_workflow.md).
+
 ## OnlineDPOTrainer
 
 [[autodoc]] OnlineDPOTrainer
