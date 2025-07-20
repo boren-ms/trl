@@ -34,10 +34,7 @@ class EvalArguments:
         default=None,
         metadata={"help": "Path to the model."},
     )
-    lora_merged: bool = field(
-        default=True,
-        metadata={"help": "Whether LoRA is merged."},
-    )
+
     checkpoints: Optional[list[str]] = field(
         default=None,
         metadata={"help": "Checkpoint indices to evaluate."},
@@ -130,10 +127,9 @@ def hack_package(package_path, replace=False):
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
 
-    def __init__(self, model_path, lora_merged=True, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None):
+    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None):
         self.accelerator = Accelerator()
         self.model_path = str(model_path)
-        self.lora_merged = lora_merged
         self.batch_size = batch_size
         self.use_vllm = use_vllm
         self.output_dir = output_dir or model_path
@@ -181,7 +177,7 @@ class Evaluation:
             config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
         else:
-            model, self.processor = init_model(self.model_path, lora_merged=self.lora_merged)
+            model, self.processor = init_model(self.model_path)
             self.model = self.accelerator.prepare(model).eval()
 
     def generate(self, batch):
@@ -290,7 +286,6 @@ def evaluate_model(model_path, datasets, **kwargs):
         output_dir=kwargs.get("output_dir", None),
         job_name=kwargs.get("job_name", None),
         wandb_dir=kwargs.get("wandb_dir", None),
-        lora_merged=kwargs.get("lora_merged", True),
         generation_config=kwargs.get("generation_config", None),
     )
     evaluator.evaluate_all(datasets, step=chkp_index(Path(model_path).name, 0))

@@ -1892,3 +1892,8 @@ def print_prompt_completions_sample(
 
     panel = Panel(table, expand=False, title=f"Step {step}", border_style="bold white")
     console.print(panel)
+
+def can_merge_adapter(model):
+    return hasattr(model, "merge_adapter") and hasattr(model, "unmerge_adapter")
+    
+    

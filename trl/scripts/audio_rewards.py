@@ -37,7 +37,7 @@ class Match:
     n_hit: int
     n_err: int
     n_ref: int
-    
+
     def __post_init__(self):
         """Ensure that the values are non-negative."""
         assert self.n_hit >= 0 and self.n_err >= 0 and self.n_ref >= 0, f"Match error: {self}"
@@ -62,6 +62,10 @@ class Match:
         if self.n_ref == 0:
             return 0
         return self.n_err / self.n_ref * 100
+
+    def get_result_string(self):
+        """Get the result string."""
+        return f"Accuracy: {self.accuracy:.2f}%, Error Rate: {self.error_rate:.2f}%, Error Count: {self.count_err}/{self.n_ref}"
 
 
 def word_match(ref, hyp):
@@ -102,18 +106,7 @@ def tagged_pieces(text):
 
 def bias_match(ref, hyp, bias=True):
     """Compute the bias match for a list of completions."""
-    norm = tr.Compose(
-        [
-            tr.ToLowerCase(),
-            tr.ExpandCommonEnglishContractions(),
-            # RemovePunctuationExclude(exclude=["*"]),
-            tr.RemovePunctuation(),
-            tr.RemoveWhiteSpace(replace_by_space=True),
-            tr.RemoveMultipleSpaces(),
-            tr.Strip(),
-            tr.ReduceToSingleSentence(),
-        ]
-    )
+
     norm = EnglishTextNormalizer()
     pieces = [piece.strip() for piece in map(norm, tagged_pieces(ref)) if piece.strip()]
     # pieces can be a phrase with multiple words, so we split them into words
@@ -132,8 +125,8 @@ def bias_match(ref, hyp, bias=True):
         elif tag == "insert":
             bias_cnt = sum(len(piece.split()) for piece in pieces if piece in hyp_part)
             ins += bias_cnt if bias else len(hyp_part.split()) - bias_cnt
-    
-    hit = min(hit, total) # hit > total means that biasing piece has >2 words, partially matched. treat them as unmatched case, made #hit >#total 
+
+    hit = min(hit, total)  # hit > total means that biasing piece has >2 words, partially matched. treat them as unmatched case, made #hit >#total
     return Match(hit, total - hit + ins, total)
 
 
@@ -216,7 +209,7 @@ if __name__ == "__main__":
     pairs = [
         {
             "hyp": "Who was it she was in love with? The story will tell, I took upon myself to reply. Oh, I can't wait for the story. The story won't tell, said *douglas* Not in any literal, vulgar way. Nor is the pity then.",
-            "ref": "who was it she was in love with the story will tell i took upon myself to reply oh i can't wait for the story the story won't tell said *douglas* not in any *literal* vulgar way *more's* the pity then"
+            "ref": "who was it she was in love with the story will tell i took upon myself to reply oh i can't wait for the story the story won't tell said *douglas* not in any *literal* vulgar way *more's* the pity then",
         },
         {
             "hyp": "The air and the earth are curiously *mated* and *intermingled* as if the one were the breath of the other,",

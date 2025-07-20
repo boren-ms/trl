@@ -15,8 +15,8 @@ train_data:
         common_word_num: 1000
 reward_funcs: [reward_word_error, reward_bias_error]
 reward_weights: [1, 2]
-# model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
-model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf_merged/
+# model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
+model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 # job_name: phi4_mm_bias_grpo
 report_to: [wandb]
