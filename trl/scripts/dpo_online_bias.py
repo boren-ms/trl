@@ -50,10 +50,7 @@ class OnlineDPOScriptArguments:
         default=None,
         metadata={"help": "Path to the model."},
     )
-    lora_merged: bool = field(
-        default=True,
-        metadata={"help": "Whether LoRA is merged."},
-    )
+
     reward_model_path: Optional[str] = field(
         default=None,
         metadata={"help": "Path to the reward model."},
@@ -104,7 +101,7 @@ def main(script_args, training_args):
         )
 
     # Initialize model and processor
-    model, processor = init_model(script_args.model_name_or_path, lora_merged=script_args.lora_merged)
+    model, processor = init_model(script_args.model_name_or_path)
 
     # Setup model kwargs for consistency
     model_kwargs = dict(
