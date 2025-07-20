@@ -10,17 +10,7 @@ from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 import wandb
 
-try:
-    import shortuuid
-    def uuid4():
-        """Generate a short UUID."""
-        short_id = shortuuid.ShortUUID().random(length=4)
-        return short_id
-except ImportError:
-    import uuid
-    def uuid4():
-        """Generate a short UUID."""
-        return str(uuid.uuid4())[:8]
+
 
 try:
     from peft.tuners.lora import LoraLayer
