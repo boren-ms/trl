@@ -160,7 +160,8 @@ def bias_sampling(ds, **kwargs):
     def proc_sample(sample):
         """Process a sample from the dataset."""
         context, text = bias_sampler.sample(sample["text"])
-        side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
+        # side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
+        side_prompt = f"Pay extra attention to the following phrases/words: {context}."
         return {
             "prompt": prompt_format.format(f"Transcribe the audio clip into text. {side_prompt}"),
             "text": text,  # text is updated

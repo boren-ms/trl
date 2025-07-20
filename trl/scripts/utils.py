@@ -27,7 +27,8 @@ import yaml
 from transformers import HfArgumentParser
 from transformers.hf_argparser import DataClass, DataClassType
 from trl.import_utils import is_rich_available
-
+import types
+from peft.tuners.lora.layer import LoraLayer
 
 logger = logging.getLogger(__name__)
 
@@ -282,3 +283,36 @@ def get_git_commit_hash(package_name):
             return None
     except Exception as e:
         return f"Error: {str(e)}"
+
+
+
+def merge_adapter(cls, merge=True):
+    for module in cls.modules():
+        if not isinstance(module, LoraLayer):
+            continue
+        if merge:
+            module.merge()
+        else:
+            module.unmerge()
+
+
+def unmerge_adapter(cls):
+    return merge_adapter(cls, False)
+
+
+def add_adapter_func(obj):
+    obj.merge_adapter = types.MethodType(merge_adapter, obj)
+    obj.unmerge_adapter = types.MethodType(unmerge_adapter, obj)
+    return obj
+
+
+def human_readable(num):
+    """Convert a number to human readable format (K, M, G)."""
+    if num >= 1_000_000_000:
+        return f"{num/1_000_000_000:.2f}G"
+    elif num >= 1_000_000:
+        return f"{num/1_000_000:.2f}M"
+    elif num >= 1_000:
+        return f"{num/1_000:.2f}K"
+    else:
+        return str(num)

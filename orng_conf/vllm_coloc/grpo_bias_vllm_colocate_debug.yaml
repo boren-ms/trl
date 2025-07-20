@@ -1,103 +1,107 @@
-# model_name_or_path: az://orngwus2cresco/data/boren/data/ckp/phi4_mm_bias
-model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
+# model_name_or_path: az://orngscuscresco/data/boren/data/ckp/phi4_mm_bias
+model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
+skip_run_info: True
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-reward_funcs: [reward_word_error, reward_bias_error]
-reward_weights: [1, 10]
+reward_funcs: [reward_unbias_error, reward_bias_error]
+reward_weights: [1, 1]
 report_to: [wandb]
-learning_rate: 5e-6
-lr_scheduler_type: cosine
+learning_rate: 1e-5
+# lr_scheduler_type: cosine
 output_dir: ~/outputs/debug
 per_device_train_batch_size: 24
-num_generations: 4
+num_generations: 8
 # dataloader_drop_last: True
 
+scale_rewards: False
+temperature: 1.1
 logging_steps: 1
 bf16: True
 gradient_checkpointing: True
-log_completions: False
+log_completions: True
 max_prompt_length: 2048
 max_completion_length: 512
-wandb_log_unique_prompts: True
+# 
 # beta: 0.1
 epsilon_high: 0.28
 save_steps: 100
 use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
-vllm_gpu_memory_utilization: 0.4
-  
+vllm_gpu_memory_utilization: 0.35
+
 # vllm_server_host: ${VLLM_SERVER_HOST}
 # vllm_server_host: 10.133.219.39
 # vllm_server_port: 26500
 # resume_from_checkpoint: True
 train_data:
     dataset_name: tsv
+    nug_egs: 5000
     # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
-    # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
-    # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
-    tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
+    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
+    tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: /root/data/LibriSpeech/debug.tsv
     biasing:
-        bias_prob: 0.8
-        hit_prob: 0.8
+        # bias_prob: 0.8
+        hit_prob: 0.5 
         max_piece_len: 1
         max_num: 100
         log_interval: 1000 # print biasing every 10000 samples
         new_sampling: True
-        common_word_file: az://orngwus2cresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
-        common_word_num: 1000
+        # common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
+        # common_word_num: 1000
 
-eval_strategy: steps
-eval_on_start: True
-eval_steps: 10 
-per_device_eval_batch_size: 200
-num_eval_generations: 2
-eval_data:
-    - nickname: clean_no
-      dataset_name: ls_bias
-      jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-      data_dir: az://orngwus2cresco/data/boren/data
+# eval_strategy: steps
+# eval_on_start: True
+# eval_steps: 10
+# per_device_eval_batch_size: 200
+# num_eval_generations: 2
+# eval_data:
+#     - nickname: clean_no
+#       dataset_name: ls_bias
+#       jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+#       data_dir: az://orngscuscresco/data/boren/data
     #   bias_key: null # null
-      # data_dir: az://${DATA_STORAGE}/data/boren/data
+    # data_dir: az://${DATA_STORAGE}/data/boren/data
     # - nickname: other_no
     #   dataset_name: ls_bias
     #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    #   data_dir: az://orngwus2cresco/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
     #   bias_key: null # distractors
-      # data_dir: az://${DATA_STORAGE}/data/boren/data
+    # data_dir: az://${DATA_STORAGE}/data/boren/data
     # - nickname: clean_100
     # dataset_name: ls_bias
     #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     #   bias_key: distractors # distractors
     #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngwus2cresco/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
     # - nickname: other_100
     # dataset_name: ls_bias
     #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
     #   bias_key: distractors # distractors
     #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngwus2cresco/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
     # - nickname: clean_500
     # dataset_name: ls_bias
     #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
     #   bias_key: distractors # distractors
     #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngwus2cresco/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
     # - nickname: other_500
     # dataset_name: ls_bias
     #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
     #   bias_key: distractors # distractors
     #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngwus2cresco/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
     # - nickname: clean_1000
     # dataset_name: ls_bias
     #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
     #   bias_key: distractors # distractors
     #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngwus2cresco/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data
     # - nickname: other_1000
     # dataset_name: ls_bias
     #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
     #   bias_key: distractors # distractors
     #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngwus2cresco/data/boren/data
+    #   data_dir: az://orngscuscresco/data/boren/data

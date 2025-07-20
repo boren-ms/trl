@@ -43,7 +43,7 @@ class WordError(object):
     @property
     def error_count(self):
         return self.errors[Code.substitution] + self.errors[Code.insertion] + self.errors[Code.deletion]
-    
+
     @property
     def error_rate(self):
         return self.get_wer() / 100.0
@@ -193,32 +193,56 @@ class EditDistance(object):
         return self.get_result(refs, hyps)
 
 
-def calc_wers(refs, hyps):
+def text_norm(txt):
+    """Normalize tokens by removing leading and trailing whitespace."""
+    norm = EnglishTextNormalizer()
+    if isinstance(txt, str):
+        return norm(txt.strip())
+    elif isinstance(txt, list):
+        return [norm(x) for x in txt]
+    else:
+        raise ValueError(f"Unsupported type for text normalization: {type(txt)}. Expected str or list of str.")
+
+
+def find_word_indices(text, pieces):
+    indexs = []
+    for piece in pieces:
+        for m in re.finditer(re.escape(piece), text):
+            start_idx = len(text[: m.start()].split())  # previous words
+            piece_len = len(piece.split())
+            indexs.extend(range(start_idx, start_idx + piece_len))
+    return indexs
+
+
+def calc_wers(refs, hyps, tn=True):
     """Calculate WER, U-WER, and B-WER."""
     wer = WordError()
     u_wer = WordError()
     b_wer = WordError()
-    norm = EnglishTextNormalizer()
-    # norm = lambda x: x
     for uttid, ref in refs.items():
         if uttid not in hyps:
             continue
-        ref_tokens = norm(ref["text"]).split()
-        biasing_words = ref["biasing_words"]
-        hyp_tokens = norm(hyps[uttid]).split()
+        norm = text_norm if tn else lambda x: x
+        # Normalize reference and hypothesis text
+        tn_ref = norm(ref["text"])
+        tn_hyp = norm(hyps[uttid])
+        bias_words = norm(ref["biasing_words"])
+        bias_ref_indexs = find_word_indices(tn_ref, bias_words)
+        bias_hyp_indexs = find_word_indices(tn_hyp, bias_words)
+
         ed = EditDistance()
-        result = ed.align(ref_tokens, hyp_tokens)
+        result = ed.align(tn_ref.split(), tn_hyp.split())
         for code, ref_idx, hyp_idx in zip(result.codes, result.refs, result.hyps):
             if code == Code.match:
                 wer.ref_words += 1
-                if ref_tokens[ref_idx] in biasing_words:
+                if ref_idx in bias_ref_indexs:
                     b_wer.ref_words += 1
                 else:
                     u_wer.ref_words += 1
             elif code == Code.substitution:
                 wer.ref_words += 1
                 wer.errors[Code.substitution] += 1
-                if ref_tokens[ref_idx] in biasing_words:
+                if ref_idx in bias_ref_indexs:
                     b_wer.ref_words += 1
                     b_wer.errors[Code.substitution] += 1
                 else:
@@ -227,7 +251,7 @@ def calc_wers(refs, hyps):
             elif code == Code.deletion:
                 wer.ref_words += 1
                 wer.errors[Code.deletion] += 1
-                if ref_tokens[ref_idx] in biasing_words:
+                if ref_idx in bias_ref_indexs:
                     b_wer.ref_words += 1
                     b_wer.errors[Code.deletion] += 1
                 else:
@@ -235,7 +259,7 @@ def calc_wers(refs, hyps):
                     u_wer.errors[Code.deletion] += 1
             elif code == Code.insertion:
                 wer.errors[Code.insertion] += 1
-                if hyp_tokens[hyp_idx] in biasing_words:
+                if hyp_idx in bias_hyp_indexs:
                     b_wer.errors[Code.insertion] += 1
                 else:
                     u_wer.errors[Code.insertion] += 1
@@ -251,6 +275,8 @@ def extract_keywords(text):
         "biasing_words": keywords,
         "text": text,
     }
+
+
 def compute_biasing_metrics(results):
     """compute biasing metrics"""
     wer, u_wer, b_wer = compute_wers(results)
@@ -259,14 +285,15 @@ def compute_biasing_metrics(results):
         "UWER": u_wer.get_wer(),
         "BWER": b_wer.get_wer(),
     }
-    
-def compute_wers(results):
+
+
+def compute_wers(results, tn=True):
     """compute WER, U-WER, and B-WER"""
     # Extract reference and hypothesis pairs from groups
-    refs = {result["id"]: extract_keywords(result["ref"]) for result in results}
-    hyps = {result["id"]: result["hyp"] for result in results}
+    refs = {result.get("id", i): extract_keywords(result["ref"]) for i, result in enumerate(results)}
+    hyps = {result.get("id", i): result["hyp"] for i, result in enumerate(results)}
     # Calculate WER, U-WER, and B-WER
-    wer, u_wer, b_wer = calc_wers(refs, hyps)
+    wer, u_wer, b_wer = calc_wers(refs, hyps, tn=tn)
     return wer, u_wer, b_wer
 
 
@@ -289,12 +316,12 @@ def eval_biasing_metrics(groups):
     }
 
 
-def compute_reward_wers(completions, **kwargs):
+def compute_reward_wers(completions, tn=True, **kwargs):
     """Compute rewards for a list of completions."""
     references = kwargs["text"]
     rewards = []
     for i, (completion, ref) in enumerate(zip(completions, references)):
-        rewards.append(compute_wers([{"id": i, "ref": ref, "hyp": completion}]))
+        rewards.append(compute_wers([{"id": i, "ref": ref, "hyp": completion}], tn=tn))
     return rewards
 
 
@@ -315,36 +342,103 @@ def reward_bias_accuracy(completions, **kwargs):
     wers = compute_reward_wers(completions, **kwargs)
     return [wer[2].accuracy for wer in wers]  # B-WER
 
+
+def reward_word_plain_accuracy(completions, **kwargs):
+    """Compute the reward for a list of completions."""
+    wers = compute_reward_wers(completions, tn=False, **kwargs)
+    return [wer[0].accuracy for wer in wers]  # WER
+
+
+def reward_unbias_plain_accuracy(completions, **kwargs):
+    """Compute the reward for a list of completions."""
+    wers = compute_reward_wers(completions, tn=False, **kwargs)
+    return [wer[1].accuracy for wer in wers]  # U-WER
+
+
+def reward_bias_plain_accuracy(completions, **kwargs):
+    """Compute the reward for a list of completions."""
+    wers = compute_reward_wers(completions, tn=False, **kwargs)
+    return [wer[2].accuracy for wer in wers]  # B-WER
+
+
 def reward_word_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[0].error_count for wer in wers]  # WER
+    return [-wer[0].error_count for wer in wers]  # WER
 
 
 def reward_unbias_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[1].error_count for wer in wers]  # U-WER
+    return [-wer[1].error_count for wer in wers]  # U-WER
 
 
 def reward_bias_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[2].error_count for wer in wers]  # B-WER
+    return [-wer[2].error_count for wer in wers]  # B-WER
+
 
 def reward_word_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[0].error_rate for wer in wers]  # WER
+    return [-wer[0].error_rate for wer in wers]  # WER
 
 
 def reward_unbias_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[1].error_rate for wer in wers]  # U-WER
+    return [-wer[1].error_rate for wer in wers]  # U-WER
 
 
 def reward_bias_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
-    return [wer[2].error_rate for wer in wers]  # B-WER
+    return [-wer[2].error_rate for wer in wers]  # B-WER
+
+
+if __name__ == "__main__":
+    pairs = [
+        {
+            "hyp": "Who was it she was in love with? The story will tell, I took upon myself to reply. Oh, I can't wait for the story. The story won't tell, said *douglas* Not in any literal, vulgar way. Nor is the pity then.",
+            "ref": "who was it she was in love with the story will tell i took upon myself to reply oh i can't wait for the story the story won't tell said *douglas* not in any *literal* vulgar way *more's* the pity then",
+        },
+        {
+            "hyp": "The air and the earth are curiously *mated* and *intermingled* as if the one were the breath of the other,",
+            "ref": "the air and the earth are curiously *mated* and *intermingled* as if the one were the breath of the other",
+        },
+        {
+            "hyp": "These thoughts agitated me all day, and my imagination scarcely *calmed* down after several hours' sleep.",
+            "ref": "these thoughts agitated me all day and my imagination scarcely *calmed* down after several hours sleep",
+        },
+        {
+            "hyp": "The task will not be difficult, returned David, hesitating, though I greatly fear your presence would rather increase than,*mitigate* his unhappy fortunes.",
+            "ref": "the task will not be difficult returned david *hesitating* though i greatly fear your presence would rather increase than *mitigate* ,his unhappy fortunes",
+        },
+        {
+            "hyp": "it was silent and gloomy, *beeing* *tenanted* *solely* by the *captive* and lighted by the dying *embers* of a fire which had been,used for the purpose of *cookery*",
+            "ref": "it was silent and gloomy being *tenanted* *solely* by the *captive* and lighted by the dying *embers* of a fire which had been used ,for the *purposed* of *cookery*",
+        },
+        {
+            "hyp": "or of the habits of our people it is quite impossible.",
+            "ref": "or of the habits of our people it is quite impossible",
+        },
+        {
+            "hyp": "To be or not to be, that is the question Whether 'tis *nobler* in the mind to suffer the *slings* and arrows what? No, *hamlet*,speaking",
+            "ref": "to be or not to be that is the question whether tis *nobler* in the mind to suffer the *slings* and arrows what no *hamlet* ,speaking",
+        },
+        {
+            "hyp": "By quick *marches* through these *inaccessible* mountains, that general *freed* himself from the superior forces of the,*covenanters*",
+            "ref": "by quick *marches* through these *inaccessible* mountains that general *freed* himself from the superior forces of the ,*covenanters*",
+        },
+        {
+            "hyp": "This *nobleman's* character, though celebrated for political courage and conduct, was very low for military *prowess* and after some,*skirmishes* in which he was *worsted* he here allowed *montrose* to escape him.",
+            "ref": "this *nobleman's* character though celebrated for political courage and conduct was very low for military *prowess* and after some ,*skirmishes* in which he was *worsted* he here allowed *montrose* to escape him",
+        },
+    ]
+
+    for pair in pairs:
+        wer, u_wer, b_wer = compute_wers([pair])
+        print(f"WER: {wer.get_result_string()}")
+        print(f"U-WER: {u_wer.get_result_string()}")
+        print(f"B-WER: {b_wer.get_result_string()}")
