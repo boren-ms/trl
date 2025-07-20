@@ -18,7 +18,17 @@ from trl.scripts.audio_dataset import create_audio_dataset
 
 
 def create_dataset(config):
-    """create dataset"""
+    """Create dataset from configuration.
+    
+    Args:
+        config: Dataset configuration. Can be:
+            - None: Returns None
+            - dict: Single dataset configuration
+            - list/tuple: Multiple dataset configurations
+    
+    Returns:
+        Dataset or dictionary of datasets, or None
+    """
     if config is None:
         return None
     if isinstance(config, (list, tuple)):

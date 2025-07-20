@@ -16,35 +16,10 @@
 
 import json
 import os
-import sys
-from datetime import datetime
 from pathlib import Path
 
-import pytz
 import wandb
-
-
-def is_master():
-    """Check if the current process is the master process."""
-    local_rank = os.environ.get("LOCAL_RANK", "0")
-    rank = os.environ.get("RANK", "0")
-    print("LocalRank:", local_rank)
-    print("Rank:", rank)
-    return local_rank == "0" and rank == "0"
-
-
-def get_job_name(jobname=None):
-    """Get a unique job name."""
-    if jobname:
-        return jobname
-    if "--config" in sys.argv:
-        # use config file name as job name
-        config_file = sys.argv[sys.argv.index("--config") + 1]
-        jobname = Path(config_file).stem.split(".")[0]
-        return jobname
-    # use current time as job name
-    tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
-    return datetime.now(tz).strftime("%Y%m%d-%H%M%S")
+from .common_utils import get_job_name
 
 
 def save_run_info(run, work_dir=None, file_name="run_info.json"):
@@ -87,7 +62,18 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
 
 
 def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_run_info=False):
-    """Initialize wandb."""
+    """Initialize wandb for experiment tracking.
+    
+    Args:
+        job_name: Name for the run. If None, will generate from config file or timestamp.
+        project: Wandb project name. Defaults to "biasing" or WANDB_PROJECT env var.
+        config: Configuration to log to wandb.
+        output_dir: Directory to save run info JSON file.
+        skip_run_info: Whether to skip loading existing run info.
+    
+    Returns:
+        Wandb run object
+    """
     project = os.environ.get("WANDB_PROJECT", project or "biasing")
     job_name = get_job_name(job_name)
     print(f"Project Name: {project}, Run Name: {job_name}")
@@ -107,3 +93,4 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_r
     print("wandb offline: ", run.settings._offline)  # Should be True
     print("wandb mode: ", run.settings.mode)  # Should be "offline"
     save_run_info(run, output_dir)
+    return run

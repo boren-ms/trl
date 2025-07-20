@@ -7,8 +7,11 @@ from typing import Optional
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
 from trl.scripts.utils.data_utils import create_dataset
-from trl.scripts.utils.wandb_utils import init_wandb, is_master
+from trl.scripts.utils.wandb_utils import init_wandb
 from trl.scripts.utils.model_utils import init_model, print_modules
+from trl.scripts.utils.common_utils import is_master
+from trl.scripts.utils.reward_utils import load_reward_functions
+from trl.scripts.utils.argument_utils import make_parser
 
 
 @dataclass
@@ -46,28 +49,23 @@ class GRPOScriptArguments:
 
 
 def reward_functions(names=None):
-    """get the reward functions based on the function name."""
-    names = names or ["reward_bias_accuracy", "reward_word_accuracy"]
-    if isinstance(names, str):
-        names = [names]
-    funcs = []
-    for name in names:
-        try:
-            module = __import__("trl.scripts.audio_metrics", fromlist=[name])
-            funcs.append(getattr(module, name))
-        except (ImportError, AttributeError) as e:
-            raise ValueError(f"Reward function '{name}' not found.") from e
-    return funcs
+    """Get the reward functions based on the function name.
+    
+    This is a wrapper around load_reward_functions for backward compatibility.
+    """
+    return load_reward_functions(names)
 
 
 def make_parser(subparsers: argparse._SubParsersAction = None):
     """Create a parser for the GRPO training script."""
+    from trl.scripts.utils.argument_utils import make_parser as make_general_parser
     dataclass_types = (GRPOScriptArguments, GRPOConfig)
-    if subparsers is not None:
-        parser = subparsers.add_parser("grpo", help="Run the GRPO training script", dataclass_types=dataclass_types)
-    else:
-        parser = TrlParser(dataclass_types)
-    return parser
+    return make_general_parser(
+        subparsers=subparsers,
+        dataclass_types=dataclass_types,
+        parser_name="grpo" if subparsers else None,
+        help_text="Run the GRPO training script" if subparsers else None
+    )
 
 
 def main(script_args, training_args):

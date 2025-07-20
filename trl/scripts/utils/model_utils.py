@@ -14,18 +14,21 @@
 
 """Model utilities for TRL scripts."""
 
-import shortuuid
 from transformers import AutoModelForCausalLM, AutoProcessor
 from trl.scripts.utils import add_adapter_func, human_readable
 
 
-def uuid4():
-    short_id = shortuuid.ShortUUID().random(length=4)
-    return short_id
-
-
-def init_model(model_id=None):
-    """Initialize the model and processor."""
+def init_model(model_id=None, lora_adapter="speech", add_adapter=True):
+    """Initialize the model and processor.
+    
+    Args:
+        model_id: Model ID or path. Defaults to "microsoft/Phi-4-multimodal-instruct"
+        lora_adapter: LoRA adapter name to set. Set to None to skip.
+        add_adapter: Whether to add adapter functionality to the model.
+    
+    Returns:
+        Tuple of (model, processor)
+    """
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
     model = AutoModelForCausalLM.from_pretrained(
@@ -34,8 +37,13 @@ def init_model(model_id=None):
         torch_dtype="auto",
         _attn_implementation="flash_attention_2",
     )
-    model.set_lora_adapter("speech")
-    model = add_adapter_func(model)
+    
+    if lora_adapter:
+        model.set_lora_adapter(lora_adapter)
+    
+    if add_adapter:
+        model = add_adapter_func(model)
+    
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 
