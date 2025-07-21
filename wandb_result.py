@@ -5,6 +5,7 @@ import wandb
 import fire
 import os
 import urllib.parse
+from pathlib import Path
 
 
 def get_run(path):
@@ -39,14 +40,13 @@ def get_run_result(runs, prefix="metric"):
     return df
 
 
-class RunChecker:
-    def __init__(self, entity=None, project=None, metric="metric", save_excel=False, excel_path=None):
+class WandbChecker:
+    def __init__(self, entity=None, project=None, metric="metric", excel_dir=None):
         self.host = os.environ.get("WANDB_ORGANIZATION", "https://msaip.wandb.io")
         self.entity = entity or os.environ.get("WANDB_ENTITY", "genai")
         self.project = project or os.environ.get("WANDB_PROJECT", "biasing")
         self.metric = metric
-        self.excel_path = excel_path or ("results.xlsx" if save_excel else None)
-        #     wandb.login(key=os.environ.get("WANDB_API_KEY"), host=self.host)
+        self.excel_dir = Path(excel_dir) if excel_dir else Path.home() / "wandb_results"
 
     def check(self, run_url, key=None, nrows=10):
         run = get_run(run_url)
@@ -57,13 +57,20 @@ class RunChecker:
         if df is None:
             print(f"No results [{self.metric}] found for run: {run_url}")
             return None
-        if self.excel_path:
-            print(f"writing to {self.excel_path}")
-            df.to_excel(self.excel_path, index=True)
+        self._to_excel(df, name=run.name)
         if key:
             df = df[df.index.str.contains(key)]
         df = df.head(nrows)
         print(df)
+
+    def _to_excel(self, df, name=None):
+        """Save DataFrame to Excel file."""
+        self.excel_dir.mkdir(parents=True, exist_ok=True)
+        datestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+        name = name or "default"
+        excel_path = self.excel_dir / f"{self.metric}_{datestamp}_{name}.xlsx"
+        print(f"Writing {df.shape} results to {excel_path}")
+        df.to_excel(excel_path, index=True)
 
     def search(self, run_name, key=None, nrows=10):
         """search runs"""
@@ -77,9 +84,7 @@ class RunChecker:
         if df is None:
             print(f"No results [{self.metric}] found for runs matching '{run_name}'")
             return None
-        if self.excel_path:
-            print(f"Results written to {self.excel_path}")
-            df.to_excel(self.excel_path)
+        self._to_excel(df, name=run_name)
         if key:
             df = df[df.index.str.contains(key)]
         df = df.head(nrows)
@@ -87,4 +92,4 @@ class RunChecker:
 
 
 if __name__ == "__main__":
-    fire.Fire(RunChecker)
+    fire.Fire(WandbChecker)
