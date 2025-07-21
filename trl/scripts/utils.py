@@ -305,7 +305,9 @@ def add_adapter_func(obj):
     obj.unmerge_adapter = types.MethodType(unmerge_adapter, obj)
     return obj
 
-
+def can_merge_adapter(model):
+    return hasattr(model, "merge_adapter") and hasattr(model, "unmerge_adapter")
+    
 def human_readable(num):
     """Convert a number to human readable format (K, M, G)."""
     if num >= 1_000_000_000:
@@ -316,3 +318,27 @@ def human_readable(num):
         return f"{num/1_000:.2f}K"
     else:
         return str(num)
+
+def move_model_to_vllm(model, llm):
+    print("Move model to vllm")
+    llm_model = llm.llm_engine.model_executor.driver_worker.model_runner.model
+    if can_merge_adapter(model):
+        model.merge_adapter()
+        for name, param in model.named_parameters():
+            name = name.removeprefix("base_model.model.").replace(".base_layer", "")                        
+            if hasattr(model, "prefix") and model.prefix in name:
+                continue
+            for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
+                name = name.replace(extra, "")
+            print("vllm load:", name)
+            llm_model.load_weights([(name, param.data)])
+        model.unmerge_adapter()
+    else:
+        for name, param in model.named_parameters():
+            for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
+                name = name.replace(extra, "")
+            print("vllm load:", name)
+            llm_model.load_weights([(name, param.data)])
+    # Reset cache on vLLM
+    llm.reset_prefix_cache()
+    

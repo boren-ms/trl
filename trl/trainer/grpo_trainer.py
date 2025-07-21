@@ -62,9 +62,9 @@ from .utils import (
     get_comet_experiment_url,
     pad,
     print_prompt_completions_sample,
-    selective_log_softmax,
-    can_merge_adapter
+    selective_log_softmax
 )
+from ..scripts.utils import can_merge_adapter
 
 if is_peft_available():
     from peft import PeftConfig, get_peft_model

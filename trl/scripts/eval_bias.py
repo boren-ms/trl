@@ -16,6 +16,7 @@ from pathlib import Path
 from trl.data_utils import sf_read, find_chkps, chkp_index
 from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, init_wandb
 from trl.scripts.audio_metrics import compute_wers
+from trl.scripts.utils import move_model_to_vllm
 
 
 @dataclass
@@ -26,6 +27,7 @@ class EvalArguments:
         default=None,
         metadata={"help": "Name of the job."},
     )
+    skip_run_info: bool = field(default=False, metadata={"help": "whether to skip run info from checkpoint"})
     eval_data: Optional[dict] = field(
         default=None,
         metadata={"help": "Evaluation dataset config"},
@@ -127,7 +129,7 @@ def hack_package(package_path, replace=False):
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
 
-    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None):
+    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None, skip_run_info=False, **kwargs):
         self.accelerator = Accelerator()
         self.model_path = str(model_path)
         self.batch_size = batch_size
@@ -136,12 +138,17 @@ class Evaluation:
         self.wandb_dir = wandb_dir or self.output_dir
         self.job_name = job_name
 
+        if self.is_main:
+            init_wandb(
+                job_name=self.job_name,
+                config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size},
+                output_dir=self.wandb_dir,
+                skip_run_info=skip_run_info,
+            )
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
         self.generation_config.update(**(generation_config or {}))
         hack_package(self.model_path, True)
         self._prepare_model()
-        if self.is_main:
-            init_wandb(job_name=self.job_name, config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size}, output_dir=self.wandb_dir)
 
     @property
     def rank(self):
@@ -161,8 +168,9 @@ class Evaluation:
 
     def _prepare_model(self):
         """Prepare the model for evaluation."""
+        model, self.processor = init_model(self.model_path)
         if self.use_vllm:
-            max_all_tokens = 1024*6
+            max_all_tokens = 1024 * 10
             self.llm = LLM(
                 model=self.model_path,
                 trust_remote_code=True,
@@ -172,12 +180,13 @@ class Evaluation:
                 max_num_seqs=self.batch_size,
                 load_format="auto",
                 limit_mm_per_prompt={"audio": 1},
-                max_num_batched_tokens=max_all_tokens*2,
+                max_num_batched_tokens=max_all_tokens * 2,
             )
+            move_model_to_vllm(model, self.llm)
+            del model  # no need any more.
             config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
         else:
-            model, self.processor = init_model(self.model_path)
             self.model = self.accelerator.prepare(model).eval()
 
     def generate(self, batch):
@@ -237,7 +246,7 @@ class Evaluation:
         pfx = "metric_{}/".format("vllm" if self.use_vllm else "hf")
         if name:
             pfx += f"{name}_"
-            
+
         metrics = {k if "/" in k else f"{pfx}{k}": v for k, v in metrics.items()}  # skip prefix for keys with slashes
         self.rank_log("Logging metrics:")
         for key, value in metrics.items():
@@ -279,15 +288,7 @@ def find_models(model_path, checkpoints=None):
 
 def evaluate_model(model_path, datasets, **kwargs):
     """Evaluate a model on the given evaluation data."""
-    evaluator = Evaluation(
-        model_path=model_path,
-        use_vllm=kwargs.get("use_vllm", False),
-        batch_size=kwargs.get("batch_size", 8),
-        output_dir=kwargs.get("output_dir", None),
-        job_name=kwargs.get("job_name", None),
-        wandb_dir=kwargs.get("wandb_dir", None),
-        generation_config=kwargs.get("generation_config", None),
-    )
+    evaluator = Evaluation(model_path=model_path, **kwargs)
     evaluator.evaluate_all(datasets, step=chkp_index(Path(model_path).name, 0))
     del evaluator  # Clean up the evaluator to free resources
 

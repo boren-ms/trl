@@ -26,6 +26,8 @@
                 "WORLD_SIZE": "1",
                 "MASTER_ADDR": "localhost",
                 "MASTER_PORT": "12355",
+                "TORCHDYNAMO_DISABLE": "1",
+                "WANDB_MODE": "offline",
             },
             "justMyCode": false,
             "args": [
