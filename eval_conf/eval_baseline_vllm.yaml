@@ -1,4 +1,5 @@
 use_vllm: true
+vllm_max_length: 10240 # default 1024*10 #10k
 batch_size: 128
 generation_config:
     max_new_tokens: 1024

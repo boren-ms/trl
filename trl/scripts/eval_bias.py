@@ -49,6 +49,7 @@ class EvalArguments:
         default=True,
         metadata={"help": "Use vLLM for evaluation."},
     )
+    vllm_max_length: int = field(default=1024 * 10, metadata={"help": "max model length for vllm inference"})
     output_dir: Optional[str] = field(
         default=None,
         metadata={"help": "Output directory for evaluation results."},
@@ -129,7 +130,7 @@ def hack_package(package_path, replace=False):
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
 
-    def __init__(self, model_path, use_vllm=False, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None, skip_run_info=False, **kwargs):
+    def __init__(self, model_path, use_vllm=False, vllm_max_length=1024 * 10, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None, skip_run_info=False, **kwargs):
         self.accelerator = Accelerator()
         self.model_path = str(model_path)
         self.batch_size = batch_size
@@ -137,6 +138,7 @@ class Evaluation:
         self.output_dir = output_dir or model_path
         self.wandb_dir = wandb_dir or self.output_dir
         self.job_name = job_name
+        self.vllm_max_length = vllm_max_length
 
         if self.is_main:
             init_wandb(
@@ -170,17 +172,16 @@ class Evaluation:
         """Prepare the model for evaluation."""
         model, self.processor = init_model(self.model_path)
         if self.use_vllm:
-            max_all_tokens = 1024 * 10
             self.llm = LLM(
                 model=self.model_path,
                 trust_remote_code=True,
-                max_model_len=max_all_tokens,  # the max token processed by vLLM including both input and output
+                max_model_len=self.vllm_max_length,  # the max token processed by vLLM including both input and output
                 distributed_executor_backend="external_launcher",
                 seed=self.rank,
                 max_num_seqs=self.batch_size,
                 load_format="auto",
                 limit_mm_per_prompt={"audio": 1},
-                max_num_batched_tokens=max_all_tokens * 2,
+                max_num_batched_tokens=self.vllm_max_length,
             )
             move_model_to_vllm(model, self.llm)
             del model  # no need any more.
