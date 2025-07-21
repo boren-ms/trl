@@ -18,7 +18,11 @@ import warnings
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
-
+from collections import defaultdict, deque
+from collections.abc import Sized
+from contextlib import nullcontext
+from functools import partial
+from pathlib import Path
 import datasets
 import jinja2
 import torch
@@ -43,8 +47,9 @@ from transformers import (
 )
 from transformers.trainer_utils import EvalPrediction, seed_worker
 from transformers.training_args import OptimizerNames
+from accelerate.utils import broadcast_object_list, gather, gather_object, is_peft_model, set_seed
 from transformers.utils import is_peft_available, is_sagemaker_mp_enabled, logging
-
+from ..extras.profiling import profiling_context, profiling_decorator
 from ..data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template, sf_read
 from ..import_utils import is_vllm_available
 from ..models import create_reference_model
@@ -61,6 +66,7 @@ from .utils import (
     get_reward,
     prepare_deepspeed,
     truncate_right,
+    can_merge_adapter,
 )
 
 
@@ -142,9 +148,7 @@ class OnlineDPOTrainer(Trainer):
         data_collator: Optional[DataCollator] = None,
         train_dataset: Optional[Union[Dataset, IterableDataset, "datasets.Dataset"]] = None,
         eval_dataset: Optional[Union[Dataset, dict[str, Dataset], "datasets.Dataset"]] = None,
-        processing_class: Optional[
-            Union[PreTrainedTokenizerBase, BaseImageProcessor, FeatureExtractionMixin, ProcessorMixin]
-        ] = None,
+        processing_class: Optional[Union[PreTrainedTokenizerBase, BaseImageProcessor, FeatureExtractionMixin, ProcessorMixin]] = None,
         reward_processing_class: Optional[PreTrainedTokenizerBase] = None,
         peft_config: Optional[dict] = None,
         compute_metrics: Optional[Callable[[EvalPrediction], dict]] = None,
@@ -153,17 +157,13 @@ class OnlineDPOTrainer(Trainer):
         preprocess_logits_for_metrics: Optional[Callable[[torch.Tensor, torch.Tensor], torch.Tensor]] = None,
     ) -> None:
         if ref_model is model:
-            raise ValueError(
-                "`model` and `ref_model` cannot be the same object. If you want `ref_model` to be the "
-                "same as `model`, either omit the `ref_model` argument or pass `None`."
-            )
+            raise ValueError("`model` and `ref_model` cannot be the same object. If you want `ref_model` to be the " "same as `model`, either omit the `ref_model` argument or pass `None`.")
 
         self.ref_model = ref_model
 
         if reward_model is not None and judge is not None:
             warnings.warn(
-                "Both `reward_model` and `judge` are provided. Please choose provide only one of them. "
-                "Ignoring `judge` and using `reward_model`.",
+                "Both `reward_model` and `judge` are provided. Please choose provide only one of them. " "Ignoring `judge` and using `reward_model`.",
                 UserWarning,
             )
             judge = None
@@ -189,10 +189,7 @@ class OnlineDPOTrainer(Trainer):
         if peft_config is not None:
             # Check if PEFT is available
             if not is_peft_available():
-                raise ImportError(
-                    "PEFT is not available and passed `peft_config`. Please install PEFT with "
-                    "`pip install peft` to use it."
-                )
+                raise ImportError("PEFT is not available and passed `peft_config`. Please install PEFT with " "`pip install peft` to use it.")
 
             # If the model is already a PeftModel, we need to merge and unload it.
             # Further information here: https://huggingface.co/docs/trl/dpo_trainer#reference-model-considerations-with-peft
@@ -249,7 +246,6 @@ class OnlineDPOTrainer(Trainer):
             self.stats["objective/scores_margin"] = []
             self.stats["objective/scores"] = []
 
-       
         # The trainer estimates the number of FLOPs (floating-point operations) using the number of elements in the
         # input tensor associated with the key "input_ids". However, in Online DPO, the sampled data does not include
         # the "input_ids" key. As a result, the trainer issues the warning: "Could not estimate the number of tokens
@@ -272,17 +268,14 @@ class OnlineDPOTrainer(Trainer):
         )
         if args.use_vllm:
             if not is_vllm_available():
-                raise ImportError(
-                    "vLLM is not available and `use_vllm` is set to True. Please install vLLM with "
-                    "`pip install vllm` to use it."
-                )
+                raise ImportError("vLLM is not available and `use_vllm` is set to True. Please install vLLM with " "`pip install vllm` to use it.")
             self.generation_config = SamplingParams(
                 n=2,  # 2 generations per prompt
                 max_tokens=args.max_new_tokens,
                 temperature=args.temperature,
-                top_k=50,
+                # repetition_penalty=args.repetition_penalty,
+                top_k=-1,
                 top_p=1.0,
-                detokenize=False,  # to avoid vllm to decode (we don't need it)
             )
             # vLLM dynamically adjusts the size of the key-value cache based on available GPU memory at instantiation.
             # A larger cache size improves speed, so we would expect gpu_memory_utilization=1.
@@ -304,12 +297,15 @@ class OnlineDPOTrainer(Trainer):
                 distributed_executor_backend="external_launcher",
                 seed=self.accelerator.process_index,
                 trust_remote_code=True,
+                max_num_seqs=8,
+                max_model_len=args.max_length,
+                max_num_batched_tokens=args.max_length * 2,
             )
         else:
             self.generation_config = GenerationConfig(
                 max_new_tokens=args.max_new_tokens,
                 temperature=args.temperature,
-                top_k=50,
+                top_k=-1,
                 top_p=1.0,
                 do_sample=True,
                 use_cache=False if args.gradient_checkpointing else True,
@@ -324,13 +320,9 @@ class OnlineDPOTrainer(Trainer):
         # Placed after the super().__init__ because we need self.is_deepspeed_enabled and self.accelerator
         if self.is_deepspeed_enabled:
             if self.reward_model is not None:
-                self.reward_model = prepare_deepspeed(
-                    self.reward_model, args.per_device_train_batch_size, args.fp16, args.bf16
-                )
+                self.reward_model = prepare_deepspeed(self.reward_model, args.per_device_train_batch_size, args.fp16, args.bf16)
             if self.ref_model is not None:
-                self.ref_model = prepare_deepspeed(
-                    self.ref_model, args.per_device_train_batch_size, args.fp16, args.bf16
-                )
+                self.ref_model = prepare_deepspeed(self.ref_model, args.per_device_train_batch_size, args.fp16, args.bf16)
         else:
             if self.ref_model is not None:
                 self.ref_model = self.ref_model.to(self.accelerator.device)
@@ -398,20 +390,10 @@ class OnlineDPOTrainer(Trainer):
         # If we have persistent workers, don't do a fork bomb especially as eval datasets
         # don't change during training
         dataloader_key = eval_dataset if isinstance(eval_dataset, str) else "eval"
-        if (
-            hasattr(self, "_eval_dataloaders")
-            and dataloader_key in self._eval_dataloaders
-            and self.args.dataloader_persistent_workers
-        ):
+        if hasattr(self, "_eval_dataloaders") and dataloader_key in self._eval_dataloaders and self.args.dataloader_persistent_workers:
             return self.accelerator.prepare(self._eval_dataloaders[dataloader_key])
 
-        eval_dataset = (
-            self.eval_dataset[eval_dataset]
-            if isinstance(eval_dataset, str)
-            else eval_dataset
-            if eval_dataset is not None
-            else self.eval_dataset
-        )
+        eval_dataset = self.eval_dataset[eval_dataset] if isinstance(eval_dataset, str) else eval_dataset if eval_dataset is not None else self.eval_dataset
         data_collator = self.data_collator
 
         dataloader_params = {
@@ -438,32 +420,53 @@ class OnlineDPOTrainer(Trainer):
 
         return self.accelerator.prepare(eval_dataloader)
 
-    def _prepare_prompts_for_generation(self, inputs):
+    def _prepare_inputs_for_vllm(self, inputs):
         """Prepare prompts for generation, handling both text-only and multimodal inputs."""
-        prompts = inputs["prompt"]
-        has_audio = "audio_path" in inputs and inputs["audio_path"] is not None
-        
-        if has_audio:
-            # Create multimodal prompts with audio
-            audios = [sf_read(p) for p in inputs["audio_path"]]
-            return [{"prompt": p, "multi_modal_data": {"audio": [a]}} 
-                   for p, a in zip(prompts, audios)]
+        if "audio_path" not in inputs:
+            return inputs["prompt"]
+        return [
+            {
+                "prompt": prompt,
+                "multi_modal_data": {"audio": [sf_read(audio_path)]},
+            }
+            for prompt, audio_path in zip(inputs["prompt"], inputs["audio_path"])
+        ]
+
+    @profiling_decorator
+    def _move_model_to_vllm(self, model):
+        if self.accelerator.is_main_process:
+            print(f"[0] Update vllm weights @ {self.state.global_step} step")
+
+        if can_merge_adapter(model):
+            model.merge_adapter()
+            for name, param in model.named_parameters():
+                name = name.removeprefix("base_model.model.")
+                for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module.", ".base_layer"):
+                    name = name.replace(extra, "")
+                llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                llm_model.load_weights([(name, param.data)])
+            model.unmerge_adapter()
         else:
-            return prompts
+            for name, param in model.named_parameters():
+                for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
+                    name = name.replace(extra, "")
+                llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                llm_model.load_weights([(name, param.data)])
+        # Reset cache on vLLM
+        self.llm.reset_prefix_cache()
 
     def _generate_vllm(self, model, inputs):
         eos_token_id = self.processing_class.tokenizer.eos_token_id
         pad_token_id = self.processing_class.tokenizer.pad_token_id
 
-        # Load the latest weights
-        llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
-        llm_model.load_weights(model.state_dict().items())
-
+        with unwrap_model_for_generation(model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model:
+            self._move_model_to_vllm(unwrapped_model)
         # Prepare prompts and generate using unified approach
-        generation_prompts = self._prepare_prompts_for_generation(inputs)
-        outputs = self.llm.generate(generation_prompts, self.generation_config, use_tqdm=False)
+        vllm_inputs = self._prepare_inputs_for_vllm(inputs)
+        outputs = self.llm.generate(vllm_inputs, self.generation_config, use_tqdm=False)
 
         completion_ids = [list(output.outputs[i].token_ids) for i in range(2) for output in outputs]
+        texts = [output.outputs[i].text for i in range(2) for output in outputs]
         prompt_ids = [list(output.prompt_token_ids) for _ in range(2) for output in outputs]
 
         # Create mask and pad the prompt and completion
@@ -472,10 +475,7 @@ class OnlineDPOTrainer(Trainer):
         prompt_ids = [[pad_token_id] * (max_prompt_length - len(ids)) + ids for ids in prompt_ids]
         max_tokens = self.generation_config.max_tokens
         completion_mask = [[1] * len(ids) + [0] * (max_tokens - len(ids)) for ids in completion_ids]
-        completion_ids = [
-            ids + [eos_token_id] if ids[-1] != eos_token_id and len(ids) < max_tokens else ids
-            for ids in completion_ids
-        ]
+        completion_ids = [ids + [eos_token_id] if ids[-1] != eos_token_id and len(ids) < max_tokens else ids for ids in completion_ids]
         completion_ids = [ids + [pad_token_id] * (max_tokens - len(ids)) for ids in completion_ids]
 
         # Convert to tensors
@@ -490,27 +490,23 @@ class OnlineDPOTrainer(Trainer):
         """Process inputs for generation, handling both text-only and multimodal cases."""
         prompts = inputs["prompt"]
         has_audio = "audio_path" in inputs and inputs["audio_path"] is not None
-        
+
         # Create inputs list and apply chat template
         if has_audio:
             inputs_list = [{"prompt": p, "audio_path": ap} for p, ap in zip(prompts, inputs["audio_path"])]
         else:
             inputs_list = [{"prompt": prompt} for prompt in prompts]
-        
+
         inputs_list = [maybe_apply_chat_template(x, self.processing_class) for x in inputs_list]
-        
+
         # Process inputs based on modality
         if has_audio:
             audios = [sf_read(p) for p in inputs["audio_path"]]
-            processed_inputs = self.processing_class(
-                text=[x["prompt"] for x in inputs_list], audios=audios, return_tensors="pt"
-            )
+            processed_inputs = self.processing_class(text=[x["prompt"] for x in inputs_list], audios=audios, return_tensors="pt")
             processed_inputs = self._prepare_inputs(processed_inputs)
             prompt_ids = processed_inputs["input_ids"].repeat(2, 1)
             prompt_mask = processed_inputs["attention_mask"].repeat(2, 1)
-            additional_inputs = {k: v.repeat(2, 1) if v.dim() > 1 else v.repeat(2) 
-                              for k, v in processed_inputs.items() 
-                              if k not in ["input_ids", "attention_mask"]}
+            additional_inputs = {k: v.repeat(2, 1) if v.dim() > 1 else v.repeat(2) for k, v in processed_inputs.items() if k not in ["input_ids", "attention_mask"]}
         else:
             inputs_list = [self.tokenize_row(x, self.is_encoder_decoder, self.processing_class) for x in inputs_list]
             tokenized_inputs = self.data_collator(inputs_list)
@@ -518,24 +514,17 @@ class OnlineDPOTrainer(Trainer):
             prompt_ids = tokenized_inputs["prompt_input_ids"].repeat(2, 1)
             prompt_mask = tokenized_inputs["prompt_attention_mask"].repeat(2, 1)
             additional_inputs = {}
-            
+
         return prompt_ids, prompt_mask, additional_inputs
 
     def _generate(self, model, inputs):
-        eos_token_id = self.processing_class.eos_token_id
-        pad_token_id = self.processing_class.pad_token_id
+        eos_token_id = self.tokenizer.eos_token_id
+        pad_token_id = self.tokenizer.pad_token_id
 
         prompt_ids, prompt_mask, additional_inputs = self._process_inputs_for_generation(inputs)
 
-        with unwrap_model_for_generation(
-            model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation
-        ) as unwrapped_model:
-            output = unwrapped_model.generate(
-                input_ids=prompt_ids,
-                attention_mask=prompt_mask,
-                generation_config=self.generation_config,
-                **additional_inputs
-            )
+        with unwrap_model_for_generation(model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model:
+            output = unwrapped_model.generate(input_ids=prompt_ids, attention_mask=prompt_mask, generation_config=self.generation_config, **additional_inputs)
 
         completion_ids = output[:, prompt_ids.size(1) :]
         completion_ids, completion_mask = truncate_right(completion_ids, eos_token_id, pad_token_id)
@@ -564,9 +553,7 @@ class OnlineDPOTrainer(Trainer):
         logprobs = torch.take_along_dim(logits.log_softmax(dim=-1), completion_ids.unsqueeze(-1), dim=2).squeeze(-1)
         return logprobs
 
-    def training_step(
-        self, model: nn.Module, inputs: dict[str, Union[torch.Tensor, Any]], num_items_in_batch: Optional[int] = None
-    ) -> torch.Tensor:
+    def training_step(self, model: nn.Module, inputs: dict[str, Union[torch.Tensor, Any]], num_items_in_batch: Optional[int] = None) -> torch.Tensor:
         model.train()
 
         prompts = inputs["prompt"]
@@ -577,7 +564,7 @@ class OnlineDPOTrainer(Trainer):
         else:
             prompt_ids, prompt_mask, completion_ids, completion_mask = self._generate(model, inputs)
 
-        contain_eos_token = torch.any(completion_ids == self.processing_class.eos_token_id, dim=-1)
+        contain_eos_token = torch.any(completion_ids == self.tokenizer.eos_token_id, dim=-1)
 
         logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask)
         with torch.no_grad():
@@ -605,9 +592,7 @@ class OnlineDPOTrainer(Trainer):
                 prompts = [template.render(messages=prompt) for prompt in prompts]
                 completions = [template.render(messages=completion) for completion in completions]
 
-            ranks_of_first_completion = self.judge.judge(
-                prompts, list(zip(completions[:batch_size], completions[batch_size:]))
-            )
+            ranks_of_first_completion = self.judge.judge(prompts, list(zip(completions[:batch_size], completions[batch_size:])))
 
             # convert ranks to a True/False mask:
             # when rank == 0, it means the first completion is the best
@@ -624,22 +609,16 @@ class OnlineDPOTrainer(Trainer):
                 completions = [example["completion"] for example in examples]
 
             # Tokenize the prompts
-            prompts_ids = self.reward_processing_class(
-                prompts, padding=True, return_tensors="pt", padding_side="left"
-            )["input_ids"].to(device)
+            prompts_ids = self.reward_processing_class(prompts, padding=True, return_tensors="pt", padding_side="left")["input_ids"].to(device)
             context_length = prompts_ids.shape[1]
 
             # Tokenize the completions
-            completions_ids = self.reward_processing_class(
-                completions, padding=True, return_tensors="pt", padding_side="right"
-            )["input_ids"].to(device)
+            completions_ids = self.reward_processing_class(completions, padding=True, return_tensors="pt", padding_side="right")["input_ids"].to(device)
 
             # Concatenate the prompts and completions and get the reward
             prompt_completion_ids = torch.cat((prompts_ids, completions_ids), dim=1)
             with torch.inference_mode():
-                _, scores, _ = get_reward(
-                    self.reward_model, prompt_completion_ids, self.reward_processing_class.pad_token_id, context_length
-                )
+                _, scores, _ = get_reward(self.reward_model, prompt_completion_ids, self.reward_processing_class.pad_token_id, context_length)
 
                 # Filter completion. Ensure that the sample contains stop_token_id
                 # Completions not passing that filter will receive a lower score.
@@ -688,9 +667,7 @@ class OnlineDPOTrainer(Trainer):
         # Log everything
         if self.reward_model is not None:
             scores_margin = scores[chosen_indices] - scores[rejected_indices]
-            self.stats["objective/scores_margin"].append(
-                self.accelerator.gather_for_metrics(scores_margin.mean()).mean().item()
-            )
+            self.stats["objective/scores_margin"].append(self.accelerator.gather_for_metrics(scores_margin.mean()).mean().item())
             self.stats["objective/scores"].append(self.accelerator.gather_for_metrics(scores.mean()).mean().item())
         self.stats["val/contain_eos_token"].append(contain_eos_token.float().mean().item())
         self.stats["logps/chosen"].append(self.accelerator.gather_for_metrics(chosen_logprobs_sum).mean().item())
@@ -701,9 +678,7 @@ class OnlineDPOTrainer(Trainer):
         self.stats["objective/kl"].append(self.accelerator.gather_for_metrics(mean_kl).mean().item())
         non_score_reward = (-self.beta * kl).sum(1)
         mean_non_score_reward = non_score_reward.mean()
-        self.stats["objective/non_score_reward"].append(
-            self.accelerator.gather_for_metrics(mean_non_score_reward).mean().item()
-        )
+        self.stats["objective/non_score_reward"].append(self.accelerator.gather_for_metrics(mean_non_score_reward).mean().item())
         if self.reward_model is not None:
             rlhf_reward = scores + non_score_reward
             self.stats["objective/rlhf_reward"].append(self.accelerator.gather_for_metrics(rlhf_reward).mean().item())
@@ -721,10 +696,7 @@ class OnlineDPOTrainer(Trainer):
         self.stats["rewards/accuracies"].append(accuracy.float().mean().item())
         self.stats["beta"].append(self.beta)
 
-        if (
-            self.args.torch_empty_cache_steps is not None
-            and self.state.global_step % self.args.torch_empty_cache_steps == 0
-        ):
+        if self.args.torch_empty_cache_steps is not None and self.state.global_step % self.args.torch_empty_cache_steps == 0:
             empty_cache()
 
         kwargs = {}
@@ -745,9 +717,7 @@ class OnlineDPOTrainer(Trainer):
         return loss.detach() / self.args.gradient_accumulation_steps
 
     # Same as Trainer._maybe_log_save_evaluate but log our metrics
-    def _maybe_log_save_evaluate(
-        self, tr_loss, grad_norm, model, trial, epoch, ignore_keys_for_eval, start_time, learning_rate=None
-    ):
+    def _maybe_log_save_evaluate(self, tr_loss, grad_norm, model, trial, epoch, ignore_keys_for_eval, start_time, learning_rate=None):
         if self.control.should_log and self.state.global_step > self._globalstep_last_logged:
             logs: dict[str, float] = {}
 
@@ -834,13 +804,15 @@ class OnlineDPOTrainer(Trainer):
 
         tags.update(self._tag_names)
 
-        citation = textwrap.dedent("""\
+        citation = textwrap.dedent(
+            """\
         @article{guo2024direct,
             title        = {{Direct Language Model Alignment from Online AI Feedback}},
             author       = {Shangmin Guo and Biao Zhang and Tianlin Liu and Tianqi Liu and Misha Khalman and Felipe Llinares and Alexandre Ram{\'{e}} and Thomas Mesnard and Yao Zhao and Bilal Piot and Johan Ferret and Mathieu Blondel},
             year         = 2024,
             eprint       = {arXiv:2402.04792}
-        }""")
+        }"""
+        )
 
         model_card = generate_model_card(
             base_model=base_model,

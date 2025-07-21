@@ -58,7 +58,7 @@
         }
         },
         {
-            "name": "grpo_bias",
+            "name": "dpo_online_bias",
             "type": "debugpy",
             "request": "launch",
             "program": "trl/scripts/dpo_online_bias.py",
