@@ -280,6 +280,11 @@ class UserStorage:
         """Get the user output storage path based on the region."""
         return f"{self.home_path}/outputs"
 
+def local_home():
+    """Get the local home path."""
+    # redirect to /root/code as home, since it is 20TB
+    # return Path.home() / "code"
+    return Path.home()
 
 ORNG_USER = UserStorage()
 
@@ -288,7 +293,7 @@ def get_output_dirs(rel_path=None):
     """Get the remote output directory based on the job name."""
     # job_name = job_name or os.environ.get("RCALL_JOB_NAME", None)
     remote_output_dir = f"{ORNG_USER.output_path}"
-    local_output_dir = Path.home() / "outputs"
+    local_output_dir = local_home() / "outputs"
     if rel_path:
         remote_output_dir = f"{remote_output_dir}/{rel_path}"
         local_output_dir = local_output_dir / rel_path
@@ -305,7 +310,7 @@ def get_local_path(file_path):
     file_path = str(file_path)
     if not is_remote_path(file_path):
         return file_path
-    return file_path.replace(ORNG_USER.home_path, str(Path.home()))
+    return file_path.replace(ORNG_USER.home_path, str(local_home()))
 
 
 def get_remote_path(file_path):
@@ -313,7 +318,7 @@ def get_remote_path(file_path):
     file_path = str(file_path)
     if is_remote_path(file_path):
         return file_path
-    return file_path.replace(str(Path.home()), ORNG_USER.home_path)
+    return file_path.replace(str(local_home()), ORNG_USER.home_path)
 
 
 @ray.remote
@@ -405,7 +410,7 @@ def prepare_data(forced=False):
     """Prepare data on each node by syncing from the remote storage."""
     hostname = os.uname().nodename
     print(f"Preparing data on node: {hostname}")
-    local_dir = Path.home() / "data"
+    local_dir = local_home() / "data"
     done_tag = local_dir / "data_preparation_done"
     if done_tag.exists() and not forced:
         print(f"Data preparation already done on {hostname}, skipping.")
@@ -549,7 +554,7 @@ def sync_remote_dir(dir_path, push=None):
         remote_dir = dir_path
         push = False if push is None else push
     else:
-        local_dir = dir_path if Path(dir_path).is_absolute() else Path.home() / dir_path
+        local_dir = dir_path if Path(dir_path).is_absolute() else local_home() / dir_path
         remote_dir = get_remote_path(local_dir)
         push = True if push is None else push
 
@@ -599,7 +604,7 @@ def list_gpus():
 
 @ray.remote
 def job_log(cmd="tail", key=None, n=100, log_dir=None):
-    log_dir = str(log_dir or os.environ.get("RCALL_LOGDIR", Path.home() / "results"))
+    log_dir = str(log_dir or os.environ.get("RCALL_LOGDIR", local_home() / "results"))
     pattern = f"*{key}*" if key else "*"
     cmd = f"{cmd} -n {n}  {log_dir}/{pattern}.log"
     print(f"Tailing logs in {log_dir} with command: {cmd}")
@@ -629,7 +634,7 @@ class RayTool:
 
     def sync_folder(self, folder=None):
         """Sync output directories across all Ray nodes."""
-        folder = str(folder or Path.home() / "outputs")
+        folder = str(folder or local_home() / "outputs")
         self._run_nodes(sync_local_dir, folder)
 
     def list_nodes(self):
