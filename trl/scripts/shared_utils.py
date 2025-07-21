@@ -1,5 +1,6 @@
 """Shared utility functions for bias training scripts."""
 
+# %%
 import os
 import sys
 import pytz
@@ -9,12 +10,25 @@ from pathlib import Path
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 from accelerate import PartialState
-from trl.scripts.utils import add_adapter_func
+from trl.trainer.utils import add_adapter_func
 from trl.scripts.audio_dataset import create_audio_dataset
-from trl.scripts.utils import human_readable
 
 
-def init_model(model_id=None):
+def get_speech_peft_model(model):
+    config = model.config
+    from peft import LoraConfig, get_peft_model
+
+    lora_config = LoraConfig(
+        r=config.speech_lora["r"],
+        lora_alpha=config.speech_lora["lora_alpha"],
+        target_modules=config.speech_lora["layer"],
+        lora_dropout=config.speech_lora["dp"],
+        task_type="CAUSAL_LM",
+    )
+    return get_peft_model(model, lora_config, adapter_name="speech")
+
+
+def init_model(model_id=None, new_lora=False):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -25,6 +39,10 @@ def init_model(model_id=None):
         _attn_implementation="flash_attention_2",
     )
     model = add_adapter_func(model)
+    if new_lora:
+        print("merge and unload model")
+        model.merge_and_unload()  # merge lora and back to normal Linear
+        model = get_speech_peft_model(model)  # revert peft model
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 
@@ -94,9 +112,7 @@ def print_modules(model, trainable=True):
     return n_total, n_trainable
 
 
-def init_wandb(
-    job_name=None, project=None, config=None, output_dir=None, skip_run_info=False
-):
+def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_run_info=False):
     """Initialize wandb."""
     if not PartialState().is_main_process:
         return None
@@ -136,3 +152,15 @@ def create_dataset(config):
     elif isinstance(config, dict):
         return create_audio_dataset(**config)
     raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
+
+
+def human_readable(num):
+    """Convert a number to human readable format (K, M, G)."""
+    if num >= 1_000_000_000:
+        return f"{num/1_000_000_000:.2f}G"
+    elif num >= 1_000_000:
+        return f"{num/1_000_000:.2f}M"
+    elif num >= 1_000:
+        return f"{num/1_000:.2f}K"
+    else:
+        return str(num)

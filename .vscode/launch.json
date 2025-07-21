@@ -55,13 +55,12 @@
                 "orng_conf/vllm_coloc/grpo_bias_vllm_colocate_debug.yaml",
                 // "/root/code/trl/orng_conf/grpo_bias_debug.yaml",
             ]
-        }
         },
         {
-            "name": "dpo_online_bias",
+            "name": "online_dpo_bias",
             "type": "debugpy",
             "request": "launch",
-            "program": "trl/scripts/dpo_online_bias.py",
+            "program": "trl/scripts/online_dpo_bias.py",
             "console": "integratedTerminal",
             "env": {
                 "WANDB_ENTITY": "genai",

@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from trl import OnlineDPOConfig, OnlineDPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.shared_utils import init_model, init_wandb, create_dataset
+from trl.scripts.shared_utils import init_model, init_wandb, create_dataset, print_modules
 
 
 def init_reward_model(reward_path, **kwargs):
@@ -46,8 +46,9 @@ def init_reward_model(reward_path, **kwargs):
 def setup_judge(judge_name):
     """Setup judge if provided."""
     if not judge_name:
-        return 
+        return
     from trl import HfPairwiseJudge, OpenAIPairwiseJudge, PairRMJudge
+
     JUDGES = {
         "pair_rm": PairRMJudge,
         "openai": OpenAIPairwiseJudge,
@@ -69,7 +70,7 @@ class OnlineDPOScriptArguments:
         default=None,
         metadata={"help": "Name of the project."},
     )
-    skip_run_info: bool =  field(
+    skip_run_info: bool = field(
         default=False,
         metadata={"help": "whether skip the run info from checkpoint"},
     )
@@ -87,8 +88,6 @@ class OnlineDPOScriptArguments:
     )
 
 
-
-
 def main(script_args, training_args):
     """Train the model with Online DPO."""
     init_wandb(
@@ -99,8 +98,8 @@ def main(script_args, training_args):
     )
 
     # Initialize model and processor
-    model, processor = init_model(script_args.model_name_or_path)
-
+    model, processor = init_model(script_args.model_name_or_path, new_lora=True)
+    print_modules(model)
     # Setup reward model and tokenizer
     reward_model, reward_tokenizer = init_reward_model(training_args.reward_model_path)
 
