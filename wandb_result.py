@@ -63,9 +63,7 @@ class RunChecker:
         if key:
             df = df[df.index.str.contains(key)]
         df = df.head(nrows)
-        import pprint as pp
-
-        pp.pprint(df.to_dict(orient="index"))
+        print(df)
 
     def search(self, run_name, key=None, nrows=10):
         """search runs"""
@@ -85,9 +83,7 @@ class RunChecker:
         if key:
             df = df[df.index.str.contains(key)]
         df = df.head(nrows)
-        import pprint as pp
-
-        pp.pprint(df)
+        print(df)
 
 
 if __name__ == "__main__":
