@@ -464,74 +464,46 @@ class OnlineDPOTrainer(Trainer):
         # Prepare prompts and generate using unified approach
         vllm_inputs = self._prepare_inputs_for_vllm(inputs)
         outputs = self.llm.generate(vllm_inputs, self.generation_config, use_tqdm=False)
-
         completion_ids = [list(output.outputs[i].token_ids) for i in range(2) for output in outputs]
-        texts = [output.outputs[i].text for i in range(2) for output in outputs]
-        prompt_ids = [list(output.prompt_token_ids) for _ in range(2) for output in outputs]
 
         # Create mask and pad the prompt and completion
-        max_prompt_length = max(len(ids) for ids in prompt_ids)
-        prompt_mask = [[0] * (max_prompt_length - len(ids)) + [1] * len(ids) for ids in prompt_ids]
-        prompt_ids = [[pad_token_id] * (max_prompt_length - len(ids)) + ids for ids in prompt_ids]
-        max_tokens = self.generation_config.max_tokens
+        max_tokens = max(len(ids) for ids in completion_ids)
         completion_mask = [[1] * len(ids) + [0] * (max_tokens - len(ids)) for ids in completion_ids]
-        completion_ids = [ids + [eos_token_id] if ids[-1] != eos_token_id and len(ids) < max_tokens else ids for ids in completion_ids]
         completion_ids = [ids + [pad_token_id] * (max_tokens - len(ids)) for ids in completion_ids]
 
         # Convert to tensors
-        prompt_ids = torch.tensor(prompt_ids, device=self.accelerator.device)
-        prompt_mask = torch.tensor(prompt_mask, device=self.accelerator.device)
         completion_ids = torch.tensor(completion_ids, device=self.accelerator.device)
         completion_mask = torch.tensor(completion_mask, device=self.accelerator.device)
 
-        return prompt_ids, prompt_mask, completion_ids, completion_mask
+        return completion_ids, completion_mask
 
-    def _process_inputs_for_generation(self, inputs):
+    def _process_inputs(self, inputs):
         """Process inputs for generation, handling both text-only and multimodal cases."""
-        prompts = inputs["prompt"]
-        has_audio = "audio_path" in inputs and inputs["audio_path"] is not None
-
-        # Create inputs list and apply chat template
-        if has_audio:
-            inputs_list = [{"prompt": p, "audio_path": ap} for p, ap in zip(prompts, inputs["audio_path"])]
-        else:
-            inputs_list = [{"prompt": prompt} for prompt in prompts]
-
-        inputs_list = [maybe_apply_chat_template(x, self.processing_class) for x in inputs_list]
-
-        # Process inputs based on modality
-        if has_audio:
-            audios = [sf_read(p) for p in inputs["audio_path"]]
-            processed_inputs = self.processing_class(text=[x["prompt"] for x in inputs_list], audios=audios, return_tensors="pt")
-            processed_inputs = self._prepare_inputs(processed_inputs)
-            prompt_ids = processed_inputs["input_ids"].repeat(2, 1)
-            prompt_mask = processed_inputs["attention_mask"].repeat(2, 1)
-            additional_inputs = {k: v.repeat(2, 1) if v.dim() > 1 else v.repeat(2) for k, v in processed_inputs.items() if k not in ["input_ids", "attention_mask"]}
-        else:
-            inputs_list = [self.tokenize_row(x, self.is_encoder_decoder, self.processing_class) for x in inputs_list]
-            tokenized_inputs = self.data_collator(inputs_list)
-            tokenized_inputs = self._prepare_inputs(tokenized_inputs)
-            prompt_ids = tokenized_inputs["prompt_input_ids"].repeat(2, 1)
-            prompt_mask = tokenized_inputs["prompt_attention_mask"].repeat(2, 1)
-            additional_inputs = {}
-
-        return prompt_ids, prompt_mask, additional_inputs
+        prompts = [x for x in inputs["prompt"]]
+        audios = [sf_read(x) for x in inputs["audio_path"]]
+        processed_inputs = self.processing_class(text=prompts, audios=audios, return_tensors="pt")
+        processed_inputs = self._prepare_inputs(processed_inputs)
+        repeat_inputs = {}
+        for key, value in processed_inputs.items():
+            d = [2] + [1] * (value.dim() - 1)
+            repeat_inputs[key] = value.repeat(*d)
+        prompt_ids = repeat_inputs.pop("input_ids")
+        prompt_mask = repeat_inputs.pop("attention_mask")
+        return prompt_ids, prompt_mask, repeat_inputs
 
     def _generate(self, model, inputs):
         eos_token_id = self.tokenizer.eos_token_id
         pad_token_id = self.tokenizer.pad_token_id
-
-        prompt_ids, prompt_mask, additional_inputs = self._process_inputs_for_generation(inputs)
-
+        prompt_ids, prompt_mask, additional_inputs = self._process_inputs(inputs)
         with unwrap_model_for_generation(model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model:
             output = unwrapped_model.generate(input_ids=prompt_ids, attention_mask=prompt_mask, generation_config=self.generation_config, **additional_inputs)
 
         completion_ids = output[:, prompt_ids.size(1) :]
         completion_ids, completion_mask = truncate_right(completion_ids, eos_token_id, pad_token_id)
 
-        return prompt_ids, prompt_mask, completion_ids, completion_mask
+        return completion_ids, completion_mask
 
-    def _forward(self, model, prompt_ids, prompt_mask, completion_ids, completion_mask):
+    def _forward(self, model, prompt_ids, prompt_mask, completion_ids, completion_mask, **kwargs):
         # Get the number of tokens to truncate from prompt
         num_tokens_to_truncate = max(prompt_ids.size(1) + completion_ids.size(1) - self.max_length, 0)
 
@@ -544,7 +516,7 @@ class OnlineDPOTrainer(Trainer):
         prompt_completion_mask = torch.cat((prompt_mask, completion_mask), dim=1)
 
         # Get the logprobs of the completions from the model
-        output = model(prompt_completion_ids, attention_mask=prompt_completion_mask)
+        output = model(prompt_completion_ids, attention_mask=prompt_completion_mask, **kwargs)
 
         # There is 1 offset, because the model predict the next token
         logits = output.logits[:, prompt_ids.size(1) - 1 : -1]
@@ -560,19 +532,20 @@ class OnlineDPOTrainer(Trainer):
         batch_size = len(prompts)
 
         if self.args.use_vllm:
-            prompt_ids, prompt_mask, completion_ids, completion_mask = self._generate_vllm(model, inputs)
+            completion_ids, completion_mask = self._generate_vllm(model, inputs)
         else:
-            prompt_ids, prompt_mask, completion_ids, completion_mask = self._generate(model, inputs)
+            completion_ids, completion_mask = self._generate(model, inputs)
 
         contain_eos_token = torch.any(completion_ids == self.tokenizer.eos_token_id, dim=-1)
+        prompt_ids, prompt_mask, additional_inputs = self._process_inputs(inputs)
 
-        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask)
+        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
         with torch.no_grad():
             if self.ref_model is not None:
-                ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask)
+                ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
             else:  # peft case: we just need to disable the adapter
                 with self.model.disable_adapter():
-                    ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask)
+                    ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
 
         # Decode the completions, and format them if the input is conversational
         device = logprobs.device
