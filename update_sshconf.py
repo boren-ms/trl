@@ -67,6 +67,7 @@ def main(ssh_conf=None, wsl=False):
     """Main function to update the SSH config."""
     user = os.getenv("USER", "boren")
     df = get_brix_instances()
+    df.drop_duplicates(subset=["LOG_RELPATH"], inplace=True)
     if df is not None:
         ssh_confs = [(ssh_conf, wsl)] if ssh_conf else [(f"/home/{user}/.ssh/config", False), (f"/mnt/c/Users/{user}/.ssh/config", True)]
         for ssh_conf, wsl in ssh_confs:
