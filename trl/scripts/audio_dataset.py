@@ -209,7 +209,6 @@ def augment(ds, **kwargs):
 
 def create_audio_dataset(dataset_name="openasr", **kwargs):
     """Create a dataset from the given split."""
-    ds = None
     if dataset_name == "ls_bias":
         ds = ls_bias_dataset(**kwargs)
     elif dataset_name == "openasr":
@@ -218,7 +217,9 @@ def create_audio_dataset(dataset_name="openasr", **kwargs):
     elif dataset_name == "tsv":
         ds = tsv_dataset(**kwargs)
         ds = augment(ds, **kwargs)
-    raise ValueError(f"Unknown dataset name: {dataset_name}")
+    else:
+        raise ValueError(f"Unknown dataset name: {dataset_name}")
+    return ds
 
 
 # %%
