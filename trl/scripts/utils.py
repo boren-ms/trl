@@ -291,7 +291,7 @@ def merge_adapter(cls, merge=True):
         if not isinstance(module, LoraLayer):
             continue
         if merge:
-            module.merge()
+            module.merge(["speech"])
         else:
             module.unmerge()
 
