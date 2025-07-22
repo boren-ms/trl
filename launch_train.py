@@ -41,7 +41,7 @@ def launch_training(config_file, output_dir):
     assert job_name is not None, "RCALL_JOB_NAME must be set"
     main_process_ip = f"{job_name}-0"  # head node IP
     main_process_port = 12345
-    script_path = cur_dir / "trl/scripts/grpo_bias.py"
+    script_path = cur_dir / "trl/scripts/online_dpo_bias.py"
     cmd = [
         "accelerate",
         "launch",
