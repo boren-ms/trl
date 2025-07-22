@@ -1599,7 +1599,7 @@ class GRPOTrainer(Trainer):
                 }
                 df = pd.DataFrame(table)
                 if self.wandb_log_unique_prompts:
-                    df = df.drop_duplicates(subset=["prompt"])
+                    df = df.drop_duplicates(subset=["prompt", "completion")
                 wandb.log({"completions": wandb.Table(dataframe=df)})
 
     # Ensure the model card is saved along with the checkpoint
