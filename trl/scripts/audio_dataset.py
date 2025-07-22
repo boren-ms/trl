@@ -131,21 +131,6 @@ def stream_shuffle(ds, **kwargs):
     return ds
 
 
-def post_process(ds, **kwargs):
-    """Post process the dataset."""
-    load_audio = kwargs.get("load_audio", False)
-    def read_audio(sample):
-        """Read audio from the file."""
-        audio, sr = sf_read(sample["audio_path"])
-        return {"audio": audio, "sr": sr}
-    cols = ["prompt", "text", "audio_path", "id"]
-    if load_audio:
-        cols += ["audio", "sr"]
-        ds = ds.map(read_audio)
-    # select required only
-    ds = ds.select_columns(cols)
-    return ds
-
 
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
@@ -201,6 +186,26 @@ def simulate_perference(ds, **kwargs):
     return ds.map(add_perference, fn_kwargs={"error_range": error_range})
 
 
+def load_audio(ds):
+    """Post process the dataset."""
+    def read_audio(sample):
+        """Read audio from the file."""
+        audio, sr = sf_read(sample["audio_path"])
+        return {"audio": audio, "sr": sr}
+    ds = ds.map(read_audio)
+    return ds
+
+
+def augment(ds, **kwargs):
+    """Augment the dataset with additional information."""
+    if biasing_kwargs := kwargs.get("biasing", {}):
+        ds = bias_sampling(ds, **biasing_kwargs)
+    if perf_kwargs := kwargs.get("simu_perference", {}):
+        ds = simulate_perference(ds, **perf_kwargs)
+    if kwargs.get("load_audio", False):
+        ds = load_audio(ds)
+    return ds
+
 
 def create_audio_dataset(dataset_name="openasr", **kwargs):
     """Create a dataset from the given split."""
@@ -209,14 +214,10 @@ def create_audio_dataset(dataset_name="openasr", **kwargs):
         ds = ls_bias_dataset(**kwargs)
     elif dataset_name == "openasr":
         ds = openasr_dataset(**kwargs)
-        ds = bias_sampling(ds, **kwargs.get("biasing", {}))
-        ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
+        ds = augment(ds, **kwargs)
     elif dataset_name == "tsv":
         ds = tsv_dataset(**kwargs)
-        ds = bias_sampling(ds, **kwargs.get("biasing", {}))
-        ds = simulate_perference(ds, **kwargs.get("simu_perference", {}))
-    if ds:
-        return post_process(ds, **kwargs)
+        ds = augment(ds, **kwargs)
     raise ValueError(f"Unknown dataset name: {dataset_name}")
 
 
