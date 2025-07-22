@@ -80,7 +80,7 @@ In the logs the sampled generations look like
 │  SUBREDDIT: r/AskReddit         │  I'm in love with a friend, and │ 3.921875 │
 │                                 │ I don't know how to get rid of  │          │
 │ TITLE: How do you get someone   │ those feelings. I'm             │          │
-│ out of your head?               │ desperate.<|endoftext|>[PAD][P… │          │
+│ out of your head?               │ desperate.<endoftext>[PAD][P… │          │
 │                                 │                                 │          │
 │ POST: Hi,                       │                                 │          │
 │ I'm 22, and I have been with my │                                 │          │
@@ -122,7 +122,7 @@ In the logs the sampled generations look like
 │                                 │ TV. I blasted Gangnam Style on  │          │
 │ TITLE: So, my mom woke me up    │ repeat, with the bass cranked   │          │
 │ with a loud TV.                 │ up as high as it could          │          │
-│                                 │ go.<|endoftext|>[PAD][PAD][PAD… │          │
+│                                 │ go.<endoftext>[PAD][PAD][PAD… │          │
 │ POST: She was in her living     │                                 │          │
 │ room, watching TV. This was at  │                                 │          │
 │ about 8:30 in the morning, and  │                                 │          │

@@ -256,11 +256,11 @@ apply_chat_template(prompt_only_example, tokenizer)
 # Example for language modeling type
 lm_example = {"messages": [{"role": "user", "content": "What color is the sky?"}]}
 apply_chat_template(lm_example, tokenizer)
-# Output: {'text': '<|user|>\nWhat color is the sky?<|end|>\n<|endoftext|>'}
+# Output: {'text': '<|user|>\nWhat color is the sky?<|end|>\n<endoftext>'}
 ```
 
 - The prompt-only output includes a `'<|assistant|>\n'`, indicating the beginning of the assistant’s turn and expecting the model to generate a completion.
-- In contrast, the language modeling output treats the input as a complete sequence and terminates it with `'<|endoftext|>'`, signaling the end of the text and not expecting any additional content.
+- In contrast, the language modeling output treats the input as a complete sequence and terminates it with `'<endoftext>'`, signaling the end of the text and not expecting any additional content.
 
 </Tip>
 
@@ -390,7 +390,7 @@ example = {
 
 apply_chat_template(example, tokenizer)
 # Output:
-# {'prompt': '<|user|>\nWhat color is the sky?<|end|>\n<|assistant|>\n', 'completion': 'It is blue.<|end|>\n<|endoftext|>'}
+# {'prompt': '<|user|>\nWhat color is the sky?<|end|>\n<|assistant|>\n', 'completion': 'It is blue.<|end|>\n<endoftext>'}
 ```
 
 Alternatively, you can use the [`~datasets.Dataset.map`] method to apply the template across an entire dataset:
@@ -411,7 +411,7 @@ dataset = dataset.map(apply_chat_template, fn_kwargs={"tokenizer": tokenizer})
 # Output:
 # {'prompt': ['<|user|>\nWhat color is the sky?<|end|>\n<|assistant|>\n',
 #             '<|user|>\nWhere is the sun?<|end|>\n<|assistant|>\n'],
-#  'completion': ['It is blue.<|end|>\n<|endoftext|>', 'In the sky.<|end|>\n<|endoftext|>']}
+#  'completion': ['It is blue.<|end|>\n<endoftext>', 'In the sky.<|end|>\n<endoftext>']}
 ```
 
 <Tip warning={true}>

@@ -27,8 +27,7 @@ import yaml
 from transformers import HfArgumentParser
 from transformers.hf_argparser import DataClass, DataClassType
 from trl.import_utils import is_rich_available
-import types
-from peft.tuners.lora.layer import LoraLayer
+
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +59,7 @@ class ScriptArguments:
     dataset_name: Optional[str] = field(default=None, metadata={"help": "Dataset name."})
     dataset_config: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Dataset configuration name. Corresponds to the `name` argument of the `datasets.load_dataset` "
-            "function."
-        },
+        metadata={"help": "Dataset configuration name. Corresponds to the `name` argument of the `datasets.load_dataset` " "function."},
     )
     dataset_train_split: str = field(default="train", metadata={"help": "Dataset split to use for training."})
     dataset_test_split: str = field(default="test", metadata={"help": "Dataset split to use for evaluation."})
@@ -174,10 +170,7 @@ class TrlParser(HfArgumentParser):
         # Check that none of the dataclasses have the "config" field
         for dataclass_type in dataclass_types:
             if "config" in dataclass_type.__dataclass_fields__:
-                raise ValueError(
-                    f"Dataclass {dataclass_type.__name__} has a field named 'config'. This field is reserved for the "
-                    f"config file path and should not be used in the dataclass."
-                )
+                raise ValueError(f"Dataclass {dataclass_type.__name__} has a field named 'config'. This field is reserved for the " f"config file path and should not be used in the dataclass.")
 
         super().__init__(dataclass_types=dataclass_types, **kwargs)
 
@@ -225,10 +218,7 @@ class TrlParser(HfArgumentParser):
             args_remaining_strings = output[-1]
             return output[:-1] + (config_remaining_strings + args_remaining_strings,)
         elif fail_with_unknown_args and config_remaining_strings:
-            raise ValueError(
-                f"Unknown arguments from config file: {config_remaining_strings}. Please remove them, add them to the "
-                "dataclass, or set `fail_with_unknown_args=False`."
-            )
+            raise ValueError(f"Unknown arguments from config file: {config_remaining_strings}. Please remove them, add them to the " "dataclass, or set `fail_with_unknown_args=False`.")
         else:
             return output
 
@@ -256,9 +246,7 @@ class TrlParser(HfArgumentParser):
 
         used_keys = apply_defaults(self, kwargs)
         # Remaining args not consumed by the parser
-        remaining = [
-            item for key, value in kwargs.items() if key not in used_keys for item in (f"--{key}", str(value))
-        ]
+        remaining = [item for key, value in kwargs.items() if key not in used_keys for item in (f"--{key}", str(value))]
         return remaining
 
 
@@ -275,15 +263,12 @@ def get_git_commit_hash(package_name):
 
         if os.path.isdir(git_dir):
             # Run the git command to get the current commit hash
-            commit_hash = (
-                subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=git_repo_path).strip().decode("utf-8")
-            )
+            commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=git_repo_path).strip().decode("utf-8")
             return commit_hash
         else:
             return None
     except Exception as e:
         return f"Error: {str(e)}"
-
 
 
 def merge_adapter(cls, merge=True):

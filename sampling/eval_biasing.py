@@ -1,5 +1,5 @@
 # %%
-from fastapi import requests
+import requests
 from transformers import AutoProcessor
 from trl.extras.vllm_client import VLLMClient
 from trl.scripts.audio_dataset import ls_bias_dataset

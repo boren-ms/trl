@@ -21,6 +21,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from importlib.metadata import version
 from typing import Any, Literal, Optional, Union
+import types
 
 import datasets
 import numpy as np
@@ -66,6 +67,7 @@ if is_comet_available():
 
 if is_peft_available():
     from peft import LoraConfig, PeftConfig
+    from peft.tuners.lora.layer import LoraLayer
 
 
 class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
@@ -101,8 +103,7 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
     ):
         super().__init__(*args, mlm=mlm, **kwargs)
         warnings.warn(
-            "This class is deprecated and will be removed in version 0.20.0. To train on completion only, please use "
-            "the parameter `completion_only_loss` of `SFTConfig` instead.",
+            "This class is deprecated and will be removed in version 0.20.0. To train on completion only, please use " "the parameter `completion_only_loss` of `SFTConfig` instead.",
             DeprecationWarning,
         )
 
@@ -143,10 +144,7 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
 
                 for idx in np.where(batch["labels"][i] == self.response_token_ids[0])[0]:
                     # `response_token_ids` is `'### Response:\n'`, here we are just making sure that the token IDs match
-                    if (
-                        self.response_token_ids
-                        == batch["labels"][i][idx : idx + len(self.response_token_ids)].tolist()
-                    ):
+                    if self.response_token_ids == batch["labels"][i][idx : idx + len(self.response_token_ids)].tolist():
                         response_token_ids_start_idx = idx
 
                 if response_token_ids_start_idx is None:
@@ -170,10 +168,7 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
 
                 for assistant_idx in np.where(batch["labels"][i] == self.response_token_ids[0])[0]:
                     # find the indexes of the start of a response.
-                    if (
-                        self.response_token_ids
-                        == batch["labels"][i][assistant_idx : assistant_idx + len(self.response_token_ids)].tolist()
-                    ):
+                    if self.response_token_ids == batch["labels"][i][assistant_idx : assistant_idx + len(self.response_token_ids)].tolist():
                         response_token_ids_idxs.append(assistant_idx + len(self.response_token_ids))
 
                 if len(response_token_ids_idxs) == 0:
@@ -200,11 +195,7 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
                     )
                     batch["labels"][i, :] = self.ignore_index
 
-                if (
-                    len(human_token_ids_idxs) > 0
-                    and len(response_token_ids_idxs) > 0
-                    and human_token_ids_idxs[0] > response_token_ids_idxs[0]
-                ):
+                if len(human_token_ids_idxs) > 0 and len(response_token_ids_idxs) > 0 and human_token_ids_idxs[0] > response_token_ids_idxs[0]:
                     human_token_ids_idxs = [0] + human_token_ids_idxs
 
                 for idx, (start, end) in enumerate(zip(human_token_ids_idxs, response_token_ids_idxs)):
@@ -227,15 +218,11 @@ class DataCollatorForCompletionOnlyLM(DataCollatorForLanguageModeling):
 
             # Calculate cumulative sequence lengths for queries and keys to prevent graph breaks during further computations.
             flattened_position_ids = batch["position_ids"].flatten()
-            indices_q = torch.arange(
-                flattened_position_ids.size(0), device=flattened_position_ids.device, dtype=torch.int32
-            )
+            indices_q = torch.arange(flattened_position_ids.size(0), device=flattened_position_ids.device, dtype=torch.int32)
             batch["cu_seq_lens_q"] = torch.cat(
                 (
                     indices_q[flattened_position_ids == 0],
-                    torch.tensor(
-                        flattened_position_ids.size(), device=flattened_position_ids.device, dtype=torch.int32
-                    ),
+                    torch.tensor(flattened_position_ids.size(), device=flattened_position_ids.device, dtype=torch.int32),
                 )
             ).unsqueeze(0)
             batch["cu_seq_lens_k"] = batch["cu_seq_lens_q"]
@@ -277,15 +264,11 @@ class DataCollatorForChatML:
             formatted_prompt = example.get(self.prompt_key, None)
             if formatted_prompt is None:
                 prompt = example[self.messages_key][:-1]
-                formatted_prompt = self.tokenizer.apply_chat_template(
-                    prompt, tokenize=False, add_generation_prompt=True
-                )
+                formatted_prompt = self.tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
 
             if "input_ids" not in example:
                 message = example[self.messages_key]
-                formatted_message = self.tokenizer.apply_chat_template(
-                    message, tokenize=False, add_generation_prompt=False
-                )
+                formatted_message = self.tokenizer.apply_chat_template(message, tokenize=False, add_generation_prompt=False)
                 tokenized_message = self.tokenizer(
                     formatted_message,
                     truncation=True,
@@ -375,15 +358,8 @@ class RewardDataCollatorWithPadding:
         has_margin = "margin" in features[0]
         for feature in features:
             # check if the keys are named as expected
-            if (
-                "input_ids_chosen" not in feature
-                or "input_ids_rejected" not in feature
-                or "attention_mask_chosen" not in feature
-                or "attention_mask_rejected" not in feature
-            ):
-                raise ValueError(
-                    "The features should include `input_ids_chosen`, `attention_mask_chosen`, `input_ids_rejected` and `attention_mask_rejected`"
-                )
+            if "input_ids_chosen" not in feature or "input_ids_rejected" not in feature or "attention_mask_chosen" not in feature or "attention_mask_rejected" not in feature:
+                raise ValueError("The features should include `input_ids_chosen`, `attention_mask_chosen`, `input_ids_rejected` and `attention_mask_rejected`")
 
             features_chosen.append(
                 {
@@ -625,8 +601,7 @@ class ConstantLengthDataset(IterableDataset):
         add_special_tokens=True,
     ):
         warnings.warn(
-            "This class is deprecated and will be removed in version 0.20.0. To use packing, use the argument "
-            "`packing` of `SFTConfig` instead.",
+            "This class is deprecated and will be removed in version 0.20.0. To use packing, use the argument " "`packing` of `SFTConfig` instead.",
             DeprecationWarning,
         )
         self.tokenizer = tokenizer
@@ -642,8 +617,7 @@ class ConstantLengthDataset(IterableDataset):
 
         if dataset_text_field is not None and formatting_func is not None:
             warnings.warn(
-                "Only one of `dataset_text_field` and `formatting_func` should be provided. "
-                "Ignoring `dataset_text_field` and using `formatting_func`.",
+                "Only one of `dataset_text_field` and `formatting_func` should be provided. " "Ignoring `dataset_text_field` and using `formatting_func`.",
                 UserWarning,
             )
 
@@ -655,9 +629,7 @@ class ConstantLengthDataset(IterableDataset):
             raise ValueError("Either `dataset_text_field` or `formatting_func` should be provided.")
 
         self.pretokenized = False
-        column_names = (
-            dataset.column_names if isinstance(dataset, (datasets.Dataset, datasets.IterableDataset)) else None
-        )
+        column_names = dataset.column_names if isinstance(dataset, (datasets.Dataset, datasets.IterableDataset)) else None
         if column_names is not None and "input_ids" in column_names:
             self.pretokenized = True
             # since the dataset is tokenized, the unit of buffer size should be tokens
@@ -688,9 +660,7 @@ class ConstantLengthDataset(IterableDataset):
             if self.pretokenized:
                 tokenized_inputs = buffer
             else:
-                tokenized_inputs = self.tokenizer(
-                    buffer, add_special_tokens=self.add_special_tokens, truncation=False
-                )["input_ids"]
+                tokenized_inputs = self.tokenizer(buffer, add_special_tokens=self.add_special_tokens, truncation=False)["input_ids"]
             all_token_ids = []
             for tokenized_input in tokenized_inputs:
                 if self.append_concat_token:
@@ -772,9 +742,7 @@ class RunningMoments:
 
 
 @torch.no_grad()
-def get_global_statistics(
-    accelerator, xs: torch.Tensor, mask=None, device="cpu"
-) -> tuple[torch.Tensor, torch.Tensor, int]:
+def get_global_statistics(accelerator, xs: torch.Tensor, mask=None, device="cpu") -> tuple[torch.Tensor, torch.Tensor, int]:
     """
     Computes element-wise mean and variance of the tensor across processes. Reference:
     https://github.com/OpenLMLab/MOSS-RLHF/blob/40b91eb2f2b71b16919addede0341d2bef70825d/utils.py#L57C1-L73C75
@@ -800,9 +768,7 @@ def compute_accuracy(eval_pred: EvalPrediction) -> dict[str, float]:
         predictions = np.argmax(predictions, axis=2)
 
         # Flatten the predictions and labels to remove the ignored tokens.
-        predictions = np.array(
-            [p for prediction, label in zip(predictions, labels) for (p, lbl) in zip(prediction, label) if lbl != -100]
-        )
+        predictions = np.array([p for prediction, label in zip(predictions, labels) for (p, lbl) in zip(prediction, label) if lbl != -100])
         labels = np.array([lbl for label in labels for lbl in label if lbl != -100])
 
     else:
@@ -940,10 +906,7 @@ def get_peft_config(model_args: ModelConfig) -> "Optional[PeftConfig]":
         return None
 
     if not is_peft_available():
-        raise ValueError(
-            "You need to have PEFT library installed in your environment, make sure to install `peft`. "
-            "Make sure to run `pip install -U peft`."
-        )
+        raise ValueError("You need to have PEFT library installed in your environment, make sure to install `peft`. " "Make sure to run `pip install -U peft`.")
 
     peft_config = LoraConfig(
         task_type=model_args.lora_task_type,
@@ -986,9 +949,7 @@ def cap_exp(value, cap=-1):
 
 def print_rich_table(df: pd.DataFrame) -> None:
     if not is_rich_available():
-        raise ImportError(
-            "The function `print_rich_table` requires the `rich` library. Please install it with `pip install rich`."
-        )
+        raise ImportError("The function `print_rich_table` requires the `rich` library. Please install it with `pip install rich`.")
     console = Console()
     table = Table(show_lines=True)
     for column in df.columns:
@@ -1077,10 +1038,7 @@ class OnPolicyConfig(TrainingArguments):
     # Parameters whose default values are overridden from TrainingArguments
     logging_steps: float = field(
         default=10,
-        metadata={
-            "help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, "
-            "will be interpreted as ratio of total training steps."
-        },
+        metadata={"help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, " "will be interpreted as ratio of total training steps."},
     )
     bf16: Optional[bool] = field(
         default=None,
@@ -1113,9 +1071,7 @@ class OnPolicyConfig(TrainingArguments):
     )
     num_sample_generations: int = field(
         default=10,
-        metadata={
-            "help": "Number of debugging samples generations (i.e., `generate_completions` calls) throughout training."
-        },
+        metadata={"help": "Number of debugging samples generations (i.e., `generate_completions` calls) throughout training."},
     )
     response_length: int = field(
         default=53,
@@ -1123,10 +1079,7 @@ class OnPolicyConfig(TrainingArguments):
     )
     stop_token: Optional[Literal["eos"]] = field(
         default=None,
-        metadata={
-            "help": "Specifies the stop token to use for text generation. This parameter is mutually exclusive with "
-            "`stop_token_id`."
-        },
+        metadata={"help": "Specifies the stop token to use for text generation. This parameter is mutually exclusive with " "`stop_token_id`."},
     )
     stop_token_id: Optional[int] = field(
         default=None,
@@ -1169,10 +1122,7 @@ class OnPolicyConfig(TrainingArguments):
     )
     batch_size: Optional[int] = field(
         default=None,
-        metadata={
-            "help": "Batch size across devices (HF's `per_device_train_batch_size` * `world_size` * "
-            "`gradient_accumulation_steps`)."
-        },
+        metadata={"help": "Batch size across devices (HF's `per_device_train_batch_size` * `world_size` * " "`gradient_accumulation_steps`)."},
     )
     local_mini_batch_size: Optional[int] = field(
         default=None,
@@ -1216,9 +1166,7 @@ def first_true_indices(bools: torch.Tensor, dtype=torch.long) -> torch.Tensor:
     return torch.min(zero_or_index, dim=-1).values
 
 
-def get_reward(
-    model: torch.nn.Module, query_responses: torch.Tensor, pad_token_id: int, context_length: int
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def get_reward(model: torch.nn.Module, query_responses: torch.Tensor, pad_token_id: int, context_length: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Computes the reward logits and the rewards for a given model and query responses.
 
@@ -1298,9 +1246,7 @@ def forward(
     )
 
 
-def prepare_deepspeed(
-    model: torch.nn.Module, per_device_train_batch_size: int, fp16: bool = False, bf16: bool = False
-) -> torch.nn.Module:
+def prepare_deepspeed(model: torch.nn.Module, per_device_train_batch_size: int, fp16: bool = False, bf16: bool = False) -> torch.nn.Module:
     """
     Prepares the model for training with DeepSpeed (both for stage 2 and 3), configuring the appropriate settings based
     on the model and batch size.
@@ -1332,11 +1278,7 @@ def prepare_deepspeed(
             config_kwargs["fp16"] = {"enabled": True}
     else:
         if hasattr(model, "config"):
-            hidden_size = (
-                max(model.config.hidden_sizes)
-                if getattr(model.config, "hidden_sizes", None)
-                else getattr(model.config, "hidden_size", None)
-            )
+            hidden_size = max(model.config.hidden_sizes) if getattr(model.config, "hidden_sizes", None) else getattr(model.config, "hidden_size", None)
             if hidden_size is not None and config_kwargs["zero_optimization"]["stage"] == 3:
                 # Note that `stage3_prefetch_bucket_size` can produce DeepSpeed messages like: `Invalidate trace cache @ step 0: expected module 1, but got module 0`
                 # This is expected and is not an error, see: https://github.com/microsoft/DeepSpeed/discussions/4081
@@ -1375,9 +1317,7 @@ def truncate_response(stop_token_id: int, pad_token_id: int, responses: torch.Te
     return postprocessed_responses
 
 
-def generate(
-    lm_backbone: torch.nn.Module, queries: torch.Tensor, pad_token_id: int, generation_config: GenerationConfig
-) -> tuple[torch.Tensor, torch.Tensor]:
+def generate(lm_backbone: torch.nn.Module, queries: torch.Tensor, pad_token_id: int, generation_config: GenerationConfig) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Generates sequences from the language model backbone in a way that does not affect padding tokens.
 
@@ -1469,9 +1409,7 @@ def add_bos_token_if_needed(
     return prompt_tokens, chosen_tokens, rejected_tokens
 
 
-def add_eos_token_if_needed(
-    eos_token_id: int, chosen_tokens: dict[str, list[int]], rejected_tokens: dict[str, list[int]]
-):
+def add_eos_token_if_needed(eos_token_id: int, chosen_tokens: dict[str, list[int]], rejected_tokens: dict[str, list[int]]):
     if len(chosen_tokens["input_ids"]) == 0 or eos_token_id != chosen_tokens["input_ids"][-1]:
         chosen_tokens["input_ids"].append(eos_token_id)
         chosen_tokens["attention_mask"].append(1)
@@ -1481,9 +1419,7 @@ def add_eos_token_if_needed(
     return chosen_tokens, rejected_tokens
 
 
-def truncate_right(
-    input_ids: torch.Tensor, stop_token_id: int, pad_token_id: int
-) -> tuple[torch.Tensor, torch.Tensor]:
+def truncate_right(input_ids: torch.Tensor, stop_token_id: int, pad_token_id: int) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Truncates the input tensor from the right side after the first occurrence of the stop token.
 
@@ -1856,16 +1792,13 @@ def print_prompt_completions_sample(
     ```
     """
     if not is_rich_available():
-        raise ImportError(
-            "The function `print_prompt_completions_sample` requires the `rich` library. Please install it with "
-            "`pip install rich`."
-        )
+        raise ImportError("The function `print_prompt_completions_sample` requires the `rich` library. Please install it with " "`pip install rich`.")
     console = Console()
-    table = Table(show_header=True,  expand=True)
+    table = Table(show_header=True, expand=True)
 
     # Add columns
-    table.add_column("Prompt" )
-    table.add_column("Completion" )
+    table.add_column("Prompt")
+    table.add_column("Completion")
     for reward_name in rewards.keys():
         table.add_column(reward_name, style="bold cyan", justify="right")
     table.add_column("Advantage", style="bold magenta", justify="right")
@@ -1893,7 +1826,51 @@ def print_prompt_completions_sample(
     panel = Panel(table, expand=False, title=f"Step {step}", border_style="bold white")
     console.print(panel)
 
+
 def can_merge_adapter(model):
     return hasattr(model, "merge_adapter") and hasattr(model, "unmerge_adapter")
-    
-    
+
+
+def merge_adapter(cls, merge=True, adapter="speech"):
+    if isinstance(adapter, str):
+        adapter = [adapter]
+    for module in cls.modules():
+        if not isinstance(module, LoraLayer):
+            continue
+        if merge:
+            module.merge(adapter_names=adapter)
+        else:
+            module.unmerge()
+
+
+def unmerge_adapter(cls):
+    return merge_adapter(cls, False)
+
+
+def _get_submodules(model, key):
+    parent = model.get_submodule(".".join(key.split(".")[:-1]))
+    target_name = key.split(".")[-1]
+    target = model.get_submodule(key)
+    return parent, target, target_name
+
+
+def merge_and_unload(model, adapter="speech"):
+    if isinstance(adapter, str):
+        adapter = [adapter]
+    key_list = [key for key, _ in model.named_modules() if "lora" not in key]
+    for key in key_list:
+        try:
+            parent, target, target_name = _get_submodules(model, key)
+        except AttributeError:
+            continue
+        if hasattr(target, "base_layer"):
+            target.merge(adapter_names=adapter)
+            setattr(parent, target_name, target.get_base_layer())
+    return model
+
+
+def add_adapter_func(obj):
+    obj.merge_adapter = types.MethodType(merge_adapter, obj)
+    obj.unmerge_adapter = types.MethodType(unmerge_adapter, obj)
+    obj.merge_and_unload = types.MethodType(merge_and_unload, obj)
+    return obj
