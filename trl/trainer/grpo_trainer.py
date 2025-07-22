@@ -55,15 +55,7 @@ from ..models import prepare_deepspeed, prepare_fsdp, unwrap_model_for_generatio
 from ..models.utils import _ForwardRedirection
 from .callbacks import SyncRefModelCallback
 from .grpo_config import GRPOConfig
-from .utils import (
-    disable_dropout_in_model,
-    entropy_from_logits,
-    generate_model_card,
-    get_comet_experiment_url,
-    pad,
-    print_prompt_completions_sample,
-    selective_log_softmax
-)
+from .utils import disable_dropout_in_model, entropy_from_logits, generate_model_card, get_comet_experiment_url, pad, print_prompt_completions_sample, selective_log_softmax
 from ..scripts.utils import can_merge_adapter
 
 if is_peft_available():
@@ -948,7 +940,7 @@ class GRPOTrainer(Trainer):
                     for name, param in self.model.named_parameters():
                         # When using PEFT, we need to recover the original parameter name and discard some parameters
                         name = name.removeprefix("base_model.model.").replace(".base_layer", "")
-                        
+
                         if hasattr(self.model, "prefix") and self.model.prefix in name:
                             continue
                         # When module to save, remove its prefix and discard the original module
@@ -1071,25 +1063,9 @@ class GRPOTrainer(Trainer):
         temperature = self.temperature if mode == "train" else self.eval_temperature
         prompts = [x["prompt"] for x in inputs]
         prompts_text = [maybe_apply_chat_template(example, self.processing_class.tokenizer)["prompt"] for example in inputs]
-        # prompts_text = [
-        #     self.processing_class.tokenizer.apply_chat_template(
-        #         prompt,
-        #         tokenize=False,
-        #         add_generation_prompt=True,
-        #     )
-        #     for prompt in prompts
-        # ]
-        # audios = [(np.array(x["audio"]), x["sr"]) for x in inputs]
-        audio_paths = [x["audio_path"] for x in inputs]
-        audios = [sf_read(p) for p in audio_paths]  # delay the audio read here.
-        prompt_inputs = self.processing_class(
-            text=prompts_text,
-            audios=audios,
-            return_tensors="pt",
-            # padding=True,
-            # padding_side="left",
-            # add_special_tokens=False,
-        )
+
+        audios = [sf_read(x["audio_path"]) for x in inputs]  # delay the audio read here.
+        prompt_inputs = self.processing_class(text=prompts_text, audios=audios, return_tensors="pt")
         prompt_inputs = super()._prepare_inputs(prompt_inputs)
         prompt_ids = prompt_inputs.pop("input_ids")
         prompt_mask = prompt_inputs.pop("attention_mask")
@@ -1109,6 +1085,7 @@ class GRPOTrainer(Trainer):
             # Generate completions using vLLM: gather all prompts and use them in a single call in the main process
             if self.vllm_mode == "server":
                 all_prompts_text = gather_object(prompts_text)
+                audio_paths = [x["audio_path"] for x in inputs]
                 all_audio_paths = gather_object(audio_paths)
                 if self.accelerator.is_main_process:
                     # Since 'prompts' contains 'num_generations' duplicates, we first take unique prompts, and generate
