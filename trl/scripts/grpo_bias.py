@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
+from transformers.trainer_utils import get_last_checkpoint
 import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_dataset import create_audio_dataset
@@ -228,7 +229,10 @@ def main(script_args, training_args):
         compute_metrics=eval_biasing_metrics,
     )
     print("Training...")
-    trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
+    latest_chkp_dir = get_last_checkpoint(training_args.output_dir)
+    if latest_chkp_dir:
+        print("Resuming from ", latest_chkp_dir)
+    trainer.train(resume_from_checkpoint=latest_chkp_dir)
     print("All Done.")
 
 
