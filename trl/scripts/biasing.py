@@ -122,8 +122,6 @@ class PieceSampler:
         if random.random() <= self.hit_prob:
             examples = rand_sample(pieces, num_pieces, new=self.new_sampling)
         examples += rand_sample(self.buffer, num_pieces - len(examples), new=self.new_sampling)
-        if self.common_words:
-            examples = [p for p in examples if text_norm(p) not in self.common_words]
         return self.filter_commons(examples)
 
     def sample(self, text):
