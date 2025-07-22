@@ -552,19 +552,26 @@ class OnlineDPOTrainer(Trainer):
             if self.ref_model is not None:
                 ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
             else:  # peft case: we just need to disable the adapter
-                with self.model.disable_adapter():
-                    ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
+                # with self.model.disable_adapter():
+                additional_inputs["input_mode"] *= 0  # disable_adapter
+                ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
 
         # Decode the completions, and format them if the input is conversational
         device = logprobs.device
         completions = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
-        print("Completions:")
-        for i in range(batch_size):
-            print(f"[{i}][0]:", completions[i])
-            print(f"[{i}][1]:", completions[i+batch_size])
-        
+
+        # to reward conversational formatting
+        prompt_fmt = "Please repeat the follow utterance: {}"
+        prompts = [[{"role": "user", "content": prompt_fmt.format(text)}] for text in inputs["text"]]
+
         if is_conversational({"prompt": prompts[0]}):
             completions = [[{"role": "assistant", "content": completion}] for completion in completions]
+
+        print("Reward QAs:")
+        for i in range(batch_size):
+            print(f"[{i}][prompt]:", prompts[i])
+            print(f"[{i}][0]:", completions[i])
+            print(f"[{i}][1]:", completions[i + batch_size])
 
         # Get the reward from the reward model or judge
         if self.judge is not None:
@@ -587,9 +594,6 @@ class OnlineDPOTrainer(Trainer):
         else:
             # The reward model may not have the same chat template or tokenizer as the model, so we need to use the
             # raw data (string), apply the chat template (if needed), and tokenize it with the reward processing class.
-            reward_fmt = "Please repeat the follow utterance: {} ;"
-            prompts = [[{"role": "user", "content": reward_fmt.format(text)}] for text in inputs["text"]]
-            completions = [[{"role": "assitant", "content": text}] for text in completions]
             prompts = 2 * prompts  # repeat the prompt: [prompt0, prompt1] -> [prompt0, prompt1, prompt0, prompt1]
             if is_conversational({"prompt": prompts[0]}):
                 examples = [{"prompt": p, "completion": c} for p, c in zip(prompts, completions)]

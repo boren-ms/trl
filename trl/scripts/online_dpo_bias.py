@@ -98,7 +98,7 @@ def main(script_args, training_args):
     )
 
     # Initialize model and processor
-    model, processor = init_model(script_args.model_name_or_path, new_lora="new_speech") # can not be "speech" as lora, which triggers a bug.
+    model, processor = init_model(script_args.model_name_or_path, new_lora="speech") # use same speech lora name
     print_modules(model)
     # Setup reward model and tokenizer
     reward_model, reward_tokenizer = init_reward_model(training_args.reward_model_path)
