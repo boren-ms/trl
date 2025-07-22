@@ -269,6 +269,7 @@ class OnlineDPOTrainer(Trainer):
         if args.use_vllm:
             if not is_vllm_available():
                 raise ImportError("vLLM is not available and `use_vllm` is set to True. Please install vLLM with " "`pip install vllm` to use it.")
+
             self.generation_config = SamplingParams(
                 n=2,  # 2 generations per prompt
                 max_tokens=args.max_new_tokens,
@@ -276,6 +277,7 @@ class OnlineDPOTrainer(Trainer):
                 # repetition_penalty=args.repetition_penalty,
                 top_k=-1,
                 top_p=1.0,
+                stop_token_ids=self.eos_token_id,
             )
             # vLLM dynamically adjusts the size of the key-value cache based on available GPU memory at instantiation.
             # A larger cache size improves speed, so we would expect gpu_memory_utilization=1.
@@ -297,9 +299,9 @@ class OnlineDPOTrainer(Trainer):
                 distributed_executor_backend="external_launcher",
                 seed=self.accelerator.process_index,
                 trust_remote_code=True,
-                max_num_seqs=8,
+                max_num_seqs=2,
                 max_model_len=args.max_length,
-                max_num_batched_tokens=args.max_length * 2,
+                max_num_batched_tokens=args.max_length,
             )
         else:
             self.generation_config = GenerationConfig(
@@ -332,6 +334,10 @@ class OnlineDPOTrainer(Trainer):
     @property
     def tokenizer(self):
         return self.processing_class.tokenizer
+
+    @property
+    def eos_token_id(self):
+        return [self.tokenizer.eos_token_id] + self.tokenizer("<|end|>")["input_ids"]
 
     @property
     def beta(self):
@@ -456,8 +462,7 @@ class OnlineDPOTrainer(Trainer):
         self.llm.reset_prefix_cache()
 
     def _generate_vllm(self, model, inputs):
-        eos_token_id = self.processing_class.tokenizer.eos_token_id
-        pad_token_id = self.processing_class.tokenizer.pad_token_id
+        pad_token_id = self.tokenizer.pad_token_id
 
         with unwrap_model_for_generation(model, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model:
             self._move_model_to_vllm(unwrapped_model)
@@ -485,8 +490,11 @@ class OnlineDPOTrainer(Trainer):
         processed_inputs = self._prepare_inputs(processed_inputs)
         repeat_inputs = {}
         for key, value in processed_inputs.items():
-            d = [2] + [1] * (value.dim() - 1)
-            repeat_inputs[key] = value.repeat(*d)
+            if isinstance(value, torch.Tensor):
+                d = [2] + [1] * (value.dim() - 1)
+                repeat_inputs[key] = value.repeat(*d)
+            else:
+                repeat_inputs[key] = value 
         prompt_ids = repeat_inputs.pop("input_ids")
         prompt_mask = repeat_inputs.pop("attention_mask")
         return prompt_ids, prompt_mask, repeat_inputs
@@ -539,7 +547,6 @@ class OnlineDPOTrainer(Trainer):
         contain_eos_token = torch.any(completion_ids == self.tokenizer.eos_token_id, dim=-1)
         prompt_ids, prompt_mask, additional_inputs = self._process_inputs(inputs)
 
-        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
         with torch.no_grad():
             if self.ref_model is not None:
                 ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
@@ -547,6 +554,7 @@ class OnlineDPOTrainer(Trainer):
                 with self.model.disable_adapter():
                     ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
 
+        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
         # Decode the completions, and format them if the input is conversational
         device = logprobs.device
         completions = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)

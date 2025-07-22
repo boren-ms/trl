@@ -14,21 +14,21 @@ from trl.trainer.utils import add_adapter_func
 from trl.scripts.audio_dataset import create_audio_dataset
 
 
-def get_speech_peft_model(model):
+def get_speech_peft_model(model, lora_name):
     config = model.config
     from peft import LoraConfig, get_peft_model
-
+    target_string = config.speech_lora["layer"].replace("layers", "model.layers")
     lora_config = LoraConfig(
         r=config.speech_lora["r"],
         lora_alpha=config.speech_lora["lora_alpha"],
-        target_modules=config.speech_lora["layer"],
+        target_modules=target_string,
         lora_dropout=config.speech_lora["dp"],
         task_type="CAUSAL_LM",
     )
-    return get_peft_model(model, lora_config, adapter_name="speech")
+    return get_peft_model(model, lora_config, adapter_name=lora_name)
 
 
-def init_model(model_id=None, new_lora=False):
+def init_model(model_id=None, new_lora=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -42,7 +42,8 @@ def init_model(model_id=None, new_lora=False):
     if new_lora:
         print("merge and unload model")
         model.merge_and_unload()  # merge lora and back to normal Linear
-        model = get_speech_peft_model(model)  # revert peft model
+        print("Prepare peft model with adapter:", new_lora)
+        model = get_speech_peft_model(model, lora_name=new_lora)  # revert peft model
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 

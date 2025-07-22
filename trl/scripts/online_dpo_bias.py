@@ -98,18 +98,13 @@ def main(script_args, training_args):
     )
 
     # Initialize model and processor
-    model, processor = init_model(script_args.model_name_or_path, new_lora=True)
+    model, processor = init_model(script_args.model_name_or_path, new_lora="new_speech") # can not be "speech" as lora, which triggers a bug.
     print_modules(model)
     # Setup reward model and tokenizer
     reward_model, reward_tokenizer = init_reward_model(training_args.reward_model_path)
 
     # Setup judge
     judge = setup_judge(training_args.judge)
-
-    # Set processor padding
-    if processor.tokenizer.pad_token_id is None:
-        processor.tokenizer.pad_token = processor.tokenizer.eos_token
-    processor.tokenizer.padding_side = "left"
 
     # Create trainer
     trainer = OnlineDPOTrainer(
