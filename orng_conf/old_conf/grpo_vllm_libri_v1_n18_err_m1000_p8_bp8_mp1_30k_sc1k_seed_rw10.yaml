@@ -41,7 +41,7 @@ use_vllm: True
 vllm_update_steps: 10
 vllm_server_host: ${VLLM_SERVER_HOST} # dev-n1-wus2-0
 # vllm_server_port: 26500
-# resume_from_checkpoint: True
+
 
 
 eval_strategy: steps

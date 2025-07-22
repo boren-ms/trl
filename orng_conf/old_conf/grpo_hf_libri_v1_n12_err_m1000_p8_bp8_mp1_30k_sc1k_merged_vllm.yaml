@@ -41,4 +41,3 @@ vllm_tensor_parallel_size: 1
 vllm_gpu_memory_utilization: 0.35
 # vllm_server_host: ${VLLM_SERVER_HOST} # dev-n1-wus2-0
 # vllm_server_port: 26500
-# resume_from_checkpoint: True

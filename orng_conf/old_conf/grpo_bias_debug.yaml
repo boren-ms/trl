@@ -33,7 +33,7 @@ vllm_gpu_memory_utilization: 0.35
 # vllm_server_host: ${VLLM_SERVER_HOST}
 # vllm_server_host: 10.133.219.39
 # vllm_server_port: 26500
-# resume_from_checkpoint: True
+
 train_data:
     dataset_name: tsv
     nug_egs: 5000

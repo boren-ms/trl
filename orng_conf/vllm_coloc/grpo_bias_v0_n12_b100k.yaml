@@ -27,4 +27,3 @@ max_completion_length: 512
 # beta: 0.1
 epsilon_high: 0.28
 save_steps: 30
-resume_from_checkpoint: True
