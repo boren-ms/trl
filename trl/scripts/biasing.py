@@ -141,7 +141,7 @@ class PieceSampler:
             print(f"[{self.idx}] biasing  list: {prompt}")
             print(f"[{self.idx}] transcription: {trans}")
 
-        return prompt, trans
+        return prompt, trans, shared
 
 
 # %%

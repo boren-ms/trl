@@ -46,6 +46,7 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
             "prompt": prompt_format.format(instruct),
             "audio_path": str(audio_path),
             "text": " ".join(words),
+            "keywords": gt_words,
             "id": example.get("id", idx),
         }
 
@@ -138,12 +139,12 @@ def post_process(ds, **kwargs):
         """Read audio from the file."""
         audio, sr = sf_read(sample["audio_path"])
         return {"audio": audio, "sr": sr}
-    cols = ["prompt", "text", "audio_path", "id"]
+    # cols = ["prompt", "text", "audio_path", "id"]
     if load_audio:
-        cols += ["audio", "sr"]
+        # cols += ["audio", "sr"]
         ds = ds.map(read_audio)
     # select required only
-    ds = ds.select_columns(cols)
+    # ds = ds.select_columns(cols)
     return ds
 
 
@@ -159,12 +160,13 @@ def bias_sampling(ds, **kwargs):
 
     def proc_sample(sample):
         """Process a sample from the dataset."""
-        context, text = bias_sampler.sample(sample["text"])
+        context, text, keywords = bias_sampler.sample(sample["text"])
         # side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
         side_prompt = f"Pay extra attention to the following phrases/words: {context}."
         return {
             "prompt": prompt_format.format(f"Transcribe the audio clip into text. {side_prompt}"),
             "text": text,  # text is updated
+            "keywords": keywords
         }
 
     ds = ds.map(proc_sample)

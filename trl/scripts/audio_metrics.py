@@ -266,11 +266,12 @@ def calc_wers(refs, hyps, tn=True):
     return wer, u_wer, b_wer
 
 
-def extract_keywords(text):
+def format_ref_with_keywords(text, keywords=None):
     """Extract keywords from the text based on biasing words."""
-    tagged_words = re.findall(r"\*.*?\*", text)
-    keywords = [wd.strip("*") for wd in tagged_words]
-    text = re.sub(r"\*(.*?)\*", r"\1", text)  # Remove tagged words from the text
+    if keywords is None:
+        tagged_words = re.findall(r"\*.*?\*", text)
+        keywords = [wd.strip("*") for wd in tagged_words]
+        text = re.sub(r"\*(.*?)\*", r"\1", text)  # Remove tagged words from the text
     return {
         "biasing_words": keywords,
         "text": text,
@@ -290,7 +291,7 @@ def compute_biasing_metrics(results):
 def compute_wers(results, tn=True):
     """compute WER, U-WER, and B-WER"""
     # Extract reference and hypothesis pairs from groups
-    refs = {result.get("id", i): extract_keywords(result["ref"]) for i, result in enumerate(results)}
+    refs = {result.get("id", i): format_ref_with_keywords(result["ref"], result.get("keywords", None)) for i, result in enumerate(results)}
     hyps = {result.get("id", i): result["hyp"] for i, result in enumerate(results)}
     # Calculate WER, U-WER, and B-WER
     wer, u_wer, b_wer = calc_wers(refs, hyps, tn=tn)
@@ -302,6 +303,7 @@ def eval_biasing_metrics(groups):
     # Extract reference and hypothesis from top group (i.e., the first group)
     results = [
         {
+            "keywords": group[0]["keywords"],
             "ref": group[0]["text"],
             "hyp": group[0]["completions"],
             "id": group[0].get("id", i),  # if "id" is not present, use index
@@ -319,9 +321,10 @@ def eval_biasing_metrics(groups):
 def compute_reward_wers(completions, tn=True, **kwargs):
     """Compute rewards for a list of completions."""
     references = kwargs["text"]
+    keyword_lists = kwargs["keywords"]
     rewards = []
-    for i, (completion, ref) in enumerate(zip(completions, references)):
-        rewards.append(compute_wers([{"id": i, "ref": ref, "hyp": completion}], tn=tn))
+    for i, (hyp, ref, keywords) in enumerate(zip(completions, references, keyword_lists)):
+        rewards.append(compute_wers([{"id": i, "ref": ref, "keywords": keywords, "hyp": hyp}], tn=tn))
     return rewards
 
 

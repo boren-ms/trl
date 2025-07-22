@@ -126,10 +126,10 @@ print("U-WER:", u_wer.get_result_string())  # noqa
 print("B-WER:", b_wer.get_result_string())  # noqa
 # %%
 from trl.scripts.audio_metrics import calc_wers as new_calc_wers
-from trl.scripts.audio_metrics import extract_keywords
+from trl.scripts.audio_metrics import format_ref_with_keywords
 
 
-new_refs = {result["id"]: extract_keywords(result["ref"]) for result in results}
+new_refs = {result["id"]: format_ref_with_keywords(result["ref"]) for result in results}
 new_hyps = {result["id"]: result["hyp"] for result in results}
 #%%
 
