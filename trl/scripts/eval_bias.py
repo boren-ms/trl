@@ -190,21 +190,20 @@ class Evaluation:
         else:
             self.model = self.accelerator.prepare(model).eval()
 
-    def generate(self, batch):
+    def generate(self, examples):
         """Generate outputs for a batch of audio files."""
-        texts = []
         if self.use_vllm:
-            inputs = [{"prompt": prompt, "multi_modal_data": {"audio": [sf_read(audio_path)]}} for prompt, audio_path in zip(batch["prompt"], batch["audio_path"])]
+            inputs = [{"prompt": x["prompt"], "multi_modal_data": {"audio": [sf_read(x["audio_path"])]}} for x in examples]
             outputs = self.llm.generate(inputs, sampling_params=self.sampling_params)
             texts = [output.outputs[0].text for output in outputs]
         else:
-            audios = [sf_read(audio_path) for audio_path in batch["audio_path"]]
-            inputs = self.processor(text=batch["prompt"], audios=audios, return_tensors="pt").to(self.accelerator.device)
+            audios = [sf_read(x["audio_path"]) for x in examples]
+            prompts = [x["prompt"] for x in examples]
+            inputs = self.processor(text=prompts, audios=audios, return_tensors="pt").to(self.accelerator.device)
             model = self.accelerator.unwrap_model(self.model)
             generate_ids = model.generate(**inputs, generation_config=self.generation_config)
             generate_ids = generate_ids[:, inputs["input_ids"].shape[1] :]
-            outputs = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
-            texts = outputs
+            texts = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
         return texts
 
     def evaluate(self, dataset):
@@ -213,12 +212,19 @@ class Evaluation:
         @find_executable_batch_size(starting_batch_size=self.batch_size)
         def auto_eval(batch_size):
             self.rank_log("Evaluating batch size:", batch_size, all=True)
-            dataloader = DataLoader(dataset, batch_size=batch_size)
-            dataloader = self.accelerator.prepare(dataloader)
+            dl_kwargs = {
+                "batch_size": batch_size,
+                "collate_fn": lambda x: x,
+            }
+            dataloader = self.accelerator.prepare(DataLoader(dataset, **dl_kwargs))
             results = []
-            for batch in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
-                output = self.generate(batch)
-                results += [{"hyp": hyp, "ref": ref, "id": id, "prompt": prompt} for id, ref, prompt, hyp in zip(batch["id"], batch["text"], batch["prompt"], output)]
+            for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
+                outputs = self.generate(inputs)
+                for input, hyp in zip(inputs, outputs):
+                    input["hyp"] = hyp
+                    input["ref"] = input["text"]
+                    input.update(self.measure([input]))
+                    results.append(input)
             return results
 
         return auto_eval()
