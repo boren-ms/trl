@@ -75,7 +75,7 @@
             "justMyCode": false,
             "args": [
                 "--config",
-                "orng_conf/vllm_coloc/dpo_bias_vllm_colocate_debug.yaml",
+                "orng_conf/online_dpo/online_dpo_bias_debug.yaml",
                 // "/root/code/trl/orng_conf/grpo_bias_debug.yaml",
             ]
         }
