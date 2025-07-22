@@ -494,7 +494,7 @@ class OnlineDPOTrainer(Trainer):
                 d = [2] + [1] * (value.dim() - 1)
                 repeat_inputs[key] = value.repeat(*d)
             else:
-                repeat_inputs[key] = value 
+                repeat_inputs[key] = value
         prompt_ids = repeat_inputs.pop("input_ids")
         prompt_mask = repeat_inputs.pop("attention_mask")
         return prompt_ids, prompt_mask, repeat_inputs
@@ -547,6 +547,7 @@ class OnlineDPOTrainer(Trainer):
         contain_eos_token = torch.any(completion_ids == self.tokenizer.eos_token_id, dim=-1)
         prompt_ids, prompt_mask, additional_inputs = self._process_inputs(inputs)
 
+        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
         with torch.no_grad():
             if self.ref_model is not None:
                 ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
@@ -554,10 +555,14 @@ class OnlineDPOTrainer(Trainer):
                 with self.model.disable_adapter():
                     ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
 
-        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
         # Decode the completions, and format them if the input is conversational
         device = logprobs.device
         completions = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
+        print("Completions:")
+        for i in range(batch_size):
+            print(f"[{i}][0]:", completions[i])
+            print(f"[{i}][1]:", completions[i+batch_size])
+        
         if is_conversational({"prompt": prompts[0]}):
             completions = [[{"role": "assistant", "content": completion}] for completion in completions]
 
@@ -582,6 +587,9 @@ class OnlineDPOTrainer(Trainer):
         else:
             # The reward model may not have the same chat template or tokenizer as the model, so we need to use the
             # raw data (string), apply the chat template (if needed), and tokenize it with the reward processing class.
+            reward_fmt = "Please repeat the follow utterance: {} ;"
+            prompts = [[{"role": "user", "content": reward_fmt.format(text)}] for text in inputs["text"]]
+            completions = [[{"role": "assitant", "content": text}] for text in completions]
             prompts = 2 * prompts  # repeat the prompt: [prompt0, prompt1] -> [prompt0, prompt1, prompt0, prompt1]
             if is_conversational({"prompt": prompts[0]}):
                 examples = [{"prompt": p, "completion": c} for p, c in zip(prompts, completions)]
