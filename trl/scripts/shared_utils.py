@@ -17,6 +17,7 @@ from trl.scripts.audio_dataset import create_audio_dataset
 def get_speech_peft_model(model, lora_name):
     config = model.config
     from peft import LoraConfig, get_peft_model
+
     lora_config = LoraConfig(
         r=config.speech_lora["r"],
         lora_alpha=config.speech_lora["lora_alpha"],
@@ -24,7 +25,7 @@ def get_speech_peft_model(model, lora_name):
         lora_dropout=config.speech_lora["dp"],
         task_type="CAUSAL_LM",
     )
-    peft_model = get_peft_model(model.model, lora_config, adapter_name=lora_name)
+    get_peft_model(model.model, lora_config, adapter_name=lora_name)
     return model
 
 

@@ -45,6 +45,10 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Path to the model."},
     )
+    new_lora: bool = field(
+        default=False,
+        metadata={"help": "Whether to use a new LoRA adapter"},
+    )
     reward_funcs: Optional[str] = field(
         default=None,
         metadata={"help": "Reward functions to use. Can be a list of functions or a single function."},
@@ -74,8 +78,8 @@ def main(script_args, training_args):
         output_dir=training_args.output_dir,
         skip_run_info=script_args.skip_run_info,
     )
-
-    model, processor = init_model(script_args.model_name_or_path)
+    lora_name = "speech" if script_args.new_lora else None
+    model, processor = init_model(script_args.model_name_or_path, new_lora=lora_name)
     _, n_trainable = print_modules(model, trainable=True)
     assert n_trainable > 0, "No trainable parameters found in the model."
 
