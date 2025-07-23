@@ -132,7 +132,6 @@ def stream_shuffle(ds, **kwargs):
     return ds
 
 
-
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
     kwargs = kwargs or {
@@ -146,12 +145,12 @@ def bias_sampling(ds, **kwargs):
     def proc_sample(sample):
         """Process a sample from the dataset."""
         context, text, keywords = bias_sampler.sample(sample["text"])
-        # side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
-        side_prompt = f"Pay extra attention to the following phrases/words: {context}."
+        side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
+        # side_prompt = f"Pay extra attention to the following phrases/words: {context}."
         return {
             "prompt": prompt_format.format(f"Transcribe the audio clip into text. {side_prompt}"),
             "text": text,  # text is updated
-            "keywords": keywords
+            "keywords": keywords,
         }
 
     ds = ds.map(proc_sample)
@@ -190,10 +189,12 @@ def simulate_perference(ds, **kwargs):
 
 def load_audio(ds):
     """Post process the dataset."""
+
     def read_audio(sample):
         """Read audio from the file."""
         audio, sr = sf_read(sample["audio_path"])
         return {"audio": audio, "sr": sr}
+
     ds = ds.map(read_audio)
     return ds
 
