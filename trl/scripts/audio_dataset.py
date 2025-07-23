@@ -98,6 +98,7 @@ def tsv_dataset(tsv_paths, **kwargs):
             audio_path = audio_path.replace("/root/data/LibriSpeech", egs["dir"])
         messages = ast.literal_eval(egs["msgs"])[0]["messages"]
         x = {
+            "prompt": prompt_format.format("Transcribe the audio clip into text."),
             "audio_path": audio_path,
             "text": messages[-1]["content"],
             "id": egs["id"],
@@ -146,7 +147,6 @@ def bias_sampling(ds, **kwargs):
         """Process a sample from the dataset."""
         context, text, keywords = bias_sampler.sample(sample["text"])
         side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
-        # side_prompt = f"Pay extra attention to the following phrases/words: {context}."
         return {
             "prompt": prompt_format.format(f"Transcribe the audio clip into text. {side_prompt}"),
             "text": text,  # text is updated
