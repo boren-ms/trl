@@ -16,7 +16,11 @@ bf16: True
 gradient_checkpointing: True
 # max_prompt_length: 2048
 # max_completion_length: 512
-# 
+
+log_completions: True
+wandb_log_unique_prompts: True
+# num_completions_to_print: 4
+
 save_steps: 100
 temperature: 1.0
 max_new_tokens: 512
@@ -38,14 +42,13 @@ train_data:
     # tsv_paths: /root/data/LibriSpeech/debug.tsv
     biasing:
         # bias_prob: 0.8
-        hit_prob: 0.9 
+        hit_prob: 0.9
         max_piece_len: 1
         max_num: 100
         log_interval: 1000 # print biasing every 10000 samples
         new_sampling: True
         # common_word_file: az://orngcresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
         # common_word_num: 1000
-
 # eval_strategy: steps
 # eval_on_start: True
 # eval_steps: 10
@@ -56,47 +59,47 @@ train_data:
 #       dataset_name: ls_bias
 #       jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
 #       data_dir: az://orngcresco/data/boren/data
-    #   bias_key: null # null
-    # data_dir: az://${DATA_STORAGE}/data/boren/data
-    # - nickname: other_no
-    #   dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    #   data_dir: az://orngcresco/data/boren/data
-    #   bias_key: null # distractors
-    # data_dir: az://${DATA_STORAGE}/data/boren/data
-    # - nickname: clean_100
-    # dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    #   bias_key: distractors # distractors
-    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngcresco/data/boren/data
-    # - nickname: other_100
-    # dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    #   bias_key: distractors # distractors
-    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngcresco/data/boren/data
-    # - nickname: clean_500
-    # dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
-    #   bias_key: distractors # distractors
-    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngcresco/data/boren/data
-    # - nickname: other_500
-    # dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
-    #   bias_key: distractors # distractors
-    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngcresco/data/boren/data
-    # - nickname: clean_1000
-    # dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
-    #   bias_key: distractors # distractors
-    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngcresco/data/boren/data
-    # - nickname: other_1000
-    # dataset_name: ls_bias
-    #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
-    #   bias_key: distractors # distractors
-    #   # data_dir: az://${DATA_STORAGE}/data/boren/data
-    #   data_dir: az://orngcresco/data/boren/data
+#   bias_key: null # null
+# data_dir: az://${DATA_STORAGE}/data/boren/data
+# - nickname: other_no
+#   dataset_name: ls_bias
+#   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+#   data_dir: az://orngcresco/data/boren/data
+#   bias_key: null # distractors
+# data_dir: az://${DATA_STORAGE}/data/boren/data
+# - nickname: clean_100
+# dataset_name: ls_bias
+#   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+#   bias_key: distractors # distractors
+#   # data_dir: az://${DATA_STORAGE}/data/boren/data
+#   data_dir: az://orngcresco/data/boren/data
+# - nickname: other_100
+# dataset_name: ls_bias
+#   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+#   bias_key: distractors # distractors
+#   # data_dir: az://${DATA_STORAGE}/data/boren/data
+#   data_dir: az://orngcresco/data/boren/data
+# - nickname: clean_500
+# dataset_name: ls_bias
+#   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
+#   bias_key: distractors # distractors
+#   # data_dir: az://${DATA_STORAGE}/data/boren/data
+#   data_dir: az://orngcresco/data/boren/data
+# - nickname: other_500
+# dataset_name: ls_bias
+#   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
+#   bias_key: distractors # distractors
+#   # data_dir: az://${DATA_STORAGE}/data/boren/data
+#   data_dir: az://orngcresco/data/boren/data
+# - nickname: clean_1000
+# dataset_name: ls_bias
+#   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
+#   bias_key: distractors # distractors
+#   # data_dir: az://${DATA_STORAGE}/data/boren/data
+#   data_dir: az://orngcresco/data/boren/data
+# - nickname: other_1000
+# dataset_name: ls_bias
+#   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
+#   bias_key: distractors # distractors
+#   # data_dir: az://${DATA_STORAGE}/data/boren/data
+#   data_dir: az://orngcresco/data/boren/data

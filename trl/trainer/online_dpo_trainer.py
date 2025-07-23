@@ -18,13 +18,11 @@ import warnings
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
-from collections import defaultdict, deque
-from collections.abc import Sized
-from contextlib import nullcontext
-from functools import partial
+from collections import defaultdict
 from pathlib import Path
 import datasets
 import jinja2
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -47,10 +45,10 @@ from transformers import (
 )
 from transformers.trainer_utils import EvalPrediction, seed_worker
 from transformers.training_args import OptimizerNames
-from accelerate.utils import broadcast_object_list, gather, gather_object, is_peft_model, set_seed
+from accelerate.utils import  gather_object, 
 from transformers.utils import is_peft_available, is_sagemaker_mp_enabled, logging
-from ..extras.profiling import profiling_context, profiling_decorator
-from ..data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template, sf_read
+from ..extras.profiling import  profiling_decorator
+from ..data_utils import apply_chat_template, is_conversational, sf_read
 from ..import_utils import is_vllm_available, is_rich_available
 from ..models import create_reference_model
 from ..models.utils import unwrap_model_for_generation
@@ -68,7 +66,7 @@ from .utils import (
     truncate_right,
     can_merge_adapter,
     has_adapter,
-    print_prompt_completions_sample,
+    print_rich_dataframe,
 )
 
 
@@ -317,12 +315,7 @@ class OnlineDPOTrainer(Trainer):
 
         self.stats = defaultdict(list)
         self.args = args
-        maxlen = self.accelerator.num_processes * args.per_device_train_batch_size * 2  # pair completions
-        self._textual_logs = {
-            "prompt": deque(maxlen=maxlen),
-            "completion": deque(maxlen=maxlen),
-            "chosen": defaultdict(lambda: deque(maxlen=maxlen)),
-        }
+        self._textual_logs = defaultdict(list)
 
     @property
     def tokenizer(self):
@@ -553,14 +546,8 @@ class OnlineDPOTrainer(Trainer):
         # Decode the completions, and format them if the input is conversational
         device = logprobs.device
         completions = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
+        references = [text for text in inputs["text"]]
 
-        print("Reward QAs:")
-        for i in range(batch_size):
-            print(f"[{i}][ref]:", inputs["text"][i])
-            print(f"[{i}]  [0]:", completions[i])
-            print(f"[{i}]  [1]:", completions[i + batch_size])
-
-        prompts = [text for text in inputs["text"]]
         # to reward conversational formatting
         # prompt_fmt = "Please repeat the follow utterance: {}"
         # prompts = [[{"role": "user", "content": prompt_fmt.format(text)}] for text in inputs["text"]]
@@ -579,8 +566,7 @@ class OnlineDPOTrainer(Trainer):
                 template = environment.from_string(SIMPLE_CHAT_TEMPLATE)
                 prompts = [template.render(messages=prompt) for prompt in prompts]
                 completions = [template.render(messages=completion) for completion in completions]
-
-            ranks_of_first_completion = self.judge.judge(prompts, list(zip(completions[:batch_size], completions[batch_size:])))
+            ranks_of_first_completion = self.judge.judge(references, list(zip(completions[:batch_size], completions[batch_size:])))
 
             # convert ranks to a True/False mask:
             # when rank == 0, it means the first completion is the best
@@ -623,6 +609,13 @@ class OnlineDPOTrainer(Trainer):
         batch_range = torch.arange(batch_size, device=device)
         chosen_indices = batch_range + (~mask * batch_size)
         rejected_indices = batch_range + (mask * batch_size)
+
+        # log completions
+        self._textual_logs["prompt"].extend(gather_object(prompts))
+        self._textual_logs["chosen"].extend(gather_object(completions[i] for i in chosen_indices))
+        self._textual_logs["rejected"].extend(gather_object(completions[i] for i in rejected_indices))
+        self._textual_logs["references"].extend(gather_object(references))
+
 
         # Build tensor so that the first half is the chosen examples and the second half the rejected examples
         cr_indices = torch.cat((chosen_indices, rejected_indices), dim=0)  # cr = chosen and rejected
@@ -705,47 +698,6 @@ class OnlineDPOTrainer(Trainer):
 
         return loss.detach() / self.args.gradient_accumulation_steps
 
-    # Same as Trainer._maybe_log_save_evaluate but log our metrics
-    def _maybe_log_save_evaluate(self, tr_loss, grad_norm, model, trial, epoch, ignore_keys_for_eval, start_time, learning_rate=None):
-        if self.control.should_log and self.state.global_step > self._globalstep_last_logged:
-            logs: dict[str, float] = {}
-
-            # all_gather + mean() to get average loss over all processes
-            tr_loss_scalar = self._nested_gather(tr_loss).mean().item()
-
-            # reset tr_loss to zero
-            tr_loss -= tr_loss
-
-            logs["loss"] = round(tr_loss_scalar / (self.state.global_step - self._globalstep_last_logged), 4)
-            if grad_norm is not None:
-                logs["grad_norm"] = grad_norm.detach().item() if isinstance(grad_norm, torch.Tensor) else grad_norm
-            if learning_rate is not None:
-                logs["learning_rate"] = learning_rate
-            else:
-                logs["learning_rate"] = self._get_learning_rate()
-
-            # Add our metrics
-            for key, val in self.stats.items():
-                logs[key] = sum(val) / len(val)
-            self.stats = {key: [] for key in self.stats}  # reset stats
-
-            self._total_loss_scalar += tr_loss_scalar
-            self._globalstep_last_logged = self.state.global_step
-            self.store_flos()
-            self.log(logs, start_time)
-
-        metrics = None
-        if self.control.should_evaluate:
-            metrics = self._evaluate(trial, ignore_keys_for_eval)
-            is_new_best_metric = self._determine_best_metric(metrics=metrics, trial=trial)
-
-            if self.args.save_strategy == "best":
-                self.control.should_save = is_new_best_metric
-
-        if self.control.should_save:
-            self._save_checkpoint(model, trial)
-            self.control = self.callback_handler.on_save(self.args, self.state, self.control)
-
     def log(self, logs: dict[str, float], start_time: Optional[float] = None) -> None:
         """Log metrics"""
         metrics = {key: sum(val) / len(val) for key, val in self.stats.items()}  # average the metrics
@@ -753,30 +705,15 @@ class OnlineDPOTrainer(Trainer):
         super().log(logs, start_time)
         self.stats.clear()
         if self.accelerator.is_main_process and self.args.log_completions:
-            if is_rich_available():
-                print_prompt_completions_sample(
-                    self._textual_logs["prompt"],
-                    self._textual_logs["completion"],
-                    self._textual_logs["rewards"],
-                    self._textual_logs["advantages"],
-                    self.state.global_step,
-                    self.args.num_completions_to_print,
-                )
-
+            df = pd.DataFrame(self._textual_logs)
+            if self.args.num_completions_to_print:
+                df = df.head(self.args.num_completions_to_print)
+                
+            print_rich_dataframe(self.state.global_step, df)
             if self.args.report_to and "wandb" in self.args.report_to and wandb.run is not None:
-                import pandas as pd
-
-                table = {
-                    "step": [str(self.state.global_step)] * len(self._textual_logs["prompt"]),
-                    "prompt": self._textual_logs["prompt"],
-                    "completion": self._textual_logs["completion"],
-                    **self._textual_logs["rewards"],
-                    "advantage": self._textual_logs["advantages"],
-                }
-                df = pd.DataFrame(table)
-                if self.args.wandb_log_unique_prompts:
-                    df = df.drop_duplicates(subset=["prompt", "completion"])
+                df["step"] = self.state.global_step
                 wandb.log({"completions": wandb.Table(dataframe=df)})
+            self._textual_logs.clear()
 
     # Ensure the model card is saved along with the checkpoint
     def _save_checkpoint(self, model, trial):

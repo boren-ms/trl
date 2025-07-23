@@ -37,7 +37,7 @@ from trl.trainer.utils import (
     generate_model_card,
     get_peft_config,
     pad,
-    print_prompt_completions_sample,
+    print_rich_dataframe,
     selective_log_softmax,
 )
 
@@ -568,7 +568,7 @@ class TestPrintPromptCompletionsSample(unittest.TestCase):
         advantages = [0.987, 0.654]
         step = 42
 
-        print_prompt_completions_sample(prompts, completions, rewards, advantages, step)
+        print_rich_dataframe(prompts, completions, rewards, advantages, step)
 
         output = mock_stdout.getvalue()
 
@@ -593,7 +593,7 @@ class TestPrintPromptCompletionsSample(unittest.TestCase):
         advantages = [0.3, 0.4]
         step = 10
 
-        print_prompt_completions_sample(prompts, completions, rewards, advantages, step, num_samples=1)
+        print_rich_dataframe(prompts, completions, rewards, advantages, step, num_samples=1)
         output = mock_stdout.getvalue()
 
         possible_outputs = [

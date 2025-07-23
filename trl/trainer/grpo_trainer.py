@@ -15,7 +15,8 @@
 import os
 import textwrap
 import warnings
-from collections import defaultdict, deque
+import pandas as pd
+from collections import defaultdict
 from collections.abc import Sized
 from contextlib import nullcontext
 from functools import partial
@@ -55,7 +56,7 @@ from ..models import prepare_deepspeed, prepare_fsdp, unwrap_model_for_generatio
 from ..models.utils import _ForwardRedirection
 from .callbacks import SyncRefModelCallback
 from .grpo_config import GRPOConfig
-from .utils import disable_dropout_in_model, entropy_from_logits, generate_model_card, get_comet_experiment_url, pad, print_prompt_completions_sample, selective_log_softmax,can_merge_adapter
+from .utils import disable_dropout_in_model, entropy_from_logits, generate_model_card, get_comet_experiment_url, pad, print_rich_dataframe, selective_log_softmax, can_merge_adapter
 
 if is_peft_available():
     from peft import PeftConfig, get_peft_model
@@ -618,13 +619,7 @@ class GRPOTrainer(Trainer):
         self.num_completions_to_print = args.num_completions_to_print
         # maxlen is set to the total number of forward passes per step. This value of `maxlen` ensures we log only the
         # final optimization step.
-        maxlen = self.accelerator.num_processes * args.per_device_train_batch_size * args.steps_per_generation
-        self._textual_logs = {
-            "prompt": deque(maxlen=maxlen),
-            "completion": deque(maxlen=maxlen),
-            "rewards": defaultdict(lambda: deque(maxlen=maxlen)),
-            "advantages": deque(maxlen=maxlen),
-        }
+        self._textual_logs = defaultdict(list)
 
         # Ensure each process receives a unique seed to prevent duplicate completions when generating with
         # transformers if num_generations exceeds per_device_train_batch_size. We could skip it if we use vLLM, but
@@ -1553,30 +1548,18 @@ class GRPOTrainer(Trainer):
         self._metrics[mode].clear()
 
         if self.accelerator.is_main_process and self.log_completions:
-            if is_rich_available():
-                print_prompt_completions_sample(
-                    self._textual_logs["prompt"],
-                    self._textual_logs["completion"],
-                    self._textual_logs["rewards"],
-                    self._textual_logs["advantages"],
-                    self.state.global_step,
-                    self.num_completions_to_print,
-                )
-
+            df = pd.DataFrame(self._textual_logs)
+            if self.args.num_completions_to_print:
+                df = df.head(self.args.num_completions_to_print)
+            
+            print_rich_dataframe(self.state.global_step, df)
+            
             if self.args.report_to and "wandb" in self.args.report_to and wandb.run is not None:
-                import pandas as pd
-
-                table = {
-                    "step": [str(self.state.global_step)] * len(self._textual_logs["prompt"]),
-                    "prompt": self._textual_logs["prompt"],
-                    "completion": self._textual_logs["completion"],
-                    **self._textual_logs["rewards"],
-                    "advantage": self._textual_logs["advantages"],
-                }
-                df = pd.DataFrame(table)
+                df["step"] = self.state.global_step
                 if self.wandb_log_unique_prompts:
                     df = df.drop_duplicates(subset=["prompt", "completion"])
                 wandb.log({"completions": wandb.Table(dataframe=df)})
+            self._textual_logs.clear()
 
     # Ensure the model card is saved along with the checkpoint
     def _save_checkpoint(self, model, trial):
