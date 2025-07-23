@@ -51,7 +51,7 @@ from accelerate.utils import broadcast_object_list, gather, gather_object, is_pe
 from transformers.utils import is_peft_available, is_sagemaker_mp_enabled, logging
 from ..extras.profiling import profiling_context, profiling_decorator
 from ..data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template, sf_read
-from ..import_utils import is_vllm_available
+from ..import_utils import is_vllm_available, is_rich_available
 from ..models import create_reference_model
 from ..models.utils import unwrap_model_for_generation
 from .judges import BasePairwiseJudge
@@ -68,6 +68,7 @@ from .utils import (
     truncate_right,
     can_merge_adapter,
     has_adapter,
+    print_prompt_completions_sample,
 )
 
 
@@ -229,24 +230,6 @@ class OnlineDPOTrainer(Trainer):
 
         self.max_length = args.max_length
 
-        self.stats = {
-            "objective/kl": [],
-            "objective/entropy": [],
-            "objective/non_score_reward": [],
-            "rewards/chosen": [],
-            "rewards/rejected": [],
-            "rewards/accuracies": [],
-            "rewards/margins": [],
-            "logps/chosen": [],
-            "logps/rejected": [],
-            "val/contain_eos_token": [],
-            "beta": [],
-        }
-        if self.reward_model is not None:
-            self.stats["objective/rlhf_reward"] = []
-            self.stats["objective/scores_margin"] = []
-            self.stats["objective/scores"] = []
-
         # The trainer estimates the number of FLOPs (floating-point operations) using the number of elements in the
         # input tensor associated with the key "input_ids". However, in Online DPO, the sampled data does not include
         # the "input_ids" key. As a result, the trainer issues the warning: "Could not estimate the number of tokens
@@ -331,6 +314,15 @@ class OnlineDPOTrainer(Trainer):
                 self.ref_model = self.ref_model.to(self.accelerator.device)
             if self.reward_model is not None:
                 self.reward_model = self.reward_model.to(self.accelerator.device)
+
+        self.stats = defaultdict(list)
+        self.args = args
+        maxlen = self.accelerator.num_processes * args.per_device_train_batch_size * 2  # pair completions
+        self._textual_logs = {
+            "prompt": deque(maxlen=maxlen),
+            "completion": deque(maxlen=maxlen),
+            "chosen": defaultdict(lambda: deque(maxlen=maxlen)),
+        }
 
     @property
     def tokenizer(self):
@@ -753,6 +745,38 @@ class OnlineDPOTrainer(Trainer):
         if self.control.should_save:
             self._save_checkpoint(model, trial)
             self.control = self.callback_handler.on_save(self.args, self.state, self.control)
+
+    def log(self, logs: dict[str, float], start_time: Optional[float] = None) -> None:
+        """Log metrics"""
+        metrics = {key: sum(val) / len(val) for key, val in self.stats.items()}  # average the metrics
+        logs = {**logs, **metrics}
+        super().log(logs, start_time)
+        self.stats.clear()
+        if self.accelerator.is_main_process and self.args.log_completions:
+            if is_rich_available():
+                print_prompt_completions_sample(
+                    self._textual_logs["prompt"],
+                    self._textual_logs["completion"],
+                    self._textual_logs["rewards"],
+                    self._textual_logs["advantages"],
+                    self.state.global_step,
+                    self.args.num_completions_to_print,
+                )
+
+            if self.args.report_to and "wandb" in self.args.report_to and wandb.run is not None:
+                import pandas as pd
+
+                table = {
+                    "step": [str(self.state.global_step)] * len(self._textual_logs["prompt"]),
+                    "prompt": self._textual_logs["prompt"],
+                    "completion": self._textual_logs["completion"],
+                    **self._textual_logs["rewards"],
+                    "advantage": self._textual_logs["advantages"],
+                }
+                df = pd.DataFrame(table)
+                if self.args.wandb_log_unique_prompts:
+                    df = df.drop_duplicates(subset=["prompt", "completion"])
+                wandb.log({"completions": wandb.Table(dataframe=df)})
 
     # Ensure the model card is saved along with the checkpoint
     def _save_checkpoint(self, model, trial):

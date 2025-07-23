@@ -175,6 +175,22 @@ class OnlineDPOConfig(TrainingArguments):
             "exceed the VRAM capacity of a single GPU, albeit at the cost of slower generation."
         },
     )
+    # Parameters that control the logging
+    log_completions: bool = field(
+        default=False,
+        metadata={
+            "help": "Whether to log a sample of (prompt, completion) pairs every `logging_steps` steps. If `rich` is "
+            "installed, it prints the sample. If `wandb` logging is enabled, it logs it to `wandb`."
+        },
+    )
+    num_completions_to_print: Optional[int] = field(
+        default=None,
+        metadata={"help": "Number of completions to print with `rich`. If `None`, all completions are logged."},
+    )
+    wandb_log_unique_prompts: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Whether to log unique prompts in wandb. If `True`, only unique prompts are logged. If `False`, " "all prompts are logged."},
+    )
 
     def __post_init__(self):
         self.bf16 = not (self.fp16) if self.bf16 is None else self.bf16

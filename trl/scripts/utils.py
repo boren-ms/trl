@@ -28,7 +28,6 @@ from transformers import HfArgumentParser
 from transformers.hf_argparser import DataClass, DataClassType
 from trl.import_utils import is_rich_available
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -270,60 +269,3 @@ def get_git_commit_hash(package_name):
     except Exception as e:
         return f"Error: {str(e)}"
 
-
-def merge_adapter(cls, merge=True):
-    for module in cls.modules():
-        if not isinstance(module, LoraLayer):
-            continue
-        if merge:
-            module.merge(["speech"])
-        else:
-            module.unmerge()
-
-
-def unmerge_adapter(cls):
-    return merge_adapter(cls, False)
-
-
-def add_adapter_func(obj):
-    obj.merge_adapter = types.MethodType(merge_adapter, obj)
-    obj.unmerge_adapter = types.MethodType(unmerge_adapter, obj)
-    return obj
-
-
-def can_merge_adapter(model):
-    return hasattr(model, "merge_adapter") and hasattr(model, "unmerge_adapter")
-
-
-def human_readable(num):
-    """Convert a number to human readable format (K, M, G)."""
-    if num >= 1_000_000_000:
-        return f"{num/1_000_000_000:.2f}G"
-    elif num >= 1_000_000:
-        return f"{num/1_000_000:.2f}M"
-    elif num >= 1_000:
-        return f"{num/1_000:.2f}K"
-    else:
-        return str(num)
-
-
-def move_model_to_vllm(model, llm):
-    print("Move model to vllm")
-    llm_model = llm.llm_engine.model_executor.driver_worker.model_runner.model
-    if can_merge_adapter(model):
-        model.merge_adapter()
-        for name, param in model.named_parameters():
-            name = name.removeprefix("base_model.model.").replace(".base_layer", "")
-            if hasattr(model, "prefix") and model.prefix in name:
-                continue
-            for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
-                name = name.replace(extra, "")
-            llm_model.load_weights([(name, param.data)])
-        model.unmerge_adapter()
-    else:
-        for name, param in model.named_parameters():
-            for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
-                name = name.replace(extra, "")
-            llm_model.load_weights([(name, param.data)])
-    # Reset cache on vLLM
-    llm.reset_prefix_cache()

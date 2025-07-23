@@ -1830,11 +1830,13 @@ def print_prompt_completions_sample(
 def can_merge_adapter(model):
     return hasattr(model, "merge_adapter") and hasattr(model, "unmerge_adapter")
 
+
 def has_adapter(cls):
     for module in cls.modules():
         if isinstance(module, LoraLayer):
-           return True
+            return True
     return False
+
 
 def merge_adapter(cls, merge=True, adapter="speech"):
     if isinstance(adapter, str):
@@ -1879,3 +1881,25 @@ def add_adapter_func(obj):
     obj.unmerge_adapter = types.MethodType(unmerge_adapter, obj)
     obj.merge_and_unload = types.MethodType(merge_and_unload, obj)
     return obj
+
+
+def move_model_to_vllm(model, llm):
+    print("Move model to vllm")
+    llm_model = llm.llm_engine.model_executor.driver_worker.model_runner.model
+    if can_merge_adapter(model):
+        model.merge_adapter()
+        for name, param in model.named_parameters():
+            name = name.removeprefix("base_model.model.").replace(".base_layer", "")
+            if hasattr(model, "prefix") and model.prefix in name:
+                continue
+            for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
+                name = name.replace(extra, "")
+            llm_model.load_weights([(name, param.data)])
+        model.unmerge_adapter()
+    else:
+        for name, param in model.named_parameters():
+            for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
+                name = name.replace(extra, "")
+            llm_model.load_weights([(name, param.data)])
+    # Reset cache on vLLM
+    llm.reset_prefix_cache()

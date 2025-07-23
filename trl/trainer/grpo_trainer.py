@@ -55,8 +55,7 @@ from ..models import prepare_deepspeed, prepare_fsdp, unwrap_model_for_generatio
 from ..models.utils import _ForwardRedirection
 from .callbacks import SyncRefModelCallback
 from .grpo_config import GRPOConfig
-from .utils import disable_dropout_in_model, entropy_from_logits, generate_model_card, get_comet_experiment_url, pad, print_prompt_completions_sample, selective_log_softmax
-from ..scripts.utils import can_merge_adapter
+from .utils import disable_dropout_in_model, entropy_from_logits, generate_model_card, get_comet_experiment_url, pad, print_prompt_completions_sample, selective_log_softmax,can_merge_adapter
 
 if is_peft_available():
     from peft import PeftConfig, get_peft_model

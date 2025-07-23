@@ -100,7 +100,7 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     return info
 
 
-def print_modules(model, trainable=True):
+def print_modules(model, trainable=False):
     """List trainable modules in the model and total trainable parameter size."""
     print(f"List modules in the model:", {model.__class__.__name__})
     n_total = 0

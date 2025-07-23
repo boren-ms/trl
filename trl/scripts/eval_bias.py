@@ -16,7 +16,7 @@ from pathlib import Path
 from trl.data_utils import sf_read, find_chkps, chkp_index
 from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, init_wandb
 from trl.scripts.audio_metrics import compute_wers
-from trl.scripts.utils import move_model_to_vllm
+from trl.trainer.utils import move_model_to_vllm
 
 
 @dataclass
