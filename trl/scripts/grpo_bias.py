@@ -80,7 +80,7 @@ def main(script_args, training_args):
     )
     lora_name = "speech" if script_args.new_lora else None
     model, processor = init_model(script_args.model_name_or_path, new_lora=lora_name)
-    _, n_trainable = print_modules(model, trainable=True)
+    _, n_trainable = print_modules(model)
     assert n_trainable > 0, "No trainable parameters found in the model."
 
     trainer = GRPOTrainer(

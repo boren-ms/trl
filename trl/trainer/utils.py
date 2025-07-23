@@ -751,6 +751,7 @@ def get_global_statistics(accelerator, xs: torch.Tensor, mask=None, device="cpu"
     sum_and_count = torch.tensor([xs.sum(), (xs.numel() if mask is None else mask.sum())], device=xs.device)
     sum_and_count = accelerator.reduce(sum_and_count)
     global_sum, count = sum_and_count
+
     global_mean = global_sum / count
 
     sum_var = torch.sum(((xs - global_mean) ** 2).mul(1 if mask is None else mask))
@@ -955,8 +956,17 @@ def print_rich_table(df: pd.DataFrame) -> None:
     for column in df.columns:
         table.add_column(column)
     for _, row in df.iterrows():
-        table.add_row(*row.astype(str).tolist())
-    console.print(table)
+        formatted_cells = []
+        for cell in row:
+            if isinstance(cell, (int, float)):
+                formatted_cells.append(Text(f"{cell:.2f}"))
+            else:
+                formatted_cells.append(Text(str(cell)))
+        table.add_row(*formatted_cells)
+        table.add_section()  # Adds a separator between rows
+        
+    panel = Panel(table, expand=False, title=f"Step {step}", border_style="bold white")
+    console.print(panel)
 
 
 SIMPLE_SFT_CHAT_TEMPLATE = "{% for message in messages %}{{' ' + message['content']}}{% endfor %}{{ eos_token }}"
@@ -1755,7 +1765,8 @@ def print_rich_dataframe(step: int, df: pd.DataFrame, check_rich: bool=True) -> 
     for column in df.columns:
         table.add_column(column)
     for _, row in df.iterrows():
-        table.add_row(*(Text(cell) for cell in row))
+        cells = [f"<{i:.2f}>" if isinstance(i, (int, float)) else Text(i) for i in row]
+        table.add_row(*cells)
         table.add_section()  # Adds a separator between rows
         
     panel = Panel(table, expand=False, title=f"Step {step}", border_style="bold white")
@@ -1820,7 +1831,7 @@ def add_adapter_func(obj):
 
 def move_model_to_vllm(model, llm):
     print("Move model to vllm")
-    llm_model = llm.llm_engine.model_executor.driver_worker.model_runner.model
+    llm_model = llm.llm_engine.model_executor.driver_worker.model
     if can_merge_adapter(model):
         model.merge_adapter()
         for name, param in model.named_parameters():
