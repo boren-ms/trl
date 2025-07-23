@@ -67,6 +67,7 @@ from .utils import (
     prepare_deepspeed,
     truncate_right,
     can_merge_adapter,
+    has_adapter,
 )
 
 
@@ -210,7 +211,7 @@ class OnlineDPOTrainer(Trainer):
         # get the ref model, as it's just the model with a disabled adapter. When not using PEFT, we need to create
         # the ref model from the model by copying it and disable the gradients and set it in evaluation mode.
         if ref_model is None:  # No ref model provided, the most common case
-            if not is_peft_model(model):
+            if not has_adapter(model):
                 self.ref_model = create_reference_model(model)  # copy, disable gradients, set eval mode
             else:
                 self.ref_model = None  # we don't need a ref model here, we can just disable the adapter.
@@ -546,18 +547,18 @@ class OnlineDPOTrainer(Trainer):
 
         contain_eos_token = torch.any(completion_ids == self.tokenizer.eos_token_id, dim=-1)
         prompt_ids, prompt_mask, additional_inputs = self._process_inputs(inputs)
-
-        # additional_inputs["input_mode"] += 2  # speech adapter
-        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
+        input_mode = additional_inputs["input_mode"]
 
         with torch.no_grad():
             if self.ref_model is not None:
                 ref_logprobs = self._forward(self.ref_model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
             else:  # peft case: we just need to disable the adapter
-                with self.model.disable_adapter():
-                    additional_inputs["input_mode"] *= 0  # disable_adapter
-                    ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
+                # with self.model.disable_adapter():
+                additional_inputs["input_mode"] *= 0  # disable_adapter in PhiMM
+                ref_logprobs = self._forward(self.model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
 
+        additional_inputs["input_mode"] = input_mode  # restore input_mode (Speech) after disabling adapter
+        logprobs = self._forward(model, prompt_ids, prompt_mask, completion_ids, completion_mask, **additional_inputs)
         # Decode the completions, and format them if the input is conversational
         device = logprobs.device
         completions = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)

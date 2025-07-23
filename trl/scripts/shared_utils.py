@@ -17,15 +17,15 @@ from trl.scripts.audio_dataset import create_audio_dataset
 def get_speech_peft_model(model, lora_name):
     config = model.config
     from peft import LoraConfig, get_peft_model
-    target_string = config.speech_lora["layer"].replace("layers", "model.layers")
     lora_config = LoraConfig(
         r=config.speech_lora["r"],
         lora_alpha=config.speech_lora["lora_alpha"],
-        target_modules=target_string,
+        target_modules=config.speech_lora["layer"],
         lora_dropout=config.speech_lora["dp"],
         task_type="CAUSAL_LM",
     )
-    return get_peft_model(model, lora_config, adapter_name=lora_name)
+    peft_model = get_peft_model(model.model, lora_config, adapter_name=lora_name)
+    return model
 
 
 def init_model(model_id=None, new_lora=None):

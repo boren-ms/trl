@@ -1830,6 +1830,11 @@ def print_prompt_completions_sample(
 def can_merge_adapter(model):
     return hasattr(model, "merge_adapter") and hasattr(model, "unmerge_adapter")
 
+def has_adapter(cls):
+    for module in cls.modules():
+        if isinstance(module, LoraLayer):
+           return True
+    return False
 
 def merge_adapter(cls, merge=True, adapter="speech"):
     if isinstance(adapter, str):
