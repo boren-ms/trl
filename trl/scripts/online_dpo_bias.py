@@ -18,8 +18,9 @@ import argparse
 from dataclasses import dataclass, field
 from typing import Optional
 from trl import OnlineDPOConfig, OnlineDPOTrainer, TrlParser
-from trl.scripts.audio_metrics import eval_biasing_metrics
+from trl.scripts.audio_metrics import eval_biasing_metrics, compute_wers
 from trl.scripts.shared_utils import init_model, init_wandb, create_dataset, print_modules
+from trl import BasePairwiseJudge
 
 
 def init_reward_model(reward_path, **kwargs):
@@ -43,6 +44,16 @@ def init_reward_model(reward_path, **kwargs):
     return reward_model, reward_tokenizer
 
 
+def calc_wer(ref, hyp):
+    wer, uwer, bwer = compute_wers([{"ref": ref, "hyp": hyp}])
+    return wer.get_wer()
+
+
+class ErrorJudge(BasePairwiseJudge):
+    def judge(self, prompts, completions, shuffle_order=False):
+        return [0 if calc_wer(ref, hyps[0]) <= calc_wer(ref, hyps[1]) else 1 for ref, hyps in zip(prompts, completions)]
+
+
 def setup_judge(judge_name):
     """Setup judge if provided."""
     if not judge_name:
@@ -53,6 +64,7 @@ def setup_judge(judge_name):
         "pair_rm": PairRMJudge,
         "openai": OpenAIPairwiseJudge,
         "hf": HfPairwiseJudge,
+        "error": ErrorJudge,
     }
     judge_cls = JUDGES[judge_name]
     return judge_cls()
@@ -98,7 +110,7 @@ def main(script_args, training_args):
     )
 
     # Initialize model and processor
-    model, processor = init_model(script_args.model_name_or_path, new_lora="speech") # use same speech lora name
+    model, processor = init_model(script_args.model_name_or_path, new_lora="speech")  # use same speech lora name
     print_modules(model)
     # Setup reward model and tokenizer
     reward_model, reward_tokenizer = init_reward_model(training_args.reward_model_path)

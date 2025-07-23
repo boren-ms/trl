@@ -16,7 +16,8 @@ train_data:
         # common_word_num: 1000
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
-reward_model_path: /root/data/ckp/hf_models/Qwen2-0.5B-Reward
+# reward_model_path: /root/data/ckp/hf_models/Qwen2-0.5B-Reward
+judge: error
 # model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 output_dir: ./output

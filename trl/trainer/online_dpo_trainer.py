@@ -568,9 +568,10 @@ class OnlineDPOTrainer(Trainer):
             print(f"[{i}]  [0]:", completions[i])
             print(f"[{i}]  [1]:", completions[i + batch_size])
 
+        prompts = [text for text in inputs["text"]]
         # to reward conversational formatting
-        prompt_fmt = "Please repeat the follow utterance: {}"
-        prompts = [[{"role": "user", "content": prompt_fmt.format(text)}] for text in inputs["text"]]
+        # prompt_fmt = "Please repeat the follow utterance: {}"
+        # prompts = [[{"role": "user", "content": prompt_fmt.format(text)}] for text in inputs["text"]]
 
         if is_conversational({"prompt": prompts[0]}):
             completions = [[{"role": "assistant", "content": completion}] for completion in completions]
@@ -592,6 +593,7 @@ class OnlineDPOTrainer(Trainer):
             # convert ranks to a True/False mask:
             # when rank == 0, it means the first completion is the best
             # when rank == 1, it means the second completion is the best
+            print("Judge:", ranks_of_first_completion)
             mask = torch.tensor([rank == 0 for rank in ranks_of_first_completion], device=device)
         else:
             # The reward model may not have the same chat template or tokenizer as the model, so we need to use the
