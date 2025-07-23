@@ -111,7 +111,8 @@ def main(script_args, training_args):
 
     # Initialize model and processor
     model, processor = init_model(script_args.model_name_or_path, new_lora="speech")  # use same speech lora name
-    print_modules(model)
+    _, n_trainable = print_modules(model)
+    assert n_trainable > 0, "No trainable parameters found in the model."
     # Setup reward model and tokenizer
     reward_model, reward_tokenizer = init_reward_model(training_args.reward_model_path)
 
