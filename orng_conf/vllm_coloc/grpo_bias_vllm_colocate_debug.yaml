@@ -2,7 +2,8 @@
 model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 skip_run_info: True
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-reward_funcs: [reward_unbias_error, reward_bias_error]
+# reward_funcs: [reward_unbias_error, reward_bias_error]
+reward_funcs: [reward_unbias_accuracy, reward_bias_accuracy]
 reward_weights: [1, 1]
 report_to: [wandb]
 learning_rate: 1e-5
@@ -36,10 +37,10 @@ vllm_gpu_memory_utilization: 0.35
 
 train_data:
     dataset_name: tsv
-    nug_egs: 5000
+    # nug_egs: 5000
     # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
-    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
-    tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
+    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: /root/data/LibriSpeech/debug.tsv
     biasing:
