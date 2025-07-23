@@ -76,20 +76,27 @@ def launch_training(script_path, config_file, output_dir):
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
-def get_task_script(task):
+def get_task_script(task=None, config_file=None):
     """Return the script path for the given task."""
+    assert task or config_file, "Either task or config_file must be provided"
     cur_dir = Path(__file__).parent
     tasks = {
         "grpo": cur_dir / "trl/scripts/grpo_bias.py",
-        "online_dpo": cur_dir / "trl/scripts/online_dpo_bias.py",
+        "dpo": cur_dir / "trl/scripts/online_dpo_bias.py",
+        "online_dpo": cur_dir / "trl/scripts/online_dpo_bias.py",  # add alias
     }
-    script_path = tasks.get(task, cur_dir / "trl/scripts/grpo_bias.py")
+    
+    if not task and config_file:
+        name_parts = Path(config_file).stem.split("_")
+        task = next((t for t in tasks if t in name_parts), None)
+    assert task, "Task must be specified or inferred from config_file"
+    script_path = tasks[task]
     assert script_path.exists(), f"Script {script_path} does not exist."
     return script_path
 
-def main_run(config_file, task="grpo", forced=False):
+def main(config_file, task=None, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
-    script_path = get_task_script(task)
+    script_path = get_task_script(task, config_file)
     print(f"Using script: {script_path}")
     init_ray()
     list_nodes()
@@ -134,8 +141,5 @@ def main_run(config_file, task="grpo", forced=False):
 
 if __name__ == "__main__":
     """Main entry point for launching the job on a Ray cluster."""
-    fire.Fire({
-        "grpo": partial(main_run, task="grpo"),
-        "dpo": partial(main_run, task="online_dpo"),
-    })
-    # Example usage: python launch_job.py grpo --config_file="path/to/config.yaml"
+    fire.Fire(main)  
+    # Example usage: python launch_job.py  --config_file="path/to/config.yaml"
