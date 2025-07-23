@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
+from functools import partial
 import subprocess
 import ray
 import os
@@ -21,7 +22,7 @@ from ray_tool import (
 from launch_eval import evaluate_model
 
 @ray.remote
-def launch_training(config_file, output_dir):
+def launch_training(script_path, config_file, output_dir):
     """Launch training using the specified YAML config file."""
     config_file = Path(config_file).absolute()
     update_envs(config_file)
@@ -41,7 +42,6 @@ def launch_training(config_file, output_dir):
     assert job_name is not None, "RCALL_JOB_NAME must be set"
     main_process_ip = f"{job_name}-0"  # head node IP
     main_process_port = 12345
-    script_path = cur_dir / "trl/scripts/grpo_bias.py"
     cmd = [
         "accelerate",
         "launch",
@@ -76,9 +76,21 @@ def launch_training(config_file, output_dir):
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
+def get_task_script(task):
+    """Return the script path for the given task."""
+    cur_dir = Path(__file__).parent
+    tasks = {
+        "grpo": cur_dir / "trl/scripts/grpo_bias.py",
+        "online_dpo": cur_dir / "trl/scripts/online_dpo_bias.py",
+    }
+    script_path = tasks.get(task, cur_dir / "trl/scripts/grpo_bias.py")
+    assert script_path.exists(), f"Script {script_path} does not exist."
+    return script_path
 
-def main(config_file, forced=False):
+def main_run(config_file, task="grpo", forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
+    script_path = get_task_script(task)
+    print(f"Using script: {script_path}")
     init_ray()
     list_nodes()
 
@@ -109,7 +121,7 @@ def main(config_file, forced=False):
     watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
 
     print(f"Launching training with {config_file}...")
-    run_nodes(launch_training, str(config_file), output_dir=str(output_dir))
+    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir))
     print("Training completed on all nodes.")
 
     print("Launching evaluation on all nodes")
@@ -122,5 +134,8 @@ def main(config_file, forced=False):
 
 if __name__ == "__main__":
     """Main entry point for launching the job on a Ray cluster."""
-    fire.Fire(main)
-    # Example usage: python launch_job.py --config_file="path/to/config.yaml"
+    fire.Fire({
+        "grpo": partial(main_run, task="grpo"),
+        "dpo": partial(main_run, task="online_dpo"),
+    })
+    # Example usage: python launch_job.py grpo --config_file="path/to/config.yaml"
