@@ -1755,7 +1755,9 @@ def print_rich_dataframe(step: int, df: pd.DataFrame, check_rich: bool=True) -> 
     for column in df.columns:
         table.add_column(column)
     for _, row in df.iterrows():
-        table.add_row(*(str(cell) for cell in row))
+        table.add_row(*({Text(cell)} for cell in row))
+        table.add_section()  # Adds a separator between rows
+        
     panel = Panel(table, expand=False, title=f"Step {step}", border_style="bold white")
     console.print(panel)
 

@@ -45,9 +45,9 @@ from transformers import (
 )
 from transformers.trainer_utils import EvalPrediction, seed_worker
 from transformers.training_args import OptimizerNames
-from accelerate.utils import  gather_object, 
+from accelerate.utils import gather_object
 from transformers.utils import is_peft_available, is_sagemaker_mp_enabled, logging
-from ..extras.profiling import  profiling_decorator
+from ..extras.profiling import profiling_decorator
 from ..data_utils import apply_chat_template, is_conversational, sf_read
 from ..import_utils import is_vllm_available, is_rich_available
 from ..models import create_reference_model
@@ -612,10 +612,11 @@ class OnlineDPOTrainer(Trainer):
 
         # log completions
         self._textual_logs["prompt"].extend(gather_object(prompts))
-        self._textual_logs["chosen"].extend(gather_object(completions[i] for i in chosen_indices))
-        self._textual_logs["rejected"].extend(gather_object(completions[i] for i in rejected_indices))
+        chosen_completions = [completions[i] for i in chosen_indices]
+        rejected_completions = [completions[i] for i in rejected_indices]
+        self._textual_logs["chosen"].extend(gather_object(chosen_completions))
+        self._textual_logs["rejected"].extend(gather_object(rejected_completions))
         self._textual_logs["references"].extend(gather_object(references))
-
 
         # Build tensor so that the first half is the chosen examples and the second half the rejected examples
         cr_indices = torch.cat((chosen_indices, rejected_indices), dim=0)  # cr = chosen and rejected
@@ -708,7 +709,7 @@ class OnlineDPOTrainer(Trainer):
             df = pd.DataFrame(self._textual_logs)
             if self.args.num_completions_to_print:
                 df = df.head(self.args.num_completions_to_print)
-                
+
             print_rich_dataframe(self.state.global_step, df)
             if self.args.report_to and "wandb" in self.args.report_to and wandb.run is not None:
                 df["step"] = self.state.global_step
