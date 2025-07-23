@@ -14,24 +14,25 @@ train_data:
         # common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
         # common_word_num: 1000
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
-# reward_model_path: /root/data/ckp/hf_models/Qwen2-0.5B-Reward
-judge: error
-# model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
+# model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
+judge: error
+# reward_model_path: /root/data/ckp/hf_models/Qwen2-0.5B-Reward
 output_dir: ./output
 report_to: [wandb]
 num_train_epochs: 2
 learning_rate: 1e-5
 lr_scheduler_type: cosine #cosine
-temperature: 1.0
+temperature: 1.2
 max_new_tokens: 512
 max_length: 7000
 per_device_train_batch_size: 4
 logging_steps: 10
 bf16: True
 gradient_checkpointing: True
-
+log_completions: True
+wandb_log_unique_prompts: True
 use_vllm: True
 vllm_gpu_memory_utilization: 0.45
 # resume_from_checkpoint: True
