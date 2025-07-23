@@ -181,7 +181,7 @@ class Evaluation:
                 max_num_seqs=self.batch_size,
                 load_format="auto",
                 limit_mm_per_prompt={"audio": 1},
-                max_num_batched_tokens=self.vllm_max_length,
+                max_num_batched_tokens=self.vllm_max_length * self.batch_size,
             )
             move_model_to_vllm(model, self.llm)
             del model  # no need any more.
@@ -218,13 +218,14 @@ class Evaluation:
             }
             dataloader = self.accelerator.prepare(DataLoader(dataset, **dl_kwargs))
             results = []
+            keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER"]
             for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
                 outputs = self.generate(inputs)
-                for input, hyp in zip(inputs, outputs):
-                    input["hyp"] = hyp
-                    input["ref"] = input["text"]
-                    input.update(self.measure([input]))
-                    results.append(input)
+                for inp, hyp in zip(inputs, outputs):
+                    inp["hyp"] = hyp
+                    inp["ref"] = inp["text"]
+                    inp.update(self.measure([inp]))
+                    results.append({k: inp.get(k, None) for k in keys})
             return results
 
         return auto_eval()
