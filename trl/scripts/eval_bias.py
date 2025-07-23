@@ -127,6 +127,14 @@ def hack_package(package_path, replace=False):
     print(f"Updated config file: {preprocessor_conf}")
 
 
+def load_audio(x):
+    """Load audio data from the input dictionary."""
+    audio, sr = x.get("audio", None), x.get("sr", None)
+    if audio is not None and sr is not None:
+        return (audio, sr)
+    return sf_read(x["audio_path"])
+
+
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
 
@@ -170,7 +178,6 @@ class Evaluation:
 
     def _prepare_model(self):
         """Prepare the model for evaluation."""
-        model, self.processor = init_model(self.model_path)
         if self.use_vllm:
             self.llm = LLM(
                 model=self.model_path,
@@ -181,23 +188,24 @@ class Evaluation:
                 max_num_seqs=self.batch_size,
                 load_format="auto",
                 limit_mm_per_prompt={"audio": 1},
-                max_num_batched_tokens=self.vllm_max_length * self.batch_size,
             )
+            model, _ = init_model(self.model_path)
             move_model_to_vllm(model, self.llm)
             del model  # no need any more.
             config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
         else:
+            model, self.processor = init_model(self.model_path)
             self.model = self.accelerator.prepare(model).eval()
 
     def generate(self, examples):
         """Generate outputs for a batch of audio files."""
         if self.use_vllm:
-            inputs = [{"prompt": x["prompt"], "multi_modal_data": {"audio": [sf_read(x["audio_path"])]}} for x in examples]
+            inputs = [{"prompt": x["prompt"], "multi_modal_data": {"audio": [load_audio(x)]}} for x in examples]
             outputs = self.llm.generate(inputs, sampling_params=self.sampling_params)
             texts = [output.outputs[0].text for output in outputs]
         else:
-            audios = [sf_read(x["audio_path"]) for x in examples]
+            audios = [load_audio(x) for x in examples]
             prompts = [x["prompt"] for x in examples]
             inputs = self.processor(text=prompts, audios=audios, return_tensors="pt").to(self.accelerator.device)
             model = self.accelerator.unwrap_model(self.model)
@@ -215,6 +223,8 @@ class Evaluation:
             dl_kwargs = {
                 "batch_size": batch_size,
                 "collate_fn": lambda x: x,
+                # "num_workers": 2,
+                # "prefetch_factor": 2,
             }
             dataloader = self.accelerator.prepare(DataLoader(dataset, **dl_kwargs))
             results = []
