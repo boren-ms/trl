@@ -99,7 +99,6 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
         info["entity"] = info.get("entity", parts[-4])
     return info
 
-
 def print_modules(model, trainable=False):
     """List trainable modules in the model and total trainable parameter size."""
     print(f"List modules in the model:", {model.__class__.__name__})
@@ -107,12 +106,14 @@ def print_modules(model, trainable=False):
     n_trainable = 0
     for name, param in model.named_parameters():
         n_total += param.numel()
-        if trainable and param.requires_grad:
-            print(f"{name}: {human_readable(param.numel())} trainable")
+        if param.requires_grad:
             n_trainable += param.numel()
+            if trainable:
+                print(f"{name}: {human_readable(param.numel())} trainable")
     print(f"Total trainable: {human_readable(n_trainable)}")
     print(f"Total parameter: {human_readable(n_total)}")
     return n_total, n_trainable
+
 
 
 def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_run_info=False):
