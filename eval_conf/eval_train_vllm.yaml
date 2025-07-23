@@ -1,0 +1,16 @@
+use_vllm: true
+vllm_max_length: 10240 # default 1024*10 #10k
+batch_size: 128
+generation_config:
+    max_new_tokens: 1024
+    do_sample: false
+# model_path: /root/data/ckp/hf_models/phi4_mm_bias
+# 
+# model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+eval_data:
+    - nickname: ls_train_960hr
+      dataset_name: tsv
+      num_egs: 5000
+      # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
+      tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
