@@ -46,9 +46,8 @@ train_data:
     # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: /root/data/LibriSpeech/debug.tsv
     filter:
-        wer_file: az://orngwus2cresco/data/boren/data/LibriSpeech/debug_wer.jsonl
-        # wer_range: [0.0, 0.5]
-        wer_range: [0.0, 1.0]
+        wer_file: /root/data/LibriSpeech/ls_train_bad_ids.jsonl
+        # wer_range: [0.0, 1.0]
     biasing:
         # bias_prob: 0.8
         hit_prob: 0.5

@@ -201,29 +201,31 @@ def load_audio(ds):
     return ds
 
 
-def filter(ds, **kwargs):
+def filter_ds(ds, **kwargs):
     """Filter the dataset."""
     wer_file = kwargs.get("wer_file", None)
     if wer_file and bf.exists(wer_file):
         with bf.BlobFile(wer_file, "r") as f:
-            df = pd.read_json(f)
+            df = pd.read_json(f, lines=True)
         if wer_range := kwargs.get("wer_range", None):
             df = df[(df["WER"] >= wer_range[0]) & (df["WER"] <= wer_range[1])]
         ids = df["id"].tolist()
+        n_egs = len(ds)
         ds = ds.filter(lambda x: x["id"] in ids)
+        print(f"Filter dataset: {n_egs} to {len(ds)}")
     return ds
 
 
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
+    if filter_kwargs := kwargs.get("filter", {}):
+        ds = filter_ds(ds, **filter_kwargs)
     if biasing_kwargs := kwargs.get("biasing", {}):
         ds = bias_sampling(ds, **biasing_kwargs)
     if perf_kwargs := kwargs.get("simu_perference", {}):
         ds = simulate_perference(ds, **perf_kwargs)
     if kwargs.get("load_audio", False):
         ds = load_audio(ds)
-    if filter_kwargs := kwargs.get("filter", {}):
-        ds = filter(ds, **filter_kwargs)
     return ds
 
 
