@@ -3,10 +3,9 @@
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
-from transformers.trainer_utils import get_last_checkpoint
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.shared_utils import init_model, init_wandb, create_dataset, print_modules, is_valid_checkpoint
+from trl.scripts.shared_utils import init_model, init_wandb, create_dataset, print_modules, get_latest_valid_checkpoint
 
 
 @dataclass
@@ -85,8 +84,8 @@ def main(script_args, training_args):
         compute_metrics=eval_biasing_metrics,
     )
     print("Training...")
-    latest_chkp_dir = get_last_checkpoint(training_args.output_dir)
-    if is_valid_checkpoint(latest_chkp_dir):
+    latest_chkp_dir = get_latest_valid_checkpoint(training_args.output_dir)
+    if latest_chkp_dir:
         print("Resuming from ", latest_chkp_dir)
     trainer.train(resume_from_checkpoint=latest_chkp_dir)
     print("All Done.")

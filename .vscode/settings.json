@@ -32,9 +32,9 @@
         },
         "zsh": {
             "path": "zsh",
-            // "args": [
-            //     "-l"
-            // ]
+            "args": [
+                "-l"
+            ]
         },
         "tmux": {
             "path": "tmux",

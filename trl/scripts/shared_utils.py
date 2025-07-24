@@ -10,6 +10,7 @@ import blobfile as bf
 from pathlib import Path
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
+from transformers.trainer_utils import get_last_checkpoint
 from accelerate import PartialState
 from trl.trainer.utils import add_adapter_func
 from trl.scripts.audio_dataset import create_audio_dataset
@@ -187,3 +188,11 @@ def is_valid_checkpoint(model_dir):
         # print(f"No .safetensors files found in {model_dir}.")
         return False
     return True
+
+
+def get_latest_valid_checkpoint(output_dir):
+    """Get the latest valid checkpoint directory."""
+    latest_chkp_dir = get_last_checkpoint(output_dir)
+    if is_valid_checkpoint(latest_chkp_dir):
+        return latest_chkp_dir
+    return None
