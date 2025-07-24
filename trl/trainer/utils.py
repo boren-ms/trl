@@ -1765,7 +1765,7 @@ def print_rich_dataframe(step: int, df: pd.DataFrame, check_rich: bool=True) -> 
     for column in df.columns:
         table.add_column(column)
     for _, row in df.iterrows():
-        cells = [f"<{i:.2f}>" if isinstance(i, (int, float)) else Text(i) for i in row]
+        cells = [f"{i:.2f}" if isinstance(i, (int, float)) else Text(i) for i in row]
         table.add_row(*cells)
         table.add_section()  # Adds a separator between rows
         
