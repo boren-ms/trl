@@ -2,7 +2,20 @@
 import re
 from collections import deque
 from enum import Enum
+from functools import partial
 from whisper_normalizer.english import EnglishTextNormalizer
+from whisper_normalizer.basic import BasicTextNormalizer
+import jiwer.transforms as tr
+
+
+class RemovePunctuationExclude(tr.RemovePunctuation):
+    """RemovePunctuation excluding certain characters."""
+
+    def __init__(self, exclude=None):
+        super().__init__()
+        self.exclude = exclude or []
+        self.tokens_to_remove = [x for x in self.tokens_to_remove if x not in self.exclude]
+        # print(f"tokens_to_remove: {self.tokens_to_remove}")
 
 
 class Code(Enum):
@@ -49,7 +62,7 @@ class WordError(object):
         return self.get_wer() / 100.0
 
     def get_result_string(self):
-        return f"error_rate={self.get_wer()}, " f"ref_words={self.ref_words}, " f"subs={self.errors[Code.substitution]}, " f"ins={self.errors[Code.insertion]}, " f"dels={self.errors[Code.deletion]}"
+        return f"error_rate={self.get_wer()}, ref_words={self.ref_words}, subs={self.errors[Code.substitution]}, ins={self.errors[Code.insertion]}, dels={self.errors[Code.deletion]}"
 
 
 def coordinate_to_offset(row, col, ncols):
@@ -193,9 +206,47 @@ class EditDistance(object):
         return self.get_result(refs, hyps)
 
 
-def text_norm(txt):
+def identity(text):
+    """Identity normalization function."""
+    return text
+
+
+def lower(text):
+    """Lowercase normalization function."""
+    return text.lower()
+
+
+def remove_punc(text):
+    """Simple normalization function."""
+    norm = tr.Compose(
+        [
+            tr.ToLowerCase(),
+            # tr.ExpandCommonEnglishContractions(),
+            # tr.RemovePunctuation(),
+            RemovePunctuationExclude(exclude=["*"]),
+            tr.RemoveWhiteSpace(replace_by_space=True),
+            tr.RemoveMultipleSpaces(),
+            tr.Strip(),
+            tr.ReduceToSingleSentence(),
+            # tr.ReduceToListOfListOfWords(),
+        ]
+    )
+    return norm(text)
+
+
+TN_DICT = {
+    "english": EnglishTextNormalizer(),
+    "identity": identity,
+    "lower": lower,
+    "basic": BasicTextNormalizer(),
+    "simple": remove_punc,
+}
+
+
+def text_norm(txt, name=None):
     """Normalize tokens by removing leading and trailing whitespace."""
-    norm = EnglishTextNormalizer()
+    name = name or "english"  # Default to EnglishTextNormalizer
+    norm = TN_DICT[name]
     if isinstance(txt, str):
         return norm(txt.strip())
     elif isinstance(txt, list):
@@ -214,7 +265,7 @@ def find_word_indices(text, pieces):
     return indexs
 
 
-def calc_wers(refs, hyps, tn=True):
+def calc_wers(refs, hyps, tn=None):
     """Calculate WER, U-WER, and B-WER."""
     wer = WordError()
     u_wer = WordError()
@@ -222,7 +273,7 @@ def calc_wers(refs, hyps, tn=True):
     for uttid, ref in refs.items():
         if uttid not in hyps:
             continue
-        norm = text_norm if tn else lambda x: x
+        norm = partial(text_norm, name=tn)
         # Normalize reference and hypothesis text
         tn_ref = norm(ref["text"])
         tn_hyp = norm(hyps[uttid])
@@ -268,10 +319,10 @@ def calc_wers(refs, hyps, tn=True):
 
 def format_ref_with_keywords(text, keywords=None):
     """Extract keywords from the text based on biasing words."""
-    if keywords is None:
-        tagged_words = re.findall(r"\*.*?\*", text)
-        keywords = [wd.strip("*") for wd in tagged_words]
-        text = re.sub(r"\*(.*?)\*", r"\1", text)  # Remove tagged words from the text
+    tag_words = re.findall(r"\*.*?\*", text)
+    if tag_words:  # prefer tagged words if found
+        keywords = tag_words
+
     return {
         "biasing_words": keywords,
         "text": text,
@@ -288,7 +339,7 @@ def compute_biasing_metrics(results):
     }
 
 
-def compute_wers(results, tn=True):
+def compute_wers(results, tn=None):
     """compute WER, U-WER, and B-WER"""
     # Extract reference and hypothesis pairs from groups
     refs = {result.get("id", i): format_ref_with_keywords(result["ref"], result.get("keywords", None)) for i, result in enumerate(results)}
@@ -318,7 +369,7 @@ def eval_biasing_metrics(groups):
     }
 
 
-def compute_reward_wers(completions, tn=True, **kwargs):
+def compute_reward_wers(completions, tn=None, **kwargs):
     """Compute rewards for a list of completions."""
     references = kwargs["text"]
     keyword_lists = kwargs["keywords"]
@@ -348,19 +399,19 @@ def reward_bias_accuracy(completions, **kwargs):
 
 def reward_word_plain_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
-    wers = compute_reward_wers(completions, tn=False, **kwargs)
+    wers = compute_reward_wers(completions, tn="simple", **kwargs)
     return [wer[0].accuracy for wer in wers]  # WER
 
 
 def reward_unbias_plain_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
-    wers = compute_reward_wers(completions, tn=False, **kwargs)
+    wers = compute_reward_wers(completions, tn="simple", **kwargs)
     return [wer[1].accuracy for wer in wers]  # U-WER
 
 
 def reward_bias_plain_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
-    wers = compute_reward_wers(completions, tn=False, **kwargs)
+    wers = compute_reward_wers(completions, tn="simple", **kwargs)
     return [wer[2].accuracy for wer in wers]  # B-WER
 
 
@@ -403,8 +454,8 @@ def reward_bias_error_rate(completions, **kwargs):
 if __name__ == "__main__":
     pairs = [
         {
-            "hyp": "Who was it she was in love with? The story will tell, I took upon myself to reply. Oh, I can't wait for the story. The story won't tell, said *douglas* Not in any literal, vulgar way. Nor is the pity then.",
-            "ref": "who was it she was in love with the story will tell i took upon myself to reply oh i can't wait for the story the story won't tell said *douglas* not in any *literal* vulgar way *more's* the pity then",
+            "hyp": "Who was it *she was* in love with? The story will tell, I took upon myself to reply. Oh, I can't wait for the story. The story won't tell, said *douglas* Not in any literal, vulgar way. Nor is the pity then.",
+            "ref": "who was it *she was* in love with the story will tell i took upon myself to reply oh i can't wait for the story the story won't tell said *douglas* not in any *literal* vulgar way *more's* the pity then",
         },
         {
             "hyp": "The air and the earth are curiously *mated* and *intermingled* as if the one were the breath of the other,",
@@ -441,7 +492,7 @@ if __name__ == "__main__":
     ]
 
     for pair in pairs:
-        wer, u_wer, b_wer = compute_wers([pair])
+        wer, u_wer, b_wer = compute_wers([pair], tn="simple")
         print(f"WER: {wer.get_result_string()}")
         print(f"U-WER: {u_wer.get_result_string()}")
         print(f"B-WER: {b_wer.get_result_string()}")
