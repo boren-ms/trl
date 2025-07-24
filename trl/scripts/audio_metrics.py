@@ -216,7 +216,7 @@ def lower(text):
     return text.lower()
 
 
-def remove_punc(text):
+def simple_with_tag(text):
     """Simple normalization function."""
     norm = tr.Compose(
         [
@@ -234,12 +234,28 @@ def remove_punc(text):
     return norm(text)
 
 
+def simple(text):
+    """Simple normalization function."""
+    norm = tr.Compose(
+        [
+            tr.ToLowerCase(),
+            tr.RemovePunctuation(),
+            tr.RemoveWhiteSpace(replace_by_space=True),
+            tr.RemoveMultipleSpaces(),
+            tr.Strip(),
+            tr.ReduceToSingleSentence(),
+        ]
+    )
+    return norm(text)
+
+
 TN_DICT = {
     "english": EnglishTextNormalizer(),
     "identity": identity,
     "lower": lower,
     "basic": BasicTextNormalizer(),
-    "simple": remove_punc,
+    "simple": simple,
+    "simple_with_tag": simple_with_tag,
 }
 
 
@@ -395,42 +411,6 @@ def reward_bias_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
     return [wer[2].accuracy for wer in wers]  # B-WER
-
-
-def reward_word_simple_accuracy(completions, **kwargs):
-    """Compute the reward for a list of completions."""
-    wers = compute_reward_wers(completions, tn="simple", **kwargs)
-    return [wer[0].accuracy for wer in wers]  # WER
-
-
-def reward_unbias_simple_accuracy(completions, **kwargs):
-    """Compute the reward for a list of completions."""
-    wers = compute_reward_wers(completions, tn="simple", **kwargs)
-    return [wer[1].accuracy for wer in wers]  # U-WER
-
-
-def reward_bias_simple_accuracy(completions, **kwargs):
-    """Compute the reward for a list of completions."""
-    wers = compute_reward_wers(completions, tn="simple", **kwargs)
-    return [wer[2].accuracy for wer in wers]  # B-WER
-
-
-def reward_word_simple_error(completions, **kwargs):
-    """Compute the reward for a list of completions."""
-    wers = compute_reward_wers(completions, tn="simple", **kwargs)
-    return [-wer[0].error_count for wer in wers]  # WER
-
-
-def reward_unbias_simple_error(completions, **kwargs):
-    """Compute the reward for a list of completions."""
-    wers = compute_reward_wers(completions, tn="simple", **kwargs)
-    return [-wer[1].error_count for wer in wers]  # U-WER
-
-
-def reward_bias_simple_error(completions, **kwargs):
-    """Compute the reward for a list of completions."""
-    wers = compute_reward_wers(completions, tn="simple", **kwargs)
-    return [-wer[2].error_count for wer in wers]  # B-WER
 
 
 def reward_word_error(completions, **kwargs):

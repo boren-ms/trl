@@ -1,6 +1,7 @@
 # train_grpo.py
 # %%
 import argparse
+from functools import partial
 from dataclasses import dataclass, field
 from typing import Optional
 from trl import GRPOConfig, GRPOTrainer, TrlParser
@@ -44,9 +45,13 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Reward functions to use. Can be a list of functions or a single function."},
     )
+    reward_text_norm: Optional[str] = field(
+        default=None,
+        metadata={"help": "text normalization function to use for reward calculation."},
+    )
 
 
-def reward_functions(names=None):
+def reward_functions(names=None, text_norm=None):
     """get the reward functions based on the function name."""
     names = names or ["reward_bias_accuracy", "reward_word_accuracy"]
     if isinstance(names, str):
@@ -55,7 +60,10 @@ def reward_functions(names=None):
     for name in names:
         try:
             module = __import__("trl.scripts.audio_metrics", fromlist=[name])
-            funcs.append(getattr(module, name))
+            func = getattr(module, name)
+            if text_norm:
+                func = partial(func, tn=text_norm)
+            funcs.append(func)
         except (ImportError, AttributeError) as e:
             raise ValueError(f"Reward function '{name}' not found.") from e
     return funcs
@@ -76,7 +84,7 @@ def main(script_args, training_args):
 
     trainer = GRPOTrainer(
         model=model,
-        reward_funcs=reward_functions(script_args.reward_funcs),
+        reward_funcs=reward_functions(script_args.reward_funcs, script_args.reward_text_norm),
         args=training_args,
         train_dataset=create_dataset(script_args.train_data),
         eval_dataset=create_dataset(script_args.eval_data),
