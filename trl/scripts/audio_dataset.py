@@ -8,6 +8,8 @@ from datasets import load_dataset, concatenate_datasets
 from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
 from trl.data_utils import sf_read
+import blobfile as bf
+import pandas as pd
 
 prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
 
@@ -199,6 +201,19 @@ def load_audio(ds):
     return ds
 
 
+def filter(ds, **kwargs):
+    """Filter the dataset."""
+    wer_file = kwargs.get("wer_file", None)
+    if wer_file and bf.exists(wer_file):
+        with bf.BlobFile(wer_file, "r") as f:
+            df = pd.read_json(f)
+        if wer_range := kwargs.get("wer_range", None):
+            df = df[(df["WER"] >= wer_range[0]) & (df["WER"] <= wer_range[1])]
+        ids = df["id"].tolist()
+        ds = ds.filter(lambda x: x["id"] in ids)
+    return ds
+
+
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
     if biasing_kwargs := kwargs.get("biasing", {}):
@@ -207,6 +222,8 @@ def augment(ds, **kwargs):
         ds = simulate_perference(ds, **perf_kwargs)
     if kwargs.get("load_audio", False):
         ds = load_audio(ds)
+    if filter_kwargs := kwargs.get("filter", {}):
+        ds = filter(ds, **filter_kwargs)
     return ds
 
 
