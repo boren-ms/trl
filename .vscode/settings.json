@@ -1,0 +1,86 @@
+{
+    "editor.minimap.enabled": false,
+    "terminal.integrated.enableMultiLinePasteWarning": "never",
+    "workbench.editorAssociations": {
+        "*.pdf": "pdf.preview",
+        "*.xlsx": "gc-excelviewer-excel-editor"
+    },
+    "workbench.colorTheme": "Default Light Modern",
+    "git.confirmSync": false,
+    "git.enableSmartCommit": true,
+    "git.autofetch": true,
+    "remote.autoForwardPortsSource": "hybrid",
+    "github.copilot.chat.codesearch.enabled": true,
+    "git.openRepositoryInParentFolders": "never",
+    "githubPullRequests.createOnPublishBranch": "never",
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "editor.wordWrapColumn": 200,
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": true,
+        "markdown": true,
+        "scminput": false
+    },
+    "terminal.integrated.profiles.linux": {
+        "bash": {
+            "path": "/usr/bin/bash",
+            "icon": "terminal-bash",
+            "args": [
+                "-l"
+            ]
+        },
+        "zsh": {
+            "path": "zsh",
+            "args": [
+                "-l"
+            ]
+        },
+        "tmux": {
+            "path": "tmux",
+            "icon": "terminal-tmux"
+        },
+    },
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[shellscript]": {
+        "editor.defaultFormatter": "shakram02.bash-beautify"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "pylint.args": [
+        "--disable=C0111",
+        "--max-line-length=200"
+    ],
+    "python.formatting.blackArgs": [
+        "--line-length",
+        "200"
+    ],
+    "black-formatter.args": [
+        "--line-length",
+        "200"
+    ],
+    "inlineChat.enableV2": true,
+    "editor.formatOnSave": true,
+    "remote.defaultExtensionsIfInstalledLocally": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "GitHub.vscode-pull-request-github",
+        "ms-python.isort",
+        "ms-python.pylint",
+        "ms-python.debugpy",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "ms-toolsai.jupyter",
+        "ms-python.black-formatter",
+        "shakram02.bash-beautify",
+        "vscode.json-language-features"
+    ],
+    "remote.downloadExtensionsLocally": true,
+}
