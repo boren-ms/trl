@@ -21,6 +21,7 @@
         "markdown": true,
         "scminput": false
     },
+    "terminal.integrated.defaultProfile.linux": "zsh",
     "terminal.integrated.profiles.linux": {
         "bash": {
             "path": "/usr/bin/bash",
@@ -40,10 +41,9 @@
             "icon": "terminal-tmux"
         },
     },
-    "terminal.integrated.defaultProfile.linux": "bash",
     "editor.defaultFormatter": "ms-python.black-formatter",
     "[python]": {
-        "editor.defaultFormatter": "charliermarsh.ruff"
+        "editor.defaultFormatter": "ms-python.black-formatter"
     },
     "[jsonc]": {
         "editor.defaultFormatter": "vscode.json-language-features"
@@ -55,7 +55,7 @@
         "editor.defaultFormatter": "vscode.json-language-features"
     },
     "[yaml]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
+        "editor.defaultFormatter": "redhat.vscode-yaml"
     },
     "pylint.args": [
         "--disable=C0111",
@@ -66,7 +66,7 @@
         "--line-length",
         "200"
     ],
-    "ruff.lineLength": 200,
+    // "ruff.lineLength": 200,
     "inlineChat.enableV2": true,
     "editor.formatOnSave": true,
     "remote.defaultExtensionsIfInstalledLocally": [
@@ -82,8 +82,8 @@
         "ms-python.black-formatter",
         "shakram02.bash-beautify",
         "vscode.json-language-features",
-        "esbenp.prettier-vscode",
-        "charliermarsh.ruff",
+        "redhat.vscode-yaml",
+        // "charliermarsh.ruff",
     ],
     "remote.downloadExtensionsLocally": true,
 }
