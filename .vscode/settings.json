@@ -43,7 +43,7 @@
     "terminal.integrated.defaultProfile.linux": "bash",
     "editor.defaultFormatter": "ms-python.black-formatter",
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
+        "editor.defaultFormatter": "charliermarsh.ruff"
     },
     "[jsonc]": {
         "editor.defaultFormatter": "vscode.json-language-features"
@@ -54,18 +54,19 @@
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features"
     },
+    "[yaml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
     "pylint.args": [
         "--disable=C0111",
+        "--disable=E1102",
         "--max-line-length=200"
-    ],
-    "python.formatting.blackArgs": [
-        "--line-length",
-        "200"
     ],
     "black-formatter.args": [
         "--line-length",
         "200"
     ],
+    "ruff.lineLength": 200,
     "inlineChat.enableV2": true,
     "editor.formatOnSave": true,
     "remote.defaultExtensionsIfInstalledLocally": [
@@ -80,7 +81,9 @@
         "ms-toolsai.jupyter",
         "ms-python.black-formatter",
         "shakram02.bash-beautify",
-        "vscode.json-language-features"
+        "vscode.json-language-features",
+        "esbenp.prettier-vscode",
+        "charliermarsh.ruff",
     ],
     "remote.downloadExtensionsLocally": true,
 }
