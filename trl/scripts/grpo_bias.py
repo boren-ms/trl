@@ -3,18 +3,10 @@
 import argparse
 from dataclasses import dataclass, field
 from typing import Optional
-from datetime import datetime
-from transformers import AutoModelForCausalLM, AutoProcessor
 from transformers.trainer_utils import get_last_checkpoint
-import wandb
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.shared_utils import (
-    init_model,
-    init_wandb,
-    create_dataset,
-    print_modules,
-)
+from trl.scripts.shared_utils import init_model, init_wandb, create_dataset, print_modules, is_valid_checkpoint
 
 
 @dataclass
@@ -94,7 +86,7 @@ def main(script_args, training_args):
     )
     print("Training...")
     latest_chkp_dir = get_last_checkpoint(training_args.output_dir)
-    if latest_chkp_dir:
+    if is_valid_checkpoint(latest_chkp_dir):
         print("Resuming from ", latest_chkp_dir)
     trainer.train(resume_from_checkpoint=latest_chkp_dir)
     print("All Done.")

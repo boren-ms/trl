@@ -6,6 +6,7 @@ import sys
 import pytz
 import json
 import wandb
+import blobfile as bf
 from pathlib import Path
 from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
@@ -99,6 +100,7 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
         info["entity"] = info.get("entity", parts[-4])
     return info
 
+
 def print_modules(model, trainable=False):
     """List trainable modules in the model and total trainable parameter size."""
     print(f"List modules in the model:", {model.__class__.__name__})
@@ -113,7 +115,6 @@ def print_modules(model, trainable=False):
     print(f"Total trainable: {human_readable(n_trainable)}")
     print(f"Total parameter: {human_readable(n_total)}")
     return n_total, n_trainable
-
 
 
 def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_run_info=False):
@@ -168,3 +169,21 @@ def human_readable(num):
         return f"{num/1_000:.2f}K"
     else:
         return str(num)
+
+
+def is_valid_checkpoint(model_dir):
+    """Check if the model path is valid."""
+    if not bf.exists(model_dir):
+        # print(f"Model path {model_dir} does not exist.")
+        return False
+    if not bf.isdir(model_dir):
+        # print(f"Model path {model_dir} is not a directory.")
+        return False
+    config_file = f"{model_dir}/config.json"
+    if not bf.exists(config_file):
+        # print(f"Config file {config_file} does not exist in the model directory.")
+        return False
+    if not any(bf.glob(f"{model_dir}/*.safetensors")):
+        # print(f"No .safetensors files found in {model_dir}.")
+        return False
+    return True

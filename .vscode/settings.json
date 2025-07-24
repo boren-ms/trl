@@ -32,9 +32,9 @@
         },
         "zsh": {
             "path": "zsh",
-            "args": [
-                "-l"
-            ]
+            // "args": [
+            //     "-l"
+            // ]
         },
         "tmux": {
             "path": "tmux",
@@ -58,8 +58,7 @@
         "editor.defaultFormatter": "redhat.vscode-yaml"
     },
     "pylint.args": [
-        "--disable=C0111",
-        "--disable=E1102",
+        "--disable=C0111,W0621,E1102",
         "--max-line-length=200"
     ],
     "black-formatter.args": [
