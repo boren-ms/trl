@@ -45,13 +45,13 @@ class GRPOScriptArguments:
         default=None,
         metadata={"help": "Reward functions to use. Can be a list of functions or a single function."},
     )
-    reward_text_norm: Optional[str] = field(
+    reward_func_kwargs: Optional[dict] = field(
         default=None,
-        metadata={"help": "text normalization function to use for reward calculation."},
+        metadata={"help": "Keyword arguments for the reward functions."},
     )
 
 
-def reward_functions(names=None, text_norm=None):
+def reward_functions(names=None, **kwargs):
     """get the reward functions based on the function name."""
     names = names or ["reward_bias_accuracy", "reward_word_accuracy"]
     if isinstance(names, str):
@@ -61,8 +61,8 @@ def reward_functions(names=None, text_norm=None):
         try:
             module = __import__("trl.scripts.audio_metrics", fromlist=[name])
             func = getattr(module, name)
-            if text_norm:
-                func = partial(func, tn=text_norm)
+            if kwargs:
+                func = partial(func, **kwargs)
             funcs.append(func)
         except (ImportError, AttributeError) as e:
             raise ValueError(f"Reward function '{name}' not found.") from e
@@ -82,9 +82,10 @@ def main(script_args, training_args):
     _, n_trainable = print_modules(model)
     assert n_trainable > 0, "No trainable parameters found in the model."
 
+    reward_func_kwargs = script_args.reward_func_kwargs or {}
     trainer = GRPOTrainer(
         model=model,
-        reward_funcs=reward_functions(script_args.reward_funcs, script_args.reward_text_norm),
+        reward_funcs=reward_functions(script_args.reward_funcs, **reward_func_kwargs),
         args=training_args,
         train_dataset=create_dataset(script_args.train_data),
         eval_dataset=create_dataset(script_args.eval_data),

@@ -964,7 +964,7 @@ def print_rich_table(df: pd.DataFrame) -> None:
                 formatted_cells.append(Text(str(cell)))
         table.add_row(*formatted_cells)
         table.add_section()  # Adds a separator between rows
-        
+
     panel = Panel(table, expand=False, title=f"Step {step}", border_style="bold white")
     console.print(panel)
 
@@ -1753,11 +1753,11 @@ def entropy_from_logits(logits, chunk_size: int = 1) -> torch.Tensor:
     return per_token_entropies
 
 
-def print_rich_dataframe(step: int, df: pd.DataFrame, check_rich: bool=True) -> None:
+def print_rich_dataframe(step: int, df: pd.DataFrame, check_rich: bool = True) -> None:
     """Prints a Pandas DataFrame in a rich format using the `rich` library."""
     if check_rich and not is_rich_available():
         print("Rich library is not available. Please install it to visualize the DataFrame.")
-        return 
+        return
     console = Console()
     table = Table(show_header=True, expand=True)
     # Create a Rich Table
@@ -1768,7 +1768,7 @@ def print_rich_dataframe(step: int, df: pd.DataFrame, check_rich: bool=True) -> 
         cells = [f"{i:.2f}" if isinstance(i, (int, float)) else Text(i) for i in row]
         table.add_row(*cells)
         table.add_section()  # Adds a separator between rows
-        
+
     panel = Panel(table, expand=False, title=f"Step {step}", border_style="bold white")
     console.print(panel)
 
@@ -1849,3 +1849,17 @@ def move_model_to_vllm(model, llm):
             llm_model.load_weights([(name, param.data)])
     # Reset cache on vLLM
     llm.reset_prefix_cache()
+
+
+def get_func_name(func):
+    # Handles regular functions, methods, functools.partial, and lambdas
+    if hasattr(func, "__name__"):
+        return func.__name__
+    elif hasattr(func, "func"):
+        # For functools.partial or similar wrappers
+        return get_func_name(func.func)
+    elif hasattr(func, "__class__") and hasattr(func.__class__, "__name__"):
+        # For callable objects (instances with __call__)
+        return func.__class__.__name__
+    else:
+        return str(func)

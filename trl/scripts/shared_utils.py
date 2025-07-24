@@ -174,6 +174,8 @@ def human_readable(num):
 
 def is_valid_checkpoint(model_dir):
     """Check if the model path is valid."""
+    if not model_dir:
+        return False
     if not bf.exists(model_dir):
         # print(f"Model path {model_dir} does not exist.")
         return False

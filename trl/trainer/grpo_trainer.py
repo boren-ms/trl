@@ -51,12 +51,12 @@ from transformers.utils import is_datasets_available, is_flash_attn_2_available,
 from ..data_utils import apply_chat_template, is_conversational, sf_read, maybe_apply_chat_template
 from ..extras.profiling import profiling_context, profiling_decorator
 from ..extras.vllm_client import VLLMClient
-from ..import_utils import is_liger_kernel_available, is_vllm_available, is_rich_available
+from ..import_utils import is_liger_kernel_available, is_vllm_available
 from ..models import prepare_deepspeed, prepare_fsdp, unwrap_model_for_generation
 from ..models.utils import _ForwardRedirection
 from .callbacks import SyncRefModelCallback
 from .grpo_config import GRPOConfig
-from .utils import disable_dropout_in_model, entropy_from_logits, generate_model_card, get_comet_experiment_url, pad, print_rich_dataframe, selective_log_softmax, can_merge_adapter
+from .utils import disable_dropout_in_model, entropy_from_logits, generate_model_card, get_comet_experiment_url, pad, print_rich_dataframe, selective_log_softmax, can_merge_adapter, get_func_name
 
 if is_peft_available():
     from peft import PeftConfig, get_peft_model
@@ -477,7 +477,7 @@ class GRPOTrainer(Trainer):
             if isinstance(reward_funcs[i], nn.Module):  # Use Module over PretrainedModel for compat w/ compiled models
                 self.reward_func_names.append(reward_funcs[i].config._name_or_path.split("/")[-1])
             else:
-                self.reward_func_names.append(reward_funcs[i].__name__)
+                self.reward_func_names.append(get_func_name(reward_funcs[i]))
         self.reward_funcs = reward_funcs
 
         # Reward weights
@@ -1551,9 +1551,9 @@ class GRPOTrainer(Trainer):
             df = pd.DataFrame(self._textual_logs)
             if self.args.num_completions_to_print:
                 df = df.head(self.args.num_completions_to_print)
-            
+
             print_rich_dataframe(self.state.global_step, df)
-            
+
             if self.args.report_to and "wandb" in self.args.report_to and wandb.run is not None:
                 df["step"] = self.state.global_step
                 if self.wandb_log_unique_prompts:
