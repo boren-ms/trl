@@ -4,7 +4,7 @@ train_data:
   # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
   tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
   filter:
-    wer_file: az://${DATA_STORAGE}/data/boren/data/ls_train_bad_ids.jsonl
+    wer_file: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_train_bad_ids.jsonl
   biasing:
     buffer_size: 10000
     max_piece_len: 1
