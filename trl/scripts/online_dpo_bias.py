@@ -44,17 +44,20 @@ def init_reward_model(reward_path, **kwargs):
     return reward_model, reward_tokenizer
 
 
-def calc_wer(ref, hyp):
-    wer, uwer, bwer = compute_wers([{"ref": ref, "hyp": hyp}])
-    return wer.get_wer()
-
-
 class ErrorJudge(BasePairwiseJudge):
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
     def judge(self, prompts, completions, shuffle_order=False):
-        return [0 if calc_wer(ref, hyps[0]) <= calc_wer(ref, hyps[1]) else 1 for ref, hyps in zip(prompts, completions)]
+        return [0 if self.calc_wer(ref, hyps[0]) <= self.calc_wer(ref, hyps[1]) else 1 for ref, hyps in zip(prompts, completions)]
+
+    def calc_wer(self, ref, hyp):
+        wer, uwer, bwer = compute_wers([{"ref": ref, "hyp": hyp}], **self.kwargs)
+        return wer.get_wer()
 
 
-def setup_judge(judge_name):
+def setup_judge(judge_name, **kwargs):
     """Setup judge if provided."""
     if not judge_name:
         return
@@ -67,7 +70,7 @@ def setup_judge(judge_name):
         "error": ErrorJudge,
     }
     judge_cls = JUDGES[judge_name]
-    return judge_cls()
+    return judge_cls(**kwargs)
 
 
 @dataclass
@@ -98,6 +101,10 @@ class OnlineDPOScriptArguments:
         default=None,
         metadata={"help": "Path to the model."},
     )
+    judge_kwargs: Optional[dict] = field(
+        default=None,
+        metadata={"help": "Additional arguments for the judge."},
+    )
 
 
 def main(script_args, training_args):
@@ -117,7 +124,8 @@ def main(script_args, training_args):
     reward_model, reward_tokenizer = init_reward_model(training_args.reward_model_path)
 
     # Setup judge
-    judge = setup_judge(training_args.judge)
+    judge_kwargs = script_args.judge_kwargs or {}
+    judge = setup_judge(training_args.judge, **judge_kwargs)
 
     # Create trainer
     trainer = OnlineDPOTrainer(
