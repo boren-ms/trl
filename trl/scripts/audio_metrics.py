@@ -340,7 +340,7 @@ def format_ref_with_keywords(text, keywords=None):
         keywords = tag_words
 
     return {
-        "biasing_words": keywords,
+        "biasing_words": keywords or [],
         "text": text,
     }
 
