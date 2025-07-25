@@ -30,8 +30,8 @@ new_lora: True
 lr_scheduler_type: cosine #cosine
 temperature: 1.2
 output_dir: ./output
-per_device_train_batch_size: 20
-num_generations: 10
+per_device_train_batch_size: 16
+num_generations: 8
 logging_steps: 10
 bf16: True
 gradient_checkpointing: True
