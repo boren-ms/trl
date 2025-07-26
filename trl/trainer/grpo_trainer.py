@@ -902,17 +902,22 @@ class GRPOTrainer(Trainer):
                         llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
                         llm_model.load_weights([(full_name, param.data)])
 
+    def logprint(self, *args, main=True, **kwargs):
+        if main and not self.accelerator.is_main_process:
+            return
+        rank = self.accelerator.process_index
+        print(f"[{rank}]", *args, **kwargs)
+
     @profiling_decorator
     def _move_model_to_vllm(self):
-        if self.accelerator.is_main_process:
-            print(f"[0] Update vllm weights @ {self.state.global_step} step")
-        # For DeepSpeed ZeRO-3 and FSDP, we need to gather all parameters before operations
+        self.logprint(f"Update vllm @ {self.state.global_step} step")
         deepspeed_plugin = self.accelerator.state.deepspeed_plugin
         zero_stage_3 = deepspeed_plugin is not None and deepspeed_plugin.zero_stage == 3
         if zero_stage_3:
             import deepspeed
 
             gather_if_zero3 = deepspeed.zero.GatheredParameters
+            self.logprint("using zero3 gather")
         else:
             gather_if_zero3 = nullcontext
 
