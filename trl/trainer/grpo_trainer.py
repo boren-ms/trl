@@ -520,6 +520,7 @@ class GRPOTrainer(Trainer):
         self.top_p = args.top_p
         self.top_k = args.top_k
         self.min_p = args.min_p
+        self.max_num_sampling = args.max_num_sampling
         self.repetition_penalty = args.repetition_penalty
         self.use_vllm = args.use_vllm
         self.vllm_mode = args.vllm_mode
@@ -1071,217 +1072,222 @@ class GRPOTrainer(Trainer):
             # prompts_text = self.processing_class.batch_decode(prompt_ids, skip_special_tokens=False, clean_up_tokenization_spaces=False)
 
         # Generate completions using either vLLM or regular generation
-        if self.use_vllm:
-            # First, update the vLLM weights if needed
-            if self.state.global_step % self.args.vllm_update_steps == 0 and self.state.global_step != self._last_loaded_step:
-                self._move_model_to_vllm()
-                self._last_loaded_step = self.state.global_step
-            # Generate completions using vLLM: gather all prompts and use them in a single call in the main process
-            if self.vllm_mode == "server":
-                all_prompts_text = gather_object(prompts_text)
-                audio_paths = [x["audio_path"] for x in inputs]
-                all_audio_paths = gather_object(audio_paths)
-                if self.accelerator.is_main_process:
-                    # Since 'prompts' contains 'num_generations' duplicates, we first take unique prompts, and generate
-                    # num_generations outputs for each one. This is faster than generating outputs for each duplicate
-                    # prompt individually.
-                    ordered_set_of_prompts = all_prompts_text[::num_generations]
-                    ordered_set_of_audios = all_audio_paths[::num_generations]
+        for i_gen in range(self.max_num_sampling):
+            if self.use_vllm:
+                # First, update the vLLM weights if needed
+                if self.state.global_step % self.args.vllm_update_steps == 0 and self.state.global_step != self._last_loaded_step:
+                    self._move_model_to_vllm()
+                    self._last_loaded_step = self.state.global_step
+                # Generate completions using vLLM: gather all prompts and use them in a single call in the main process
+                if self.vllm_mode == "server":
+                    all_prompts_text = gather_object(prompts_text)
+                    audio_paths = [x["audio_path"] for x in inputs]
+                    all_audio_paths = gather_object(audio_paths)
+                    if self.accelerator.is_main_process:
+                        # Since 'prompts' contains 'num_generations' duplicates, we first take unique prompts, and generate
+                        # num_generations outputs for each one. This is faster than generating outputs for each duplicate
+                        # prompt individually.
+                        ordered_set_of_prompts = all_prompts_text[::num_generations]
+                        ordered_set_of_audios = all_audio_paths[::num_generations]
+                        with profiling_context(self, "vLLM.generate"):
+                            outputs = self.vllm_client.generate(
+                                prompts=ordered_set_of_prompts,
+                                audios=ordered_set_of_audios,
+                                n=num_generations,
+                                repetition_penalty=self.repetition_penalty,
+                                temperature=temperature,
+                                top_p=self.top_p,
+                                top_k=-1 if self.top_k is None else self.top_k,
+                                min_p=0.0 if self.min_p is None else self.min_p,
+                                max_tokens=self.max_completion_length,
+                                stop_token_ids=self.stop_tokens_ids.flatten().tolist(),
+                                guided_decoding_regex=self.guided_decoding_regex,
+                                generation_kwargs=self.args.generation_kwargs,
+                            )
+                            completion_ids = outputs["completion_ids"]
+                    else:
+                        completion_ids = [None] * len(all_prompts_text)
+                    # Broadcast the completions from the main process to all processes, ensuring each process receives its
+                    # corresponding slice.
+                    completion_ids = broadcast_object_list(completion_ids, from_process=0)
+                    process_slice = slice(
+                        self.accelerator.process_index * len(prompts),
+                        (self.accelerator.process_index + 1) * len(prompts),
+                    )
+                    completion_ids = completion_ids[process_slice]
+
+                # Generate completions using colocated vLLM instances: each device holds vLLM copy and work on their own batch of prompts
+                elif self.vllm_mode == "colocate":
+                    if self.guided_decoding_regex:
+                        guided_decoding = GuidedDecodingParams(backend="outlines", regex=self.guided_decoding_regex)
+                    else:
+                        guided_decoding = None
+
+                    generation_kwargs = {
+                        "n": 1,  # vLLM on each GPU generates only 1 in colocate mode
+                        "repetition_penalty": self.repetition_penalty,
+                        "temperature": temperature,
+                        "top_p": self.top_p,
+                        "top_k": -1 if self.top_k is None else self.top_k,
+                        "min_p": 0.0 if self.min_p is None else self.min_p,
+                        "max_tokens": self.max_completion_length,
+                        "stop_token_ids": self.stop_tokens_ids.flatten().tolist(),
+                        "guided_decoding": guided_decoding,
+                    }
+                    if self.args.generation_kwargs is not None:
+                        generation_kwargs.update(self.args.generation_kwargs)
+                    sampling_params = SamplingParams(**generation_kwargs)
+
+                    if self.vllm_tensor_parallel_size > 1:
+                        # Gather prompts from all ranks in the TP group and flatten.
+                        # Each rank starts with its own prompts; after gathering, all ranks see the full group set.
+                        orig_size = len(prompts_text)
+                        gathered_prompts = [None for _ in range(self.vllm_tensor_parallel_size)]
+                        torch.distributed.all_gather_object(gathered_prompts, prompts_text, group=self.tp_group)
+                        all_prompts = [p for sublist in gathered_prompts for p in sublist]
+                    else:
+                        all_prompts = []
+                        for prompt, audio in zip(prompts_text, audios):
+                            all_prompts.append(
+                                {
+                                    "prompt": prompt,
+                                    "multi_modal_data": {"audio": [audio]},
+                                }
+                            )
+
                     with profiling_context(self, "vLLM.generate"):
-                        outputs = self.vllm_client.generate(
-                            prompts=ordered_set_of_prompts,
-                            audios=ordered_set_of_audios,
-                            n=num_generations,
-                            repetition_penalty=self.repetition_penalty,
-                            temperature=temperature,
-                            top_p=self.top_p,
-                            top_k=-1 if self.top_k is None else self.top_k,
-                            min_p=0.0 if self.min_p is None else self.min_p,
-                            max_tokens=self.max_completion_length,
-                            stop_token_ids=self.stop_tokens_ids.flatten().tolist(),
-                            guided_decoding_regex=self.guided_decoding_regex,
-                            generation_kwargs=self.args.generation_kwargs,
-                        )
-                        completion_ids = outputs["completion_ids"]
+                        all_outputs = self.llm.generate(all_prompts, sampling_params=sampling_params, use_tqdm=False)
+
+                    completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
+
+                    if self.vllm_tensor_parallel_size > 1:
+                        # Slice completions for this rank within its TP group.
+                        # Each rank generates all outputs — we keep only our share.
+                        local_rank_in_group = torch.distributed.get_rank(group=self.tp_group)
+                        tp_slice = slice(local_rank_in_group * orig_size, (local_rank_in_group + 1) * orig_size)
+                        completion_ids = completion_ids[tp_slice]
+
+                # Pad the completions, and concatenate them with the prompts
+                completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
+                completion_ids = pad(completion_ids, padding_value=self.processing_class.tokenizer.pad_token_id)
+                prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+
+            elif self.use_transformers_paged:
+                prompt_inputs = self.processing_class(text=prompts_text)
+                self.generation_config.max_batch_tokens = 512
+                self.generation_config.num_blocks = 1024
+                self.generation_config.block_size = 128
+                previous_attn = self.model_wrapped.config._attn_implementation
+
+                if is_flash_attn_2_available():
+                    self.model_wrapped.config._attn_implementation = "paged_attention"
                 else:
-                    completion_ids = [None] * len(all_prompts_text)
-                # Broadcast the completions from the main process to all processes, ensuring each process receives its
-                # corresponding slice.
-                completion_ids = broadcast_object_list(completion_ids, from_process=0)
-                process_slice = slice(
-                    self.accelerator.process_index * len(prompts),
-                    (self.accelerator.process_index + 1) * len(prompts),
-                )
-                completion_ids = completion_ids[process_slice]
-
-            # Generate completions using colocated vLLM instances: each device holds vLLM copy and work on their own batch of prompts
-            elif self.vllm_mode == "colocate":
-                if self.guided_decoding_regex:
-                    guided_decoding = GuidedDecodingParams(backend="outlines", regex=self.guided_decoding_regex)
-                else:
-                    guided_decoding = None
-
-                generation_kwargs = {
-                    "n": 1,  # vLLM on each GPU generates only 1 in colocate mode
-                    "repetition_penalty": self.repetition_penalty,
-                    "temperature": temperature,
-                    "top_p": self.top_p,
-                    "top_k": -1 if self.top_k is None else self.top_k,
-                    "min_p": 0.0 if self.min_p is None else self.min_p,
-                    "max_tokens": self.max_completion_length,
-                    "stop_token_ids": self.stop_tokens_ids.flatten().tolist(),
-                    "guided_decoding": guided_decoding,
-                }
-                if self.args.generation_kwargs is not None:
-                    generation_kwargs.update(self.args.generation_kwargs)
-                sampling_params = SamplingParams(**generation_kwargs)
-
-                if self.vllm_tensor_parallel_size > 1:
-                    # Gather prompts from all ranks in the TP group and flatten.
-                    # Each rank starts with its own prompts; after gathering, all ranks see the full group set.
-                    orig_size = len(prompts_text)
-                    gathered_prompts = [None for _ in range(self.vllm_tensor_parallel_size)]
-                    torch.distributed.all_gather_object(gathered_prompts, prompts_text, group=self.tp_group)
-                    all_prompts = [p for sublist in gathered_prompts for p in sublist]
-                else:
-                    all_prompts = []
-                    for prompt, audio in zip(prompts_text, audios):
-                        all_prompts.append(
-                            {
-                                "prompt": prompt,
-                                "multi_modal_data": {"audio": [audio]},
-                            }
-                        )
-
-                with profiling_context(self, "vLLM.generate"):
-                    all_outputs = self.llm.generate(all_prompts, sampling_params=sampling_params, use_tqdm=False)
-
-                completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
-
-                if self.vllm_tensor_parallel_size > 1:
-                    # Slice completions for this rank within its TP group.
-                    # Each rank generates all outputs — we keep only our share.
-                    local_rank_in_group = torch.distributed.get_rank(group=self.tp_group)
-                    tp_slice = slice(local_rank_in_group * orig_size, (local_rank_in_group + 1) * orig_size)
-                    completion_ids = completion_ids[tp_slice]
-
-            # Pad the completions, and concatenate them with the prompts
-            completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
-            completion_ids = pad(completion_ids, padding_value=self.processing_class.tokenizer.pad_token_id)
-            prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-
-        elif self.use_transformers_paged:
-            prompt_inputs = self.processing_class(text=prompts_text)
-            self.generation_config.max_batch_tokens = 512
-            self.generation_config.num_blocks = 1024
-            self.generation_config.block_size = 128
-            previous_attn = self.model_wrapped.config._attn_implementation
-
-            if is_flash_attn_2_available():
-                self.model_wrapped.config._attn_implementation = "paged_attention"
+                    self.model_wrapped.config._attn_implementation = "sdpa_paged"
+                with (
+                    profiling_context(self, "transformers.generate_batch"),
+                    unwrap_model_for_generation(self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model,
+                    torch.no_grad(),
+                    FSDP.summon_full_params(self.model_wrapped, recurse=False) if self.is_fsdp_enabled else nullcontext(),
+                ):
+                    # Cast to the appropriate dtype based on training configuration
+                    if self.args.bf16:
+                        unwrapped_model.to(torch.bfloat16)
+                    elif self.args.fp16:
+                        unwrapped_model.to(torch.float16)
+                    with torch.inference_mode():
+                        all_outputs = unwrapped_model.generate_batch(prompt_inputs.input_ids, generation_config=self.generation_config)
+                completion_ids = [output.generated_tokens for output in all_outputs.values()]
+                completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
+                completion_ids = pad(completion_ids, padding_value=self.processing_class.pad_token_id)
+                prompt_ids = [torch.tensor(ids, device=device) for ids in prompt_inputs.input_ids]
+                prompt_ids = pad(prompt_ids, padding_value=self.processing_class.pad_token_id)
+                prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
+                # Restore the original attention implementation, training mode
+                self.model_wrapped.config._attn_implementation = previous_attn
             else:
-                self.model_wrapped.config._attn_implementation = "sdpa_paged"
-            with (
-                profiling_context(self, "transformers.generate_batch"),
-                unwrap_model_for_generation(self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model,
-                torch.no_grad(),
-                FSDP.summon_full_params(self.model_wrapped, recurse=False) if self.is_fsdp_enabled else nullcontext(),
-            ):
-                # Cast to the appropriate dtype based on training configuration
-                if self.args.bf16:
-                    unwrapped_model.to(torch.bfloat16)
-                elif self.args.fp16:
-                    unwrapped_model.to(torch.float16)
-                with torch.inference_mode():
-                    all_outputs = unwrapped_model.generate_batch(prompt_inputs.input_ids, generation_config=self.generation_config)
-            completion_ids = [output.generated_tokens for output in all_outputs.values()]
-            completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
-            completion_ids = pad(completion_ids, padding_value=self.processing_class.pad_token_id)
-            prompt_ids = [torch.tensor(ids, device=device) for ids in prompt_inputs.input_ids]
-            prompt_ids = pad(prompt_ids, padding_value=self.processing_class.pad_token_id)
-            prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
-            # Restore the original attention implementation, training mode
-            self.model_wrapped.config._attn_implementation = previous_attn
-        else:
-            # Regular generation path
-            with unwrap_model_for_generation(self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model:
-                with FSDP.summon_full_params(self.model_wrapped, recurse=False) if self.is_fsdp_enabled else nullcontext():
-                    prompt_completion_ids = unwrapped_model.generate(prompt_ids, attention_mask=prompt_mask, generation_config=self.generation_config, **prompt_inputs)
+                # Regular generation path
+                with unwrap_model_for_generation(self.model_wrapped, self.accelerator, gather_deepspeed3_params=self.args.ds3_gather_for_generation) as unwrapped_model:
+                    with FSDP.summon_full_params(self.model_wrapped, recurse=False) if self.is_fsdp_enabled else nullcontext():
+                        prompt_completion_ids = unwrapped_model.generate(prompt_ids, attention_mask=prompt_mask, generation_config=self.generation_config, **prompt_inputs)
 
-            # Compute prompt length and extract completion ids
-            prompt_length = prompt_ids.size(1)
-            prompt_ids = prompt_completion_ids[:, :prompt_length]
-            completion_ids = prompt_completion_ids[:, prompt_length:]
+                # Compute prompt length and extract completion ids
+                prompt_length = prompt_ids.size(1)
+                prompt_ids = prompt_completion_ids[:, :prompt_length]
+                completion_ids = prompt_completion_ids[:, prompt_length:]
 
-        # Mask everything after the first EOS token
-        # is_eos = completion_ids == self.processing_class.tokenizer.eos_token_id
-        is_eos = torch.isin(completion_ids, self.stop_tokens_ids.to(device))
-        eos_idx = torch.full((is_eos.size(0),), is_eos.size(1), dtype=torch.long, device=device)
-        eos_idx[is_eos.any(dim=1)] = is_eos.int().argmax(dim=1)[is_eos.any(dim=1)]
-        sequence_indices = torch.arange(is_eos.size(1), device=device).expand(is_eos.size(0), -1)
-        completion_mask = (sequence_indices <= eos_idx.unsqueeze(1)).int()
+            # Mask everything after the first EOS token
+            # is_eos = completion_ids == self.processing_class.tokenizer.eos_token_id
+            is_eos = torch.isin(completion_ids, self.stop_tokens_ids.to(device))
+            eos_idx = torch.full((is_eos.size(0),), is_eos.size(1), dtype=torch.long, device=device)
+            eos_idx[is_eos.any(dim=1)] = is_eos.int().argmax(dim=1)[is_eos.any(dim=1)]
+            sequence_indices = torch.arange(is_eos.size(1), device=device).expand(is_eos.size(0), -1)
+            completion_mask = (sequence_indices <= eos_idx.unsqueeze(1)).int()
 
-        # Convert tensor to a list of lists of token IDs. This will be passed to the reward function, avoiding the need
-        # to re-tokenize completions if the reward is computed from tokens.
-        completion_ids_list = [[id.item() for id, m in zip(row, mask_row) if m] for row, mask_row in zip(completion_ids, completion_mask)]
+            # Convert tensor to a list of lists of token IDs. This will be passed to the reward function, avoiding the need
+            # to re-tokenize completions if the reward is computed from tokens.
+            completion_ids_list = [[id.item() for id, m in zip(row, mask_row) if m] for row, mask_row in zip(completion_ids, completion_mask)]
 
-        # Sum along sequence dimension (dim=1) to get completion length per sequence, used for logging
-        completion_lengths = completion_mask.sum(1)
+            # Sum along sequence dimension (dim=1) to get completion length per sequence, used for logging
+            completion_lengths = completion_mask.sum(1)
 
-        # If mask_truncated_completions is enabled, zero out truncated completions in completion_mask
-        if self.mask_truncated_completions:
-            truncated_completions = ~is_eos.any(dim=1)
-            completion_mask = completion_mask * (~truncated_completions).unsqueeze(1).int()
+            # If mask_truncated_completions is enabled, zero out truncated completions in completion_mask
+            if self.mask_truncated_completions:
+                truncated_completions = ~is_eos.any(dim=1)
+                completion_mask = completion_mask * (~truncated_completions).unsqueeze(1).int()
 
-        # Concatenate prompt_mask with completion_mask for logit computation
-        attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B, P+C)
+            # Concatenate prompt_mask with completion_mask for logit computation
+            attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B, P+C)
 
-        logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
-        batch_size = self.args.per_device_train_batch_size if mode == "train" else self.args.per_device_eval_batch_size
+            logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
+            batch_size = self.args.per_device_train_batch_size if mode == "train" else self.args.per_device_eval_batch_size
 
-        with torch.no_grad():
-            # When using num_iterations == 1 and steps_per_generation <= gradient_accumulation_steps
-            # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
-            # per_token_logps.detach() instead.
-            if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps:
-                old_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size)["logps"]
-            else:
-                old_per_token_logps = None
-
-            # Compute the per-token log probabilities for the reference model
-            if self.beta != 0.0:
-                if self.ref_model is not None:
-                    ref_per_token_logps = self._get_per_token_logps_and_entropies(self.ref_model, prompt_completion_ids, attention_mask, logits_to_keep)["logps"]
+            with torch.no_grad():
+                # When using num_iterations == 1 and steps_per_generation <= gradient_accumulation_steps
+                # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
+                # per_token_logps.detach() instead.
+                if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps:
+                    old_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size)["logps"]
                 else:
-                    with self.accelerator.unwrap_model(self.model).disable_adapter():
-                        ref_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep)["logps"]
+                    old_per_token_logps = None
+
+                # Compute the per-token log probabilities for the reference model
+                if self.beta != 0.0:
+                    if self.ref_model is not None:
+                        ref_per_token_logps = self._get_per_token_logps_and_entropies(self.ref_model, prompt_completion_ids, attention_mask, logits_to_keep)["logps"]
+                    else:
+                        with self.accelerator.unwrap_model(self.model).disable_adapter():
+                            ref_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep)["logps"]
+                else:
+                    ref_per_token_logps = None
+
+            # Decode the generated completions
+            completion_masked_ids = completion_ids.masked_fill(completion_mask == 0, self.processing_class.tokenizer.pad_token_id)
+            completions_text = self.processing_class.tokenizer.batch_decode(completion_masked_ids, skip_special_tokens=True)
+            if is_conversational(inputs[0]):
+                completions = []
+                for prompt, completion in zip(prompts, completions_text):
+                    bootstrap = prompt.pop()["content"] if prompt[-1]["role"] == "assistant" else ""
+                    completions.append([{"role": "assistant", "content": bootstrap + completion}])
             else:
-                ref_per_token_logps = None
+                completions = completions_text
 
-        # Decode the generated completions
-        completion_masked_ids = completion_ids.masked_fill(completion_mask == 0, self.processing_class.tokenizer.pad_token_id)
-        completions_text = self.processing_class.tokenizer.batch_decode(completion_masked_ids, skip_special_tokens=True)
-        if is_conversational(inputs[0]):
-            completions = []
-            for prompt, completion in zip(prompts, completions_text):
-                bootstrap = prompt.pop()["content"] if prompt[-1]["role"] == "assistant" else ""
-                completions.append([{"role": "assistant", "content": bootstrap + completion}])
-        else:
-            completions = completions_text
+            # Calculate rewards for each reward function. rewards_per_func aggregates rewards across all processes. This is
+            # important because rewards will be normalized per group, and completions are distributed. We will later slice
+            # rewards_per_func to extract each process's subset.
+            rewards_per_func = self._calculate_rewards(inputs, prompts, completions, completion_ids_list)
 
-        # Calculate rewards for each reward function. rewards_per_func aggregates rewards across all processes. This is
-        # important because rewards will be normalized per group, and completions are distributed. We will later slice
-        # rewards_per_func to extract each process's subset.
-        rewards_per_func = self._calculate_rewards(inputs, prompts, completions, completion_ids_list)
+            # Apply weights to each reward function's output and sum
+            rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
 
-        # Apply weights to each reward function's output and sum
-        rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
-
-        # Compute grouped-wise rewards
-        mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
-        std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
-        is_std_zero = torch.isclose(std_grouped_rewards, torch.zeros_like(std_grouped_rewards))
-
+            # Compute grouped-wise rewards
+            mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
+            std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
+            is_std_zero = torch.isclose(std_grouped_rewards, torch.zeros_like(std_grouped_rewards))
+            # Keep sampling if rewards have zero std
+            # Break resampling loop if non-zero std_grouped_rewards is detected
+            if not is_std_zero.any():
+                break
+        self._metrics[mode]["gen_resampling"].append(i_gen)  # log the resampling iteration.
         # Normalize the rewards to compute the advantages
         mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(num_generations, dim=0)
         std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)

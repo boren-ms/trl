@@ -287,10 +287,7 @@ class GRPOConfig(TrainingArguments):
     # Parameters that control generation
     generation_batch_size: Optional[int] = field(
         default=None,
-        metadata={
-            "help": "Batch size to use for generation. If `None`, it defaults to the effective training batch size: "
-            "`per_device_train_batch_size * num_processes * steps_per_generation`."
-        },
+        metadata={"help": "Batch size to use for generation. If `None`, it defaults to the effective training batch size: " "`per_device_train_batch_size * num_processes * steps_per_generation`."},
     )
     steps_per_generation: Optional[int] = field(
         default=None,
@@ -522,6 +519,10 @@ class GRPOConfig(TrainingArguments):
         default=False,
         metadata={"help": "Whether to log unique prompts in wandb. If `True`, only unique prompts are logged. If `False`, " "all prompts are logged."},
     )
+    max_num_sampling: int = field(
+        default=1,
+        metadata={"help": "Maximum number of sampling attempts."},
+    )
 
     def __post_init__(self):
         self.bf16 = not (self.fp16) if self.bf16 is None else self.bf16
@@ -540,10 +541,7 @@ class GRPOConfig(TrainingArguments):
             self.generation_batch_size = self.per_device_train_batch_size * num_processes * self.steps_per_generation
 
         if self.generation_batch_size % (self.per_device_train_batch_size * num_processes) != 0:
-            raise ValueError(
-                f"generation_batch_size ({self.generation_batch_size}) must be divisible by the global batch size "
-                f"({self.per_device_train_batch_size * num_processes})."
-            )
+            raise ValueError(f"generation_batch_size ({self.generation_batch_size}) must be divisible by the global batch size " f"({self.per_device_train_batch_size * num_processes}).")
 
         self.steps_per_generation = self.generation_batch_size // (self.per_device_train_batch_size * num_processes)
 
