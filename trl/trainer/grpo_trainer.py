@@ -1336,10 +1336,13 @@ class GRPOTrainer(Trainer):
             self._textual_logs[name].extend(rewards_per_func[:, i].tolist())
         self._textual_logs["advantages"].extend(all_process_advantages.tolist())
 
+        # remove empty tensors from prompt_inputs
+        prompt_inputs = {k: v for k, v in prompt_inputs.items() if not (isinstance(v, torch.Tensor) and v.numel() == 0)}
+
         return {
             "prompt_ids": prompt_ids,
             "prompt_mask": prompt_mask,
-            "prompt_inputs": dict(prompt_inputs),  # ensure is a dict
+            "prompt_inputs": prompt_inputs,
             "completions": completions,
             "completion_ids": completion_ids,
             "completion_mask": completion_mask,
