@@ -1339,7 +1339,7 @@ class GRPOTrainer(Trainer):
         return {
             "prompt_ids": prompt_ids,
             "prompt_mask": prompt_mask,
-            "prompt_inputs": prompt_inputs,
+            "prompt_inputs": dict(prompt_inputs),  # ensure is a dict
             "completions": completions,
             "completion_ids": completion_ids,
             "completion_mask": completion_mask,
