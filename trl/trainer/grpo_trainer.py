@@ -195,7 +195,7 @@ def nanstd(tensor: torch.Tensor) -> torch.Tensor:
     return torch.sqrt(variance)
 
 
-def split_tensor_dict(tensor_dict: dict[str, Optional[Union[torch.Tensor, dict]]], num_chunks: int) -> list[dict[str, Optional[Union[torch.Tensor, dict]]]]:
+def split_sequence_dict(tensor_dict, num_chunks: int):
     """
     Splits a dictionary of tensors along the first dimension into `num_chunks` equal parts.
 
@@ -215,55 +215,54 @@ def split_tensor_dict(tensor_dict: dict[str, Optional[Union[torch.Tensor, dict]]
     first_tensor = next(tensor for tensor in tensor_dict.values() if tensor is not None)
     chunk_size = first_tensor.shape[0] // num_chunks
     chunks = [{} for _ in range(num_chunks)]
-    for key, tensor in tensor_dict.items():
-        if tensor is None:
+    for key, val in tensor_dict.items():
+        if val is None:
             vals = [None] * num_chunks
-        elif isinstance(tensor, torch.Tensor):  # TODO: need to fix when len(tensor) is short than chunk_sizes, the chunk number chould be different for keys.
-            vals = torch.split(tensor, chunk_size)
-        elif isinstance(tensor, dict):
-            vals = split_tensor_dict(tensor, chunk_size)
+        elif isinstance(val, torch.Tensor):  # TODO: need to fix when len(tensor) is short than chunk_sizes, the chunk number chould be different for keys.
+            vals = torch.split(val, chunk_size) if len(val) > 1 else [val] * num_chunks
+        elif isinstance(val, dict):
+            vals = split_sequence_dict(val, num_chunks)
+        elif isinstance(val, (list, tuple)):
+            vals = [val[i : i + chunk_size] for i in range(0, len(val), chunk_size)]
         else:
-            raise RuntimeError("Unknow tensor type:", tensor)
+            raise RuntimeError("Unknow tensor type:", val)
         for i, val in enumerate(vals):
             chunks[i][key] = val
 
     return chunks
 
 
-def shuffle_tensor_dict(tensor_dict: dict[str, Optional[Union[torch.Tensor, dict]]]) -> dict[str, Optional[Union[torch.Tensor, dict]]]:
+def shuffle_sequence_dict(seq_dict, permutation=None):
     """
-    Shuffles a dictionary of tensors along the first dimension in unison.
+    Shuffles all sequence-like values in a dictionary along the first dimension in unison.
 
     Example:
     ```python
     >>> x = torch.arange(6).reshape(3, 2)
-    >>> y = torch.arange(3).reshape(3, 1)
-    >>> tensor_dict = {"x": x, "y": y}
-    >>> shuffle_tensor_dict(tensor_dict)
+    >>> y = ["a", "b", "c"]
+    >>> seq_dict = {"x": x, "y": y}
+    >>> shuffle_sequence_dict(seq_dict)
     {'x': tensor([[2, 3],
-                    [0, 1],
-                    [4, 5]]),
-        'y': tensor([[1],
-                    [0],
-                    [2]])}
+                  [0, 1],
+                  [4, 5]]),
+     'y': ['b', 'a', 'c']}
     ```
     """
-    first_tensor = next(tensor for tensor in tensor_dict.values() if tensor is not None)
-    batch_size = first_tensor.shape[0]
-    permutation = torch.randperm(batch_size)
+    # Determine batch size from the first non-None sequence
+    if permutation is None:
+        batch_size = len(next(v for v in seq_dict.values() if v is not None))
+        permutation = torch.randperm(batch_size)
 
-    new_tensor_dict = {}
-    for key, tensor in tensor_dict.items():
-        if tensor is None:
-            val = None
-        elif isinstance(tensor, torch.Tensor):
-            val = tensor[permutation]
-        elif isinstance(tensor, dict):
-            val = shuffle_tensor_dict(tensor)
-        else:
-            raise RuntimeError("Unknow tensor type:", tensor)
-        new_tensor_dict[key] = val
-    return new_tensor_dict
+    def permute(v):
+        if v is None:
+            return None
+        if isinstance(v, torch.Tensor):
+            return v[permutation] if len(v) > 1 else v  # broadcast to all
+        if isinstance(v, dict):
+            return shuffle_sequence_dict(v, permutation)
+        return [v[i] for i in permutation]
+
+    return {key: permute(val) for key, val in seq_dict.items()}
 
 
 def nanmin(tensor: torch.Tensor) -> torch.Tensor:
@@ -661,7 +660,7 @@ class GRPOTrainer(Trainer):
                     # Feed identical seed for tp groups to ensure sampling results are the same across workers
                     seed=self.accelerator.process_index // self.vllm_tensor_parallel_size,
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
-                    max_num_batched_tokens=max_all_tokens * 2,
+                    max_num_batched_tokens=max_all_tokens,
                     trust_remote_code=True,
                 )
 
@@ -990,15 +989,16 @@ class GRPOTrainer(Trainer):
 
         mode = "train" if self.model.training else "eval"
         if mode == "train":
-            # generate_every = self.args.steps_per_generation * self.num_iterations
-            # if self._step % generate_every == 0 or self._buffered_inputs is None:
-            #     # self._buffered_inputs=None can occur when resuming from a checkpoint
-            #     generation_batch = self._generate_and_score_completions(generation_batch)
-            #     # TODO: revert to the original batching strategy
-            #     generation_batch = shuffle_tensor_dict(generation_batch)
-            #     self._buffered_inputs = split_tensor_dict(generation_batch, self.args.steps_per_generation)
-            # inputs = self._buffered_inputs[self._step % self.args.steps_per_generation]
-            inputs = self._generate_and_score_completions(generation_batch)
+            generate_every = self.args.steps_per_generation * self.num_iterations
+            if self._step % generate_every == 0 or self._buffered_inputs is None:
+                # self._buffered_inputs=None can occur when resuming from a checkpoint
+                generation_batch = self._generate_and_score_completions(generation_batch)
+                # generation_batch = split_pixel_values_by_grid(generation_batch)
+                generation_batch = shuffle_sequence_dict(generation_batch)
+                generation_batches = split_sequence_dict(generation_batch, self.args.steps_per_generation)
+                self._buffered_inputs = generation_batches
+                # self._buffered_inputs = [unsplit_pixel_values_by_grid(batch) for batch in generation_batches]
+            inputs = self._buffered_inputs[self._step % self.args.steps_per_generation]
             self._step += 1
         else:
             # In evaluation, there is neither batch grouping for generation, nor multiple iterations, hence
