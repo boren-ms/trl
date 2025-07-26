@@ -46,7 +46,7 @@ save_steps: 200
 use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
-vllm_gpu_memory_utilization: 0.35
+vllm_gpu_memory_utilization: 0.3
 # vllm_server_host: ${VLLM_SERVER_HOST} # dev-n1-wus2-0
 # vllm_server_port: 26500
 

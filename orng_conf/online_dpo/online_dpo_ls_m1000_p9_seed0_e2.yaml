@@ -37,7 +37,7 @@ gradient_checkpointing: True
 log_completions: True
 wandb_log_unique_prompts: True
 use_vllm: True
-vllm_gpu_memory_utilization: 0.35
+vllm_gpu_memory_utilization: 0.3
 # resume_from_checkpoint: True
 save_steps: 200
 # eval_strategy: no
