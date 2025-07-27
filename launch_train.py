@@ -100,7 +100,7 @@ def get_acc_config(name=None):
     return name_dict.get(name, None)
 
 
-def main(config_file, task=None, forced=False, acc=None):
+def main(config_file, task=None, forced=False, acc="zero2"):
     """Launch the job on all nodes by preparing the environment and data."""
     script_path = get_task_script(task, config_file)
     print(f"Using script: {script_path}")
