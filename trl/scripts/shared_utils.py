@@ -44,9 +44,9 @@ def init_model(model_id=None, new_lora=None):
     model.set_lora_adapter("speech")
     model = add_adapter_func(model)
     if new_lora:
-        print("merge and unload model")
+        rank_print("merge and unload model")
         model.merge_and_unload()  # merge lora and back to normal Linear
-        print("Prepare peft model with adapter:", new_lora)
+        rank_print("Prepare peft model with adapter:", new_lora)
         model = get_speech_peft_model(model, lora_name=new_lora)  # revert peft model
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
@@ -79,7 +79,7 @@ def save_run_info(run, work_dir=None, file_name="run_info.json"):
         "run_url": run.url,
     }
     json.dump(info, info_file.open("w"), indent=2)
-    print(f"Run info saved to {info_file}")
+    rank_print(f"Run info saved to {info_file}")
 
 
 def load_run_info(work_dir=None, file_name="run_info.json"):
@@ -87,15 +87,15 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
     work_dir = work_dir or Path.cwd()
     info_file = Path(work_dir) / file_name
     if not info_file.exists():
-        print(f"Run info file {file_name} does not exist in {work_dir}.")
+        rank_print(f"Run info file {file_name} does not exist in {work_dir}.")
         return {}
-    print(f"Loading run info from {info_file}")
+    rank_print(f"Loading run info from {info_file}")
     info = json.load(info_file.open("r"))
     url = info.get("run_url", "")
-    print(f"Reuse run: {url}")
+    rank_print(f"Reuse run: {url}")
     parts = Path(url).parts
     if url.startswith("https://msaip.wandb.io/") and len(parts) > 4:
-        print("Run info from", url)
+        rank_print("Run info from", url)
         info["run_id"] = info.get("run_id", parts[-1])
         info["project"] = info.get("project", parts[-3])
         info["entity"] = info.get("entity", parts[-4])
@@ -104,7 +104,7 @@ def load_run_info(work_dir=None, file_name="run_info.json"):
 
 def print_modules(model, trainable=False):
     """List trainable modules in the model and total trainable parameter size."""
-    print(f"List modules in the model:", {model.__class__.__name__})
+    rank_print(f"List modules in the model:", {model.__class__.__name__})
     n_total = 0
     n_trainable = 0
     for name, param in model.named_parameters():
@@ -112,9 +112,9 @@ def print_modules(model, trainable=False):
         if param.requires_grad:
             n_trainable += param.numel()
             if trainable:
-                print(f"{name}: {human_readable(param.numel())} trainable")
-    print(f"Total trainable: {human_readable(n_trainable)}")
-    print(f"Total parameter: {human_readable(n_total)}")
+                rank_print(f"{name}: {human_readable(param.numel())} trainable")
+    rank_print(f"Total trainable: {human_readable(n_trainable)}")
+    rank_print(f"Total parameter: {human_readable(n_total)}")
     return n_total, n_trainable
 
 
@@ -125,7 +125,7 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_r
 
     project = os.environ.get("WANDB_PROJECT", project or "biasing")
     job_name = get_job_name(job_name)
-    print(f"Project Name: {project}, Run Name: {job_name}")
+    rank_print(f"Project Name: {project}, Run Name: {job_name}")
     key = os.environ.get("WANDB_API_KEY", "")
     host = os.environ.get("WANDB_ORGANIZATION", "")
     wandb.login(host=host, key=key, relogin=True)
@@ -139,8 +139,8 @@ def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_r
         resume="allow",
         config=run_info.get("config", config),
     )
-    print("wandb offline: ", run.settings._offline)  # Should be True
-    print("wandb mode: ", run.settings.mode)  # Should be "offline"
+    rank_print("wandb offline: ", run.settings._offline)  # Should be True
+    rank_print("wandb mode: ", run.settings.mode)  # Should be "offline"
     save_run_info(run, output_dir)
     return run
 
@@ -177,17 +177,17 @@ def is_valid_checkpoint(model_dir):
     if not model_dir:
         return False
     if not bf.exists(model_dir):
-        # print(f"Model path {model_dir} does not exist.")
+        # rank_print(f"Model path {model_dir} does not exist.")
         return False
     if not bf.isdir(model_dir):
-        # print(f"Model path {model_dir} is not a directory.")
+        # rank_print(f"Model path {model_dir} is not a directory.")
         return False
     config_file = f"{model_dir}/config.json"
     if not bf.exists(config_file):
-        # print(f"Config file {config_file} does not exist in the model directory.")
+        # rank_print(f"Config file {config_file} does not exist in the model directory.")
         return False
     if not any(bf.glob(f"{model_dir}/*.safetensors")):
-        # print(f"No .safetensors files found in {model_dir}.")
+        # rank_print(f"No .safetensors files found in {model_dir}.")
         return False
     return True
 

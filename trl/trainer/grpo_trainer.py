@@ -69,6 +69,7 @@ from .utils import (
     can_merge_adapter,
     get_func_name,
     has_lora_adapter,
+    rank_print,
 )
 
 if is_peft_available():
@@ -902,6 +903,7 @@ class GRPOTrainer(Trainer):
 
     def _sync_fsdp_params_to_vllm(self, module: nn.Module, prefix: str = "", visited=None):
         """Memory-efficient post-order traversal of FSDP modules to extract full parameters and sync with vLLM."""
+        rank_print("fsdp update vllm: ", prefix)
         if visited is None:
             visited = set()
 
@@ -924,31 +926,28 @@ class GRPOTrainer(Trainer):
                         self.vllm_client.update_named_param(full_name, param.data)
                     elif self.vllm_mode == "colocate":
                         llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                        rank_print("fsdp update vllm: ", full_name)
                         llm_model.load_weights([(full_name, param.data)])
-
-    def logprint(self, *args, main=True, **kwargs):
-        if main and not self.accelerator.is_main_process:
-            return
-        rank = self.accelerator.process_index
-        print(f"[{rank}]", *args, **kwargs)
 
     @profiling_decorator
     def _move_model_to_vllm(self):
-        self.logprint(f"Update vllm @ {self.state.global_step} step")
+        rank_print(f"Update vllm @ {self.state.global_step} step")
         deepspeed_plugin = self.accelerator.state.deepspeed_plugin
         zero_stage_3 = deepspeed_plugin is not None and deepspeed_plugin.zero_stage == 3
         if zero_stage_3:
             import deepspeed
 
             gather_if_zero3 = deepspeed.zero.GatheredParameters
-            self.logprint("using zero3 gather")
+            rank_print("using zero3 gather")
         else:
             gather_if_zero3 = nullcontext
+        rank_print("update vllm for model, ", type(self.model))
         if has_lora_adapter(self.model) and self.args.use_vllm_lora_update:
             alpha = self.model.config.speech_lora["lora_alpha"]
             r = self.model.config.speech_lora["r"]
             update_vllm_lora(self.llm, self.model, alpha, r)
         elif is_peft_model(self.model) or can_merge_adapter(self.model):
+            rank_print("update vllm for peft model, ", type(self.model))
             # With PEFT and FSDP/DeepSpeed ZeRO Stage 3, we must gather the full model at once before merging, as
             # merging adapters in a sharded manner is not supported.
             # TODO: does this work with FSDP?
@@ -959,8 +958,10 @@ class GRPOTrainer(Trainer):
                 if self.is_fsdp_enabled:  # note if using FSDP, gather_if_zero3 is nullcontext
                     # Update vLLM weights while parameters are gathered
                     # For PEFT with FSDP we need to use the memory efficient post-order traversal
+                    rank_print("update vllm for fsdp model, ", type(self.model))
                     self._sync_fsdp_params_to_vllm(self.model)
                 else:
+                    rank_print("update vllm for ds model, ", type(self.model))
                     # DeepSpeed ZeRO-3 with PEFT
                     for name, param in self.model.named_parameters():
                         # When using PEFT, we need to recover the original parameter name and discard some parameters
@@ -979,11 +980,13 @@ class GRPOTrainer(Trainer):
                             self.vllm_client.update_named_param(name, param.data)
                         elif self.vllm_mode == "colocate":
                             llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                            rank_print("fsdp update vllm: ", name)
                             llm_model.load_weights([(name, param.data)])
                 # Unmerge adapters while parameters are still gathered
                 self.model.unmerge_adapter()
                 # Parameters will automatically be repartitioned when exiting the context
         else:
+            rank_print("update vllm for model, ", type(self.model))
             # For non-PEFT models, simply gather (if needed) and update each parameter individually.
             if self.is_fsdp_enabled:
                 self._sync_fsdp_params_to_vllm(self.model)  # use memory-efficient post-order traversal for FSDP
@@ -1523,13 +1526,12 @@ class GRPOTrainer(Trainer):
         Works both with or without labels.
         """
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
-        rank = self.accelerator.process_index
-        print(f"[{rank}] \n***** Running {description} *****")
-        print(f"[{rank}] Dataloader example size = {self.num_examples(dataloader)}")
+        rank_print(f"\n***** Running {description} *****")
+        rank_print(f"Dataloader example size = {self.num_examples(dataloader)}")
         eval_dataset = getattr(dataloader, "dataset", None)
         if has_length(eval_dataset):
             num_samples = len(eval_dataset)
-            print(f"[{rank}] Dataset example size = {num_samples}")
+            rank_print(f"Dataset example size = {num_samples}")
         model.eval()
         if hasattr(self.optimizer, "eval") and callable(self.optimizer.eval):
             self.optimizer.eval()
@@ -1539,19 +1541,19 @@ class GRPOTrainer(Trainer):
         metrics = {}
         n_batch = len(dataloader)
         for idx, inputs in enumerate(dataloader):
-            print(f"[{rank}] Processing batch {idx + 1}/{n_batch}, batch size = {len(inputs)}")
+            rank_print(f"Processing batch {idx + 1}/{n_batch}, batch size = {len(inputs)}")
             outputs = self._prepare_inputs(inputs)
             results += [{**input_dict, "completions": output} for input_dict, output in zip(inputs, outputs["completions"])]
 
         results = list(chunked(results, self.num_eval_generations))
-        print(f"[{rank}] Evaluation got {len(results)} results with {self.num_eval_generations} best hyps")
+        rank_print(f"Evaluation got {len(results)} results with {self.num_eval_generations} best hyps")
         gathered_results = gather_object(results)
-        print(f"[{rank}] Gathered {len(gathered_results)} results from all processes")
+        rank_print(f"Gathered {len(gathered_results)} results from all processes")
         uniq_results = list(unique_everseen((result for result in gathered_results), key=lambda x: x[0].get("id", "")))
-        print(f"[{rank}] Get unique {len(uniq_results)} results from gathered results")
+        rank_print(f"Get unique {len(uniq_results)} results from gathered results")
         if self.compute_metrics and len(uniq_results) > 0:
             metrics = self.compute_metrics(uniq_results)
-        # print(f"[{rank}] Evaluation metrics: {metrics}")
+        # rank_print(f"Evaluation metrics: {metrics}")
         # Prefix all keys with metric_key_prefix + '_'
         for key in list(metrics.keys()):
             if not key.startswith(f"{metric_key_prefix}_"):

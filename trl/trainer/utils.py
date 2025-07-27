@@ -1787,10 +1787,11 @@ def has_lora_adapter(cls):
 def merge_adapter(cls, merge=True, adapter="speech"):
     if isinstance(adapter, str):
         adapter = [adapter]
-    for module in cls.modules():
+    for name, module in cls.named_modules():
         if not isinstance(module, LoraLayer):
             continue
         if merge:
+            rank_print("merging Lora", name, adapter)
             module.merge(adapter_names=adapter)
         else:
             module.unmerge()
@@ -1830,7 +1831,7 @@ def add_adapter_func(obj):
 
 
 def move_model_to_vllm(model, llm):
-    print("Move model to vllm")
+    rank_print("Move model to vllm")
     llm_model = llm.llm_engine.model_executor.driver_worker.model
     if can_merge_adapter(model):
         model.merge_adapter()
@@ -1863,3 +1864,10 @@ def get_func_name(func):
         return func.__class__.__name__
     else:
         return str(func)
+
+
+def rank_print(*args, main=True, **kwargs):
+    if main and not PartialState().is_main_process:
+        return
+    rank = PartialState().process_index
+    print(f"[{rank}]", *args, **kwargs)
