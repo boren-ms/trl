@@ -80,10 +80,9 @@ if is_liger_kernel_available():
 if is_vllm_available():
     from vllm import LLM, SamplingParams
     from vllm.sampling_params import GuidedDecodingParams
-    from .vllm_utils import VLLMHijack, TensorLoRARequest, is_version_ge
+    from .vllm_utils import add_vllm_lora_update, update_vllm_lora
 
-    if is_version_ge(pkg="vllm", minver="0.7.3"):
-        VLLMHijack.hijack()
+    add_vllm_lora_update()
 
 if is_wandb_available():
     import wandb
@@ -679,6 +678,8 @@ class GRPOTrainer(Trainer):
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
                     max_num_batched_tokens=max_all_tokens,
                     trust_remote_code=True,
+                    enable_lora=True,
+                    max_lora_rank=320,
                 )
 
             # vLLM specific sampling arguments
@@ -937,34 +938,10 @@ class GRPOTrainer(Trainer):
             self.logprint("using zero3 gather")
         else:
             gather_if_zero3 = nullcontext
-        if has_lora_adapter(self.model):
-            lora_params = {}
-            for name, param in self.model.named_parameters():
-                # When using PEFT, we need to recover the original parameter name and discard some parameters
-                name = name.removeprefix("base_model.model.").replace(".base_layer", "")
-                if hasattr(self.model, "prefix") and self.model.prefix in name:
-                    continue
-                # When module to save, remove its prefix and discard the original module
-                if "lora_" not in name:
-                    continue
-                if "original_module" in name:
-                    continue
-                for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
-                    name = name.replace(extra, "")
-                lora_params[name] = param.data
-            # If no LoRA parameters are found, we skip the LoRA update
-            if not lora_params:
-                return
-            peft_config = self.model.config
-            lora_int_id = int(time.time_ns() % 0x7FFFFFFF)
-            lora_request = TensorLoRARequest(
-                lora_name=f"{lora_int_id}",
-                lora_int_id=lora_int_id,
-                lora_path="simon_lora_path",
-                peft_config=asdict(peft_config),
-                lora_tensors=lora_params,
-            )
-            self.inference_engine.llm_engine.add_lora(lora_request)
+        if has_lora_adapter(self.model) and self.args.use_vllm_lora_update:
+            alpha = self.model.config.speech_lora.alpha
+            r = self.model.config.speech_lora.r
+            update_vllm_lora(self.llm, self.model, alpha, r)
         elif is_peft_model(self.model) or can_merge_adapter(self.model):
             # With PEFT and FSDP/DeepSpeed ZeRO Stage 3, we must gather the full model at once before merging, as
             # merging adapters in a sharded manner is not supported.

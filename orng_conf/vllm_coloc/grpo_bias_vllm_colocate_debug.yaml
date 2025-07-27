@@ -1,12 +1,10 @@
 # model_name_or_path: az://orngcresco/data/boren/data/ckp/phi4_mm_bias
-model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-skip_run_info: True
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-# reward_funcs: [reward_unbias_error, reward_bias_error]
-reward_funcs: [reward_unbias_accuracy, reward_bias_accuracy]
+model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+skip_run_info: True
+reward_funcs: [reward_word_error, reward_bias_error]
 reward_func_kwargs:
     tn: simple_with_tag
-reward_weights: [1, 1]
 report_to: [wandb]
 learning_rate: 1e-5
 new_lora: True
@@ -33,7 +31,7 @@ use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
 vllm_gpu_memory_utilization: 0.3
-
+use_vllm_lora_update: True
 # vllm_server_host: ${VLLM_SERVER_HOST}
 # vllm_server_host: 10.133.219.39
 # vllm_server_port: 26500

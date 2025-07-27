@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import time
 from msgspec import field
 from packaging import version as vs
 from vllm.lora.models import LoRAModel
@@ -124,3 +125,41 @@ class VLLMHijack:
 def is_version_ge(pkg: str = "vllm", minver: str = "0.7.3"):
     """check if the package version is greater than or equal to the minimum version"""
     return vs.parse(get_version(pkg)) >= vs.parse(minver)
+
+
+def add_vllm_lora_update():
+    """Add LoRA update method to VLLM."""
+    if is_version_ge("vllm", "0.7.3"):
+        VLLMHijack.hijack()
+    else:
+        raise RuntimeError("VLLM version must be >= 0.7.3 to support LoRA updates.")
+
+
+def update_vllm_lora(llm, model, alpha, r, target_modules=None):
+    """Update LoRA weights in the model."""
+    lora_params = {}
+    for name, param in model.named_parameters():
+        if "lora_" not in name:
+            continue
+        parts = name.split(".")
+        if not parts[-2].startswith("lora_"):
+            del parts[-2]
+        name = ".".join(parts)
+        lora_params[name] = param.data
+
+    if not lora_params:
+        return
+
+    lora_int_id = int(time.time_ns() % 0x7FFFFFFF)
+    lora_request = TensorLoRARequest(
+        lora_name=f"{lora_int_id}",
+        lora_int_id=lora_int_id,
+        lora_path="simon_lora_path",
+        peft_config={
+            "lora_alpha": alpha,
+            "r": r,
+            "target_modules": target_modules or ["qkv_proj", "o_proj", "gate_up_proj", "down_proj"],
+        },
+        lora_tensors=lora_params,
+    )
+    llm.llm_engine.add_lora(lora_request)
