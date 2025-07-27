@@ -6,23 +6,12 @@ import ray
 import os
 from pathlib import Path
 import fire
-from ray_tool import (
-    run_nodes,
-    update_envs,
-    prepare_env,
-    prepare_data,
-    release_gpus,
-    prepare_local_output,
-    sync_local_dir,
-    init_ray,
-    list_nodes,
-    get_output_dirs,
-    run_output_watcher
-)
+from ray_tool import run_nodes, update_envs, prepare_env, prepare_data, release_gpus, prepare_local_output, sync_local_dir, init_ray, list_nodes, get_output_dirs, run_output_watcher
 from launch_eval import evaluate_model
 
+
 @ray.remote
-def launch_training(script_path, config_file, output_dir):
+def launch_training(script_path, config_file, output_dir, acc_config=None):
     """Launch training using the specified YAML config file."""
     config_file = Path(config_file).absolute()
     update_envs(config_file)
@@ -42,9 +31,11 @@ def launch_training(script_path, config_file, output_dir):
     assert job_name is not None, "RCALL_JOB_NAME must be set"
     main_process_ip = f"{job_name}-0"  # head node IP
     main_process_port = 12345
+    acc_args = ["--config_file", acc_config] if acc_config else []
     cmd = [
         "accelerate",
         "launch",
+        *acc_args,
         "--num_processes",
         str(num_gpu * rank_size),
         "--num_machines",
@@ -76,6 +67,7 @@ def launch_training(script_path, config_file, output_dir):
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
+
 def get_task_script(task=None, config_file=None):
     """Return the script path for the given task."""
     assert task or config_file, "Either task or config_file must be provided"
@@ -85,7 +77,7 @@ def get_task_script(task=None, config_file=None):
         "dpo": cur_dir / "trl/scripts/online_dpo_bias.py",
         "online_dpo": cur_dir / "trl/scripts/online_dpo_bias.py",  # add alias
     }
-    
+
     if not task and config_file:
         name_parts = Path(config_file).stem.split("_")
         task = next((t for t in tasks if t in name_parts), None)
@@ -94,7 +86,21 @@ def get_task_script(task=None, config_file=None):
     assert script_path.exists(), f"Script {script_path} does not exist."
     return script_path
 
-def main(config_file, task=None, forced=False):
+
+def get_acc_config(name=None):
+    """Return the accelerate config file path for the given name."""
+    cwd = Path(__file__).parent
+    name_dict = {
+        "zero1": cwd / "examples/accelerate_configs/deepspeed_zero1.yaml",
+        "zero2": cwd / "examples/accelerate_configs/deepspeed_zero2.yaml",
+        "zero3": cwd / "examples/accelerate_configs/deepspeed_zero3.yaml",
+        "fsdp1": cwd / "examples/accelerate_configs/fsdp1.yaml",
+        "fsdp2": cwd / "examples/accelerate_configs/fsdp2.yaml",
+    }
+    return name_dict.get(name, None)
+
+
+def main(config_file, task=None, forced=False, acc=None):
     """Launch the job on all nodes by preparing the environment and data."""
     script_path = get_task_script(task, config_file)
     print(f"Using script: {script_path}")
@@ -128,18 +134,18 @@ def main(config_file, task=None, forced=False):
     watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
 
     print(f"Launching training with {config_file}...")
-    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir))
+    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir), acc_config=get_acc_config(acc))
     print("Training completed on all nodes.")
 
     print("Launching evaluation on all nodes")
     evaluate_model(local_model_dir=output_dir)
     print("Evaluation completed on all nodes.")
 
-    watcher.flush.remote() 
+    watcher.flush.remote()
     print("All tasks completed.")
 
 
 if __name__ == "__main__":
     """Main entry point for launching the job on a Ray cluster."""
-    fire.Fire(main)  
+    fire.Fire(main)
     # Example usage: python launch_job.py  --config_file="path/to/config.yaml"
