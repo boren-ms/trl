@@ -31,7 +31,7 @@ def launch_training(script_path, config_file, output_dir, acc_config=None):
     assert job_name is not None, "RCALL_JOB_NAME must be set"
     main_process_ip = f"{job_name}-0"  # head node IP
     main_process_port = 12345
-    acc_args = ["--config_file", acc_config] if acc_config else []
+    acc_args = ["--config_file", str(acc_config)] if acc_config else []
     cmd = [
         "accelerate",
         "launch",
