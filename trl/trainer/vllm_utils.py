@@ -162,6 +162,9 @@ def update_vllm_lora(llm, model, alpha, r, target_modules=None):
         },
         lora_tensors=lora_params,
     )
-    llm.llm_engine.add_lora(lora_request)
+    # maybe need to load the base model first, before adding LoRA
+    # TODO: not verified
     llm_model = llm.llm_engine.model_executor.driver_worker.model_runner.model
     llm_model.load_weights([(name, param) for name, param in lora_params.items()])
+    # load lora
+    llm.llm_engine.add_lora(lora_request)
