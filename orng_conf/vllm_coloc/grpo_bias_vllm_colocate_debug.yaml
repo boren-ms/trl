@@ -31,7 +31,7 @@ use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
 vllm_gpu_memory_utilization: 0.35
-use_vllm_lora_update: True
+# use_vllm_lora_update: True # not work yet
 # vllm_server_host: ${VLLM_SERVER_HOST}
 # vllm_server_host: 10.133.219.39
 # vllm_server_port: 26500
