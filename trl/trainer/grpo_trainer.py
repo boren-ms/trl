@@ -678,7 +678,7 @@ class GRPOTrainer(Trainer):
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
                     max_num_batched_tokens=max_all_tokens,
                     trust_remote_code=True,
-                    enable_lora=True,
+                    enable_lora=self.args.use_vllm_lora_update,
                     max_lora_rank=320,
                 )
 
@@ -939,8 +939,8 @@ class GRPOTrainer(Trainer):
         else:
             gather_if_zero3 = nullcontext
         if has_lora_adapter(self.model) and self.args.use_vllm_lora_update:
-            alpha = self.model.config.speech_lora.alpha
-            r = self.model.config.speech_lora.r
+            alpha = self.model.config.speech_lora["lora_alpha"]
+            r = self.model.config.speech_lora["r"]
             update_vllm_lora(self.llm, self.model, alpha, r)
         elif is_peft_model(self.model) or can_merge_adapter(self.model):
             # With PEFT and FSDP/DeepSpeed ZeRO Stage 3, we must gather the full model at once before merging, as
