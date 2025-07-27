@@ -94,6 +94,12 @@ logger = logging.get_logger(__name__)
 RewardFunc = Union[str, PreTrainedModel, Callable[[list, list], list[float]]]
 
 
+def prepare_vllm_inputs(texts, audios=None):
+    if not audios:
+        return texts
+    return [{"prompt": text, "multi_modal_data": {"audio": audio}} for text, audio in zip(texts, audios)]
+
+
 class RepeatSampler(Sampler):
     """
     Sampler that repeats the indices of a dataset in a structured manner.
@@ -1169,18 +1175,17 @@ class GRPOTrainer(Trainer):
                     gathered_prompts = [None for _ in range(self.vllm_tensor_parallel_size)]
                     torch.distributed.all_gather_object(gathered_prompts, prompts_text, group=self.tp_group)
                     all_prompts = [p for sublist in gathered_prompts for p in sublist]
+                    if audios:
+                        gathered_audios = [None for _ in range(self.vllm_tensor_parallel_size)]
+                        torch.distributed.all_gather_object(gathered_audios, audios, group=self.tp_group)
+                        all_audios = [audio for sublist in gathered_audios for audio in sublist]
+                    else:
+                        all_audios = None
+                    vllm_inputs = prepare_vllm_inputs(all_prompts, all_audios)
                 else:
-                    all_prompts = []
-                    for prompt, audio in zip(prompts_text, audios):
-                        all_prompts.append(
-                            {
-                                "prompt": prompt,
-                                "multi_modal_data": {"audio": [audio]},
-                            }
-                        )
-
+                    vllm_inputs = prepare_vllm_inputs(prompts_text, all_audios)
                 with profiling_context(self, "vLLM.generate"):
-                    all_outputs = self.llm.generate(all_prompts, sampling_params=sampling_params, use_tqdm=False)
+                    all_outputs = self.llm.generate(vllm_inputs, sampling_params=sampling_params, use_tqdm=False)
 
                 completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
 
