@@ -32,7 +32,7 @@ new_lora: True
 lr_scheduler_type: cosine #cosine
 temperature: 1.2
 output_dir: ./output
-per_device_train_batch_size: 20
+per_device_train_batch_size: 10
 num_generations: 10
 logging_steps: 10
 bf16: True
