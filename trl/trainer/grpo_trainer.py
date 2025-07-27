@@ -1174,16 +1174,13 @@ class GRPOTrainer(Trainer):
                     orig_size = len(prompts_text)
                     gathered_prompts = [None for _ in range(self.vllm_tensor_parallel_size)]
                     torch.distributed.all_gather_object(gathered_prompts, prompts_text, group=self.tp_group)
-                    all_prompts = [p for sublist in gathered_prompts for p in sublist]
+                    prompts_text = [p for sublist in gathered_prompts for p in sublist]
                     if audios:
                         gathered_audios = [None for _ in range(self.vllm_tensor_parallel_size)]
                         torch.distributed.all_gather_object(gathered_audios, audios, group=self.tp_group)
-                        all_audios = [audio for sublist in gathered_audios for audio in sublist]
-                    else:
-                        all_audios = None
-                    vllm_inputs = prepare_vllm_inputs(all_prompts, all_audios)
-                else:
-                    vllm_inputs = prepare_vllm_inputs(prompts_text, all_audios)
+                        audios = [audio for sublist in gathered_audios for audio in sublist]
+
+                vllm_inputs = prepare_vllm_inputs(prompts_text, audios)
                 with profiling_context(self, "vLLM.generate"):
                     all_outputs = self.llm.generate(vllm_inputs, sampling_params=sampling_params, use_tqdm=False)
 
