@@ -65,7 +65,7 @@ from .utils import (
     prepare_deepspeed,
     truncate_right,
     can_merge_adapter,
-    has_adapter,
+    has_lora_adapter,
     print_rich_dataframe,
 )
 
@@ -210,7 +210,7 @@ class OnlineDPOTrainer(Trainer):
         # get the ref model, as it's just the model with a disabled adapter. When not using PEFT, we need to create
         # the ref model from the model by copying it and disable the gradients and set it in evaluation mode.
         if ref_model is None:  # No ref model provided, the most common case
-            if not has_adapter(model):
+            if not has_lora_adapter(model):
                 self.ref_model = create_reference_model(model)  # copy, disable gradients, set eval mode
             else:
                 self.ref_model = None  # we don't need a ref model here, we can just disable the adapter.

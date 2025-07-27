@@ -1777,7 +1777,7 @@ def can_merge_adapter(model):
     return hasattr(model, "merge_adapter") and hasattr(model, "unmerge_adapter")
 
 
-def has_adapter(cls):
+def has_lora_adapter(cls):
     for module in cls.modules():
         if isinstance(module, LoraLayer):
             return True

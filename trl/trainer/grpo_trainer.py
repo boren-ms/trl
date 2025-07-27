@@ -15,6 +15,7 @@
 import os
 import textwrap
 import warnings
+import time
 import pandas as pd
 from collections import defaultdict
 from collections.abc import Sized
@@ -23,6 +24,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 from more_itertools import chunked, unique_everseen
+from dataclasses import asdict
 
 import datasets
 import torch
@@ -56,7 +58,18 @@ from ..models import prepare_deepspeed, prepare_fsdp, unwrap_model_for_generatio
 from ..models.utils import _ForwardRedirection
 from .callbacks import SyncRefModelCallback
 from .grpo_config import GRPOConfig
-from .utils import disable_dropout_in_model, entropy_from_logits, generate_model_card, get_comet_experiment_url, pad, print_rich_dataframe, selective_log_softmax, can_merge_adapter, get_func_name
+from .utils import (
+    disable_dropout_in_model,
+    entropy_from_logits,
+    generate_model_card,
+    get_comet_experiment_url,
+    pad,
+    print_rich_dataframe,
+    selective_log_softmax,
+    can_merge_adapter,
+    get_func_name,
+    has_lora_adapter,
+)
 
 if is_peft_available():
     from peft import PeftConfig, get_peft_model
@@ -67,6 +80,10 @@ if is_liger_kernel_available():
 if is_vllm_available():
     from vllm import LLM, SamplingParams
     from vllm.sampling_params import GuidedDecodingParams
+    from .vllm_utils import VLLMHijack, TensorLoRARequest, is_version_ge
+
+    if is_version_ge(pkg="vllm", minver="0.7.3"):
+        VLLMHijack.hijack()
 
 if is_wandb_available():
     import wandb
@@ -920,8 +937,35 @@ class GRPOTrainer(Trainer):
             self.logprint("using zero3 gather")
         else:
             gather_if_zero3 = nullcontext
-
-        if is_peft_model(self.model) or can_merge_adapter(self.model):
+        if has_lora_adapter(self.model):
+            lora_params = {}
+            for name, param in self.model.named_parameters():
+                # When using PEFT, we need to recover the original parameter name and discard some parameters
+                name = name.removeprefix("base_model.model.").replace(".base_layer", "")
+                if hasattr(self.model, "prefix") and self.model.prefix in name:
+                    continue
+                # When module to save, remove its prefix and discard the original module
+                if "lora_" not in name:
+                    continue
+                if "original_module" in name:
+                    continue
+                for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
+                    name = name.replace(extra, "")
+                lora_params[name] = param.data
+            # If no LoRA parameters are found, we skip the LoRA update
+            if not lora_params:
+                return
+            peft_config = self.model.config
+            lora_int_id = int(time.time_ns() % 0x7FFFFFFF)
+            lora_request = TensorLoRARequest(
+                lora_name=f"{lora_int_id}",
+                lora_int_id=lora_int_id,
+                lora_path="simon_lora_path",
+                peft_config=asdict(peft_config),
+                lora_tensors=lora_params,
+            )
+            self.inference_engine.llm_engine.add_lora(lora_request)
+        elif is_peft_model(self.model) or can_merge_adapter(self.model):
             # With PEFT and FSDP/DeepSpeed ZeRO Stage 3, we must gather the full model at once before merging, as
             # merging adapters in a sharded manner is not supported.
             # TODO: does this work with FSDP?
