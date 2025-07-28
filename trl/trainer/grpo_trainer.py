@@ -912,9 +912,7 @@ class GRPOTrainer(Trainer):
             gather_if_zero3 = deepspeed.zero.GatheredParameters
         else:
             gather_if_zero3 = nullcontext
-        rank_print("update vllm for model, ", type(self.model))
         if is_peft_model(self.model) or can_merge_adapter(self.model):
-            rank_print("update vllm for peft model, ", type(self.model))
             with gather_if_zero3(list(self.model.parameters())):
                 self.model.merge_adapter()
                 for name, param in self.model.named_parameters():
