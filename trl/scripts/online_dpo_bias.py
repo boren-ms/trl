@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from trl import OnlineDPOConfig, OnlineDPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics, compute_wers
-from trl.scripts.shared_utils import init_model, init_wandb, create_dataset, print_modules
+from trl.scripts.shared_utils import init_model, WandbHelper, create_dataset, print_modules
 from trl import BasePairwiseJudge
 
 
@@ -77,15 +77,7 @@ def setup_judge(judge_name, **kwargs):
 class OnlineDPOScriptArguments:
     """Script arguments for the Online DPO training script."""
 
-    job_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "Name of the job."},
-    )
-    project: Optional[str] = field(
-        default=None,
-        metadata={"help": "Name of the project."},
-    )
-    skip_run_info: bool = field(
+    new_run: bool = field(
         default=False,
         metadata={"help": "whether skip the run info from checkpoint"},
     )
@@ -109,12 +101,10 @@ class OnlineDPOScriptArguments:
 
 def main(script_args, training_args):
     """Train the model with Online DPO."""
-    init_wandb(
-        job_name=script_args.job_name,
-        project=script_args.project,
-        output_dir=training_args.output_dir,
-        skip_run_info=script_args.skip_run_info,
-    )
+    WandbHelper(
+        work_dir=training_args.output_dir,
+        new_run=script_args.new_run,
+    ).init(main_only=True)
 
     # Initialize model and processor
     model, processor = init_model(script_args.model_name_or_path, new_lora="speech")  # use same speech lora name

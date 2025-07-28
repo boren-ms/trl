@@ -6,22 +6,14 @@ from dataclasses import dataclass, field
 from typing import Optional
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.shared_utils import init_model, init_wandb, create_dataset, print_modules, get_latest_valid_checkpoint
+from trl.scripts.shared_utils import init_model, WandbHelper, create_dataset, print_modules, get_latest_valid_checkpoint
 
 
 @dataclass
 class GRPOScriptArguments:
     """Script arguments for the GRPO training script."""
 
-    job_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "Name of the job."},
-    )
-    project: Optional[str] = field(
-        default=None,
-        metadata={"help": "Name of the project."},
-    )
-    skip_run_info: bool = field(
+    new_run: bool = field(
         default=False,
         metadata={"help": "Whether to skip to load run info."},
     )
@@ -71,12 +63,11 @@ def reward_functions(names=None, **kwargs):
 
 def main(script_args, training_args):
     """Train the model with GRPO."""
-    init_wandb(
-        job_name=script_args.job_name,
-        project=script_args.project,
-        output_dir=training_args.output_dir,
-        skip_run_info=script_args.skip_run_info,
-    )
+    WandbHelper(
+        work_dir=training_args.output_dir,
+        new_run=not script_args.new_run,
+    ).init(main_only=True)
+
     lora_name = "speech" if script_args.new_lora else None
     model, processor = init_model(script_args.model_name_or_path, new_lora=lora_name)
     _, n_trainable = print_modules(model)

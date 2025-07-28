@@ -14,7 +14,7 @@ import json
 from vllm import LLM, SamplingParams
 from pathlib import Path
 from trl.data_utils import sf_read, find_chkps, chkp_index
-from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, init_wandb
+from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, WandbHelper
 from trl.scripts.audio_metrics import compute_wers
 from trl.trainer.utils import move_model_to_vllm
 
@@ -27,7 +27,7 @@ class EvalArguments:
         default=None,
         metadata={"help": "Name of the job."},
     )
-    skip_run_info: bool = field(default=False, metadata={"help": "whether to skip run info from checkpoint"})
+    new_run: bool = field(default=False, metadata={"help": "whether to skip run info from checkpoint"})
     eval_data: Optional[dict] = field(
         default=None,
         metadata={"help": "Evaluation dataset config"},
@@ -138,7 +138,7 @@ def load_audio(x):
 class Evaluation:
     """Evaluation class for audio transcription biasing tasks."""
 
-    def __init__(self, model_path, use_vllm=False, vllm_max_length=1024 * 10, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None, skip_run_info=False, **kwargs):
+    def __init__(self, model_path, use_vllm=False, vllm_max_length=1024 * 10, batch_size=8, output_dir=None, job_name=None, wandb_dir=None, generation_config=None, new_run=False, **kwargs):
         self.accelerator = Accelerator()
         self.model_path = str(model_path)
         self.batch_size = batch_size
@@ -148,13 +148,8 @@ class Evaluation:
         self.job_name = job_name
         self.vllm_max_length = vllm_max_length
 
-        if self.is_main:
-            init_wandb(
-                job_name=self.job_name,
-                config={"model_path": model_path, "use_vllm": use_vllm, "batch_size": batch_size},
-                output_dir=self.wandb_dir,
-                skip_run_info=skip_run_info,
-            )
+        WandbHelper(run_name=self.job_name, work_dir=self.wandb_dir, new_run=new_run).init(main_only=True)
+
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
         self.generation_config.update(**(generation_config or {}))
         hack_package(self.model_path, True)

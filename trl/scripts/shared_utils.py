@@ -52,59 +52,98 @@ def init_model(model_id=None, new_lora=None):
     return model, processor
 
 
-def get_job_name(jobname=None):
-    """Get a unique job name."""
-    if jobname:
-        return jobname
+def get_config_path(config_path=None):
+    """Get the config path from command line arguments or environment variables."""
+    if config_path:
+        return Path(config_path).resolve()
     if "--config" in sys.argv:
-        # use config file name as job name
-        config_file = sys.argv[sys.argv.index("--config") + 1]
-        jobname = Path(config_file).stem.split(".")[0]
-        return jobname
-    # use current time as job name
-    tz = pytz.timezone("America/Los_Angeles")  # UTC-7/UTC-8 depending on DST
-    return datetime.now(tz).strftime("%Y%m%d-%H%M%S")
+        config_index = sys.argv.index("--config") + 1
+        if config_index < len(sys.argv):
+            return Path(sys.argv[config_index]).resolve()
+    return None
 
 
-def save_run_info(run, work_dir=None, file_name="run_info.json"):
-    """Save run identifying information to a JSON file."""
-    work_dir = work_dir or Path.cwd()
-    info_file = Path(work_dir) / file_name
-    info_file.parent.mkdir(parents=True, exist_ok=True)
-    info = {
-        "entity": run.entity,
-        "project": run.project,
-        "run_id": run.id,
-        "run_name": run.name,
-        "run_url": run.url,
-    }
-    json.dump(info, info_file.open("w"), indent=2)
-    rank_print(f"Run info saved to {info_file}")
+class WandbHelper:
+    """Helper class to manage wandb initialization and run info."""
 
+    def __init__(self, run_name=None, work_dir=None, new_run=False):
+        self.new_run = new_run
+        self.run_name = run_name
+        work_dir = work_dir or Path.cwd()
+        self.run_info_file = Path(work_dir) / "run_info.json"
 
-def load_run_info(work_dir=None, file_name="run_info.json"):
-    """Load run info from JSON and resume the run."""
-    work_dir = work_dir or Path.cwd()
-    info_file = Path(work_dir) / file_name
-    if not info_file.exists():
-        rank_print(f"Run info file {file_name} does not exist in {work_dir}.")
-        return {}
-    rank_print(f"Loading run info from {info_file}")
-    info = json.load(info_file.open("r"))
-    url = info.get("run_url", "")
-    rank_print(f"Reuse run: {url}")
-    parts = Path(url).parts
-    if url.startswith("https://msaip.wandb.io/") and len(parts) > 4:
-        rank_print("Run info from", url)
-        info["run_id"] = info.get("run_id", parts[-1])
-        info["project"] = info.get("project", parts[-3])
-        info["entity"] = info.get("entity", parts[-4])
-    return info
+    def _wandb_info(self):
+        """Get wandb information from environment variables."""
+        config_path = get_config_path()
+        if not config_path:
+            run_name = "default_job_name"
+            project = os.environ.get("WANDB_PROJECT", "biasing")
+        else:
+            run_name = config_path.stem
+            project = config_path.parent.name or "biasing"
+        run_name = self.run_name or run_name
+        run_info = {} if self.new_run else self._load_info()
+
+        return {
+            "entity": run_info.get("entity", "genai"),
+            "project": run_info.get("project", project),
+            "name": run_info.get("run_name", run_name),
+            "id": run_info.get("run_id", None),
+            "config": run_info.get("config", {}),
+        }
+
+    def _login(self):
+        """Login to wandb."""
+        key = os.environ.get("WANDB_API_KEY", "")
+        host = os.environ.get("WANDB_ORGANIZATION", "")
+        wandb.login(host=host, key=key, relogin=True)
+
+    def init(self, main_only=True):
+        """Initialize wandb."""
+        if not PartialState().is_main_process and main_only:
+            return None
+        self._login()
+        run_info = self._wandb_info()
+        run = wandb.init(**run_info, resume="allow")
+        rank_print("wandb mode: ", run.settings.mode)  # Should be "offline"
+        self.run_info_file = self._save_info(run)
+        return run
+
+    def _save_info(self, run):
+        """Save run identifying information to a JSON file."""
+        self.run_info_file.parent.mkdir(parents=True, exist_ok=True)
+        info = {
+            "entity": run.entity,
+            "project": run.project,
+            "run_id": run.id,
+            "run_name": run.name,
+            "run_url": run.url,
+        }
+        json.dump(info, self.run_info_file.open("w"), indent=2)
+        rank_print(f"Run info saved to {self.run_info_file}")
+        return self.run_info_file
+
+    def _load_info(self):
+        """Load run info from JSON and resume the run."""
+        if not self.run_info_file.exists():
+            rank_print(f"Run info file {self.run_info_name} does not exist.")
+            return {}
+        rank_print(f"Loading run info from {self.run_info_file}")
+        info = json.load(self.run_info_file.open("r"))
+        url = info.get("run_url", "")
+        rank_print(f"Reuse run: {url}")
+        parts = Path(url).parts
+        if url.startswith("https://msaip.wandb.io/") and len(parts) > 4:
+            rank_print("Run info from", url)
+            info["run_id"] = info.get("run_id", parts[-1])
+            info["project"] = info.get("project", parts[-3])
+            info["entity"] = info.get("entity", parts[-4])
+        return info
 
 
 def print_modules(model, trainable=False):
     """List trainable modules in the model and total trainable parameter size."""
-    rank_print(f"List modules in the model:", {model.__class__.__name__})
+    rank_print("List modules in the model:", {model.__class__.__name__})
     n_total = 0
     n_trainable = 0
     for name, param in model.named_parameters():
@@ -116,33 +155,6 @@ def print_modules(model, trainable=False):
     rank_print(f"Total trainable: {human_readable(n_trainable)}")
     rank_print(f"Total parameter: {human_readable(n_total)}")
     return n_total, n_trainable
-
-
-def init_wandb(job_name=None, project=None, config=None, output_dir=None, skip_run_info=False):
-    """Initialize wandb."""
-    if not PartialState().is_main_process:
-        return None
-
-    project = os.environ.get("WANDB_PROJECT", project or "biasing")
-    job_name = get_job_name(job_name)
-    rank_print(f"Project Name: {project}, Run Name: {job_name}")
-    key = os.environ.get("WANDB_API_KEY", "")
-    host = os.environ.get("WANDB_ORGANIZATION", "")
-    wandb.login(host=host, key=key, relogin=True)
-    entity = os.environ.get("WANDB_ENTITY", "genai")
-    run_info = {} if skip_run_info else load_run_info(output_dir)
-    run = wandb.init(
-        entity=run_info.get("entity", entity),
-        project=run_info.get("project", project),
-        id=run_info.get("run_id", None),
-        name=run_info.get("run_name", job_name),
-        resume="allow",
-        config=run_info.get("config", config),
-    )
-    rank_print("wandb offline: ", run.settings._offline)  # Should be True
-    rank_print("wandb mode: ", run.settings.mode)  # Should be "offline"
-    save_run_info(run, output_dir)
-    return run
 
 
 def create_dataset(config):
