@@ -912,7 +912,11 @@ class GRPOTrainer(Trainer):
             gather_if_zero3 = deepspeed.zero.GatheredParameters
         else:
             gather_if_zero3 = nullcontext
-        if is_peft_model(self.model) or can_merge_adapter(self.model):
+        if has_lora_adapter(self.model) and self.args.use_vllm_lora_update:
+            alpha = self.model.config.speech_lora["lora_alpha"]
+            r = self.model.config.speech_lora["r"]
+            update_vllm_lora(self.llm, self.model, alpha, r)
+        elif is_peft_model(self.model) or can_merge_adapter(self.model):
             with gather_if_zero3(list(self.model.parameters())):
                 self.model.merge_adapter()
                 for name, param in self.model.named_parameters():
