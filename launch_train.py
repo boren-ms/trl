@@ -10,10 +10,24 @@ from ray_tool import run_nodes, update_envs, prepare_env, prepare_data, release_
 from launch_eval import evaluate_model
 
 
+def dup_config_file(config_file, stem_suffix=None):
+    """Duplicate the config file with stem suffix."""
+    if not stem_suffix:
+        return config_file
+    config_file = Path(config_file).absolute()
+    new_config_file = config_file.parent / f"{config_file.stem}_{stem_suffix}.yaml"
+    shutil.copy(config_file, new_config_file)
+    return new_config_file
+
+
 @ray.remote
 def launch_training(script_path, config_file, output_dir, acc_config=None):
     """Launch training using the specified YAML config file."""
     config_file = Path(config_file).absolute()
+
+    if acc_config:
+        # create a new config file with stem suffix to distinguish runs
+        config_file = dup_config_file(config_file, Path(acc_config).stem)
     update_envs(config_file)
 
     cur_dir = Path(__file__).parent
@@ -99,17 +113,6 @@ def get_acc_config(name=None):
     return name_dict.get(name, None)
 
 
-@ray.remote
-def dup_config_file(config_file, stem_suffix=None):
-    """Duplicate the config file with stem suffix."""
-    if not stem_suffix:
-        return config_file
-    config_file = Path(config_file).absolute()
-    new_config_file = config_file.parent / f"{config_file.stem}_{stem_suffix}.yaml"
-    shutil.copy(config_file, new_config_file)
-    return new_config_file
-
-
 def main(config_file, task=None, forced=False, acc=None):
     """Launch the job on all nodes by preparing the environment and data."""
     script_path = get_task_script(task, config_file)
@@ -119,12 +122,14 @@ def main(config_file, task=None, forced=False, acc=None):
 
     config_file = Path(config_file).absolute()
     acc_config = get_acc_config(acc)
-    if acc_config:
-        # create a new config file with stem suffix to distinguish runs
-        config_file = run_nodes(dup_config_file, config_file, acc_config.stem)
 
-    print(f"Using config file: {config_file}")
-    output_dir, remote_output_dir = get_output_dirs(config_file.stem)
+    output_name = config_file.stem
+    if acc_config:
+        output_name += f"_{acc_config.stem}"
+
+    print(f"Training config: {config_file}")
+    print(f"Accelerate config: {acc_config}")
+    output_dir, remote_output_dir = get_output_dirs(output_name)
 
     results = []
     print("Preparing environment on all nodes...")
