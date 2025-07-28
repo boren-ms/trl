@@ -91,11 +91,10 @@ def get_acc_config(name=None):
     """Return the accelerate config file path for the given name."""
     cwd = Path(__file__).parent
     name_dict = {
-        "zero1": cwd / "examples/accelerate_configs/deepspeed_zero1.yaml",
-        "zero2": cwd / "examples/accelerate_configs/deepspeed_zero2.yaml",
-        "zero3": cwd / "examples/accelerate_configs/deepspeed_zero3.yaml",
-        "fsdp1": cwd / "examples/accelerate_configs/fsdp1.yaml",
-        "fsdp2": cwd / "examples/accelerate_configs/fsdp2.yaml",
+        "zero1": cwd / "trl/accelerate_configs/zero1.yaml",
+        "zero2": cwd / "trl/accelerate_configs/zero2.yaml",
+        "zero3": cwd / "trl/accelerate_configs/zero3.yaml",
+        "fsdp": cwd / "trl/accelerate_configs/fsdp2.yaml",
     }
     return name_dict.get(name, None)
 
