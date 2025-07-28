@@ -2,18 +2,21 @@
 # -*- coding: utf-8 -*-
 import shutil
 import subprocess
-import ray
 import os
 from pathlib import Path
+import ray
 import fire
 from ray_tool import run_nodes, update_envs, prepare_env, prepare_data, release_gpus, prepare_local_output, sync_local_dir, init_ray, list_nodes, get_output_dirs, run_output_watcher
 from launch_eval import evaluate_model
 
 
-def dup_config_file(config_file, stem_suffix=None):
+def dup_config_file(config_file, suffixs):
     """Duplicate the config file with stem suffix."""
-    if not stem_suffix:
+    if not suffixs:
         return config_file
+    if isinstance(suffixs, str):
+        suffixs = [suffixs]
+    stem_suffix = "_".join(suffixs)
     config_file = Path(config_file).absolute()
     new_config_file = config_file.parent / f"{config_file.stem}_{stem_suffix}.yaml"
     shutil.copy(config_file, new_config_file)
@@ -24,10 +27,14 @@ def dup_config_file(config_file, stem_suffix=None):
 def launch_training(script_path, config_file, output_dir, acc_config=None):
     """Launch training using the specified YAML config file."""
     config_file = Path(config_file).absolute()
+    num_nodes = int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
+    num_gpu = int(os.environ.get("RCALL_NUM_GPU", "8"))
+    suffixs = [f"G{num_nodes}x{num_gpu}"]
 
     if acc_config:
-        # create a new config file with stem suffix to distinguish runs
-        config_file = dup_config_file(config_file, Path(acc_config).stem)
+        suffixs.append(Path(acc_config).stem)
+    config_file = dup_config_file(config_file, suffixs)
+
     update_envs(config_file)
 
     cur_dir = Path(__file__).parent
@@ -39,8 +46,6 @@ def launch_training(script_path, config_file, output_dir, acc_config=None):
     print(f"Output directory: {output_dir}")
 
     rank = int(os.environ.get("RCALL_INSTANCE_INDEX", "0"))
-    rank_size = int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
-    num_gpu = int(os.environ.get("RCALL_NUM_GPU", "8"))
     job_name = os.environ.get("RCALL_JOB_NAME", None)
     assert job_name is not None, "RCALL_JOB_NAME must be set"
     main_process_ip = f"{job_name}-0"  # head node IP
@@ -51,9 +56,9 @@ def launch_training(script_path, config_file, output_dir, acc_config=None):
         "launch",
         *acc_args,
         "--num_processes",
-        str(num_gpu * rank_size),
+        str(num_gpu * num_nodes),
         "--num_machines",
-        str(rank_size),
+        str(num_nodes),
         "--machine_rank",
         str(rank),
         "--main_process_ip",
