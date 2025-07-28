@@ -10,30 +10,35 @@ from ray_tool import run_nodes, update_envs, prepare_env, prepare_data, release_
 from launch_eval import evaluate_model
 
 
-def dup_config_file(config_file, suffixs):
+def dup_config_file(config_file, new_stem):
     """Duplicate the config file with stem suffix."""
-    if not suffixs:
+    if not new_stem:
         return config_file
-    if isinstance(suffixs, str):
-        suffixs = [suffixs]
-    stem_suffix = "_".join(suffixs)
-    config_file = Path(config_file).absolute()
-    new_config_file = config_file.parent / f"{config_file.stem}_{stem_suffix}.yaml"
+    new_config_file = config_file.with_stem(new_stem)
+    if new_config_file.exists():
+        return new_config_file
     shutil.copy(config_file, new_config_file)
     return new_config_file
+
+
+def get_job_name(config_file, acc_config=None):
+    """Get the new config file name with suffixes."""
+    config_file = Path(config_file).absolute()
+    n_node = int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
+    n_gpu = int(os.environ.get("RCALL_NUM_GPU", "8"))
+    parts = [config_file.stem, f"G{n_node}x{n_gpu}"]
+    if acc_config:
+        parts.append(Path(acc_config).stem)
+    return "_".join(parts)
 
 
 @ray.remote
 def launch_training(script_path, config_file, output_dir, acc_config=None):
     """Launch training using the specified YAML config file."""
     config_file = Path(config_file).absolute()
-    num_nodes = int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
-    num_gpu = int(os.environ.get("RCALL_NUM_GPU", "8"))
-    suffixs = [f"G{num_nodes}x{num_gpu}"]
 
-    if acc_config:
-        suffixs.append(Path(acc_config).stem)
-    config_file = dup_config_file(config_file, suffixs)
+    job_name = get_job_name(config_file, acc_config)
+    config_file = dup_config_file(config_file, job_name)
 
     update_envs(config_file)
 
@@ -46,9 +51,11 @@ def launch_training(script_path, config_file, output_dir, acc_config=None):
     print(f"Output directory: {output_dir}")
 
     rank = int(os.environ.get("RCALL_INSTANCE_INDEX", "0"))
-    job_name = os.environ.get("RCALL_JOB_NAME", None)
-    assert job_name is not None, "RCALL_JOB_NAME must be set"
-    main_process_ip = f"{job_name}-0"  # head node IP
+    num_nodes = int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
+    num_gpu = int(os.environ.get("RCALL_NUM_GPU", "8"))
+    rcall_job_name = os.environ.get("RCALL_JOB_NAME", None)
+    assert rcall_job_name is not None, "RCALL_JOB_NAME must be set"
+    main_process_ip = f"{rcall_job_name}-0"  # head node IP
     main_process_port = 12345
     acc_args = ["--config_file", str(acc_config)] if acc_config else []
     cmd = [
@@ -127,14 +134,11 @@ def main(config_file, task=None, forced=False, acc=None):
 
     config_file = Path(config_file).absolute()
     acc_config = get_acc_config(acc)
-
-    output_name = config_file.stem
-    if acc_config:
-        output_name += f"_{acc_config.stem}"
+    job_name = get_job_name(config_file, acc_config)
 
     print(f"Training config: {config_file}")
     print(f"Accelerate config: {acc_config}")
-    output_dir, remote_output_dir = get_output_dirs(output_name)
+    output_dir, remote_output_dir = get_output_dirs(job_name)
 
     results = []
     print("Preparing environment on all nodes...")
