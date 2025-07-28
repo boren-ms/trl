@@ -99,6 +99,7 @@ def get_acc_config(name=None):
     return name_dict.get(name, None)
 
 
+@ray.remote
 def dup_config_file(config_file, stem_suffix=None):
     """Duplicate the config file with stem suffix."""
     if not stem_suffix:
@@ -120,7 +121,7 @@ def main(config_file, task=None, forced=False, acc=None):
     acc_config = get_acc_config(acc)
     if acc_config:
         # create a new config file with stem suffix to distinguish runs
-        config_file = dup_config_file(config_file, acc_config.stem)
+        config_file = run_nodes(dup_config_file, config_file, acc_config.stem)
 
     print(f"Using config file: {config_file}")
     output_dir, remote_output_dir = get_output_dirs(config_file.stem)
