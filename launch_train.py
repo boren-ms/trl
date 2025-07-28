@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-from functools import partial
+import shutil
 import subprocess
 import ray
 import os
@@ -94,9 +94,19 @@ def get_acc_config(name=None):
         "zero1": cwd / "trl/accelerate_configs/zero1.yaml",
         "zero2": cwd / "trl/accelerate_configs/zero2.yaml",
         "zero3": cwd / "trl/accelerate_configs/zero3.yaml",
-        "fsdp": cwd / "trl/accelerate_configs/fsdp2.yaml",
+        "fsdp2": cwd / "trl/accelerate_configs/fsdp2.yaml",
     }
     return name_dict.get(name, None)
+
+
+def dup_config_file(config_file, stem_suffix=None):
+    """Duplicate the config file with stem suffix."""
+    if not stem_suffix:
+        return config_file
+    config_file = Path(config_file).absolute()
+    new_config_file = config_file.parent / f"{config_file.stem}_{stem_suffix}.yaml"
+    shutil.copy(config_file, new_config_file)
+    return new_config_file
 
 
 def main(config_file, task=None, forced=False, acc=None):
@@ -107,10 +117,13 @@ def main(config_file, task=None, forced=False, acc=None):
     list_nodes()
 
     config_file = Path(config_file).absolute()
-    print(f"Using config file: {config_file}")
     acc_config = get_acc_config(acc)
-    output_name = f"{config_file.stem}_{acc_config.stem}" if acc_config else config_file.stem
-    output_dir, remote_output_dir = get_output_dirs(output_name)
+    if acc_config:
+        # create a new config file with stem suffix to distinguish runs
+        config_file = dup_config_file(config_file, acc_config.stem)
+
+    print(f"Using config file: {config_file}")
+    output_dir, remote_output_dir = get_output_dirs(config_file.stem)
 
     results = []
     print("Preparing environment on all nodes...")
@@ -135,7 +148,7 @@ def main(config_file, task=None, forced=False, acc=None):
     watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
 
     print(f"Launching training with {config_file}...")
-    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir), acc_config=acc_config)
+    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir), acc_config=str(acc_config))
     print("Training completed on all nodes.")
 
     print("Launching evaluation on all nodes")
