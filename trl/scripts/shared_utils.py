@@ -12,7 +12,7 @@ from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 from transformers.trainer_utils import get_last_checkpoint
 from accelerate import PartialState
-from trl.trainer.utils import add_adapter_func
+from trl.trainer.utils import add_adapter_func, rank_print
 from trl.scripts.audio_dataset import create_audio_dataset
 
 

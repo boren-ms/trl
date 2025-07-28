@@ -34,7 +34,7 @@ from accelerate.utils import broadcast_object_list, gather, gather_object, is_pe
 from datasets import Dataset, IterableDataset
 from packaging import version
 from torch import nn
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.tensor import DTensor
 from torch.utils.data import DataLoader, Sampler
 from transformers import (
     AutoModelForCausalLM,
@@ -901,34 +901,6 @@ class GRPOTrainer(Trainer):
         entropies = torch.cat(all_entropies, dim=0) if compute_entropy else None
         return {"logps": logps, "entropies": entropies}
 
-    def _sync_fsdp_params_to_vllm(self, module: nn.Module, prefix: str = "", visited=None):
-        """Memory-efficient post-order traversal of FSDP modules to extract full parameters and sync with vLLM."""
-        rank_print("fsdp update vllm: ", prefix)
-        if visited is None:
-            visited = set()
-
-        for child_name, child_module in module.named_children():
-            child_prefix = f"{prefix}.{child_name}" if prefix else child_name
-            self._sync_fsdp_params_to_vllm(child_module, prefix=child_prefix, visited=visited)  # recurse into the child
-
-        if isinstance(module, FSDP):
-            with FSDP.summon_full_params(module, recurse=False, writeback=False):
-                for param_name, param in module.named_parameters():
-                    full_name = f"{prefix}.{param_name}" if prefix else param_name
-                    for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
-                        full_name = full_name.replace(extra, "")
-
-                    if full_name in visited:
-                        continue  # skip FSDP subtrees already traversed
-                    visited.add(full_name)
-
-                    if self.vllm_mode == "server" and self.accelerator.is_main_process:
-                        self.vllm_client.update_named_param(full_name, param.data)
-                    elif self.vllm_mode == "colocate":
-                        llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
-                        rank_print("fsdp update vllm: ", full_name)
-                        llm_model.load_weights([(full_name, param.data)])
-
     @profiling_decorator
     def _move_model_to_vllm(self):
         rank_print(f"Update vllm @ {self.state.global_step} step")
@@ -938,68 +910,45 @@ class GRPOTrainer(Trainer):
             import deepspeed
 
             gather_if_zero3 = deepspeed.zero.GatheredParameters
-            rank_print("using zero3 gather")
         else:
             gather_if_zero3 = nullcontext
         rank_print("update vllm for model, ", type(self.model))
-        if has_lora_adapter(self.model) and self.args.use_vllm_lora_update:
-            alpha = self.model.config.speech_lora["lora_alpha"]
-            r = self.model.config.speech_lora["r"]
-            update_vllm_lora(self.llm, self.model, alpha, r)
-        elif is_peft_model(self.model) or can_merge_adapter(self.model):
+        if is_peft_model(self.model) or can_merge_adapter(self.model):
             rank_print("update vllm for peft model, ", type(self.model))
-            # With PEFT and FSDP/DeepSpeed ZeRO Stage 3, we must gather the full model at once before merging, as
-            # merging adapters in a sharded manner is not supported.
-            # TODO: does this work with FSDP?
             with gather_if_zero3(list(self.model.parameters())):
                 self.model.merge_adapter()
-
-                # Update vLLM weights while parameters are gathered
-                if self.is_fsdp_enabled:  # note if using FSDP, gather_if_zero3 is nullcontext
-                    # Update vLLM weights while parameters are gathered
-                    # For PEFT with FSDP we need to use the memory efficient post-order traversal
-                    rank_print("update vllm for fsdp model, ", type(self.model))
-                    self._sync_fsdp_params_to_vllm(self.model)
-                else:
-                    rank_print("update vllm for ds model, ", type(self.model))
-                    # DeepSpeed ZeRO-3 with PEFT
-                    for name, param in self.model.named_parameters():
-                        # When using PEFT, we need to recover the original parameter name and discard some parameters
-                        name = name.removeprefix("base_model.model.").replace(".base_layer", "")
-
-                        if hasattr(self.model, "prefix") and self.model.prefix in name:
-                            continue
-                        # When module to save, remove its prefix and discard the original module
-                        if "original_module" in name:
-                            continue
-
-                        for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
-                            name = name.replace(extra, "")
-
-                        if self.vllm_mode == "server" and self.accelerator.is_main_process:
-                            self.vllm_client.update_named_param(name, param.data)
-                        elif self.vllm_mode == "colocate":
-                            llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
-                            rank_print("fsdp update vllm: ", name)
-                            llm_model.load_weights([(name, param.data)])
+                for name, param in self.model.named_parameters():
+                    # When using PEFT, we need to recover the original parameter name and discard some parameters
+                    name = name.removeprefix("base_model.model.").replace(".base_layer", "")
+                    if hasattr(self.model, "prefix") and self.model.prefix in name:
+                        continue
+                    # When module to save, remove its prefix and discard the original module
+                    if "original_module" in name:
+                        continue
+                    if isinstance(param, DTensor):  # for fsdp2 DTensor
+                        param = param.full_tensor()
+                    for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
+                        name = name.replace(extra, "")
+                    if self.vllm_mode == "server" and self.accelerator.is_main_process:
+                        self.vllm_client.update_named_param(name, param.data)
+                    elif self.vllm_mode == "colocate":
+                        llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                        llm_model.load_weights([(name, param.data)])
                 # Unmerge adapters while parameters are still gathered
                 self.model.unmerge_adapter()
                 # Parameters will automatically be repartitioned when exiting the context
         else:
-            rank_print("update vllm for model, ", type(self.model))
-            # For non-PEFT models, simply gather (if needed) and update each parameter individually.
-            if self.is_fsdp_enabled:
-                self._sync_fsdp_params_to_vllm(self.model)  # use memory-efficient post-order traversal for FSDP
-            else:
-                for name, param in self.model.named_parameters():
-                    for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
-                        name = name.replace(extra, "")
-                    with gather_if_zero3([param]):
-                        if self.vllm_mode == "server" and self.accelerator.is_main_process:
-                            self.vllm_client.update_named_param(name, param.data)
-                        elif self.vllm_mode == "colocate":
-                            llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
-                            llm_model.load_weights([(name, param.data)])
+            for name, param in self.model.named_parameters():
+                for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
+                    name = name.replace(extra, "")
+                with gather_if_zero3([param]):
+                    if isinstance(param, DTensor):  # for fsdp2 DTensor
+                        param = param.full_tensor()
+                    if self.vllm_mode == "server" and self.accelerator.is_main_process:
+                        self.vllm_client.update_named_param(name, param.data)
+                    elif self.vllm_mode == "colocate":
+                        llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                        llm_model.load_weights([(name, param.data)])
 
         # Reset cache on vLLM
         if self.vllm_mode == "server" and self.accelerator.is_main_process:

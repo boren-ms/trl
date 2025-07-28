@@ -104,9 +104,7 @@ def setup_chat_format(
     """
     # check if model already had a chat template
     if tokenizer.chat_template is not None:
-        raise ValueError(
-            "Chat template is already added to the tokenizer. If you want to overwrite it, please set it to None"
-        )
+        raise ValueError("Chat template is already added to the tokenizer. If you want to overwrite it, please set it to None")
 
     # check if format available and retrieve
     if format not in FORMAT_MAPPING:
@@ -318,11 +316,7 @@ def prepare_deepspeed(model: "Module", accelerator: "Accelerator"):
     stage = config_kwargs["zero_optimization"]["stage"]
 
     if model is not None:
-        hidden_size = (
-            max(model.config.hidden_sizes)
-            if getattr(model.config, "hidden_sizes", None)
-            else getattr(model.config, "hidden_size", None)
-        )
+        hidden_size = max(model.config.hidden_sizes) if getattr(model.config, "hidden_sizes", None) else getattr(model.config, "hidden_size", None)
         if hidden_size is not None and stage == 3:
             # Note that `stage3_prefetch_bucket_size` can produce DeepSpeed messages like: `Invalidate trace cache
             # @ step 0: expected module 1, but got module 0`
@@ -348,10 +342,11 @@ def prepare_deepspeed(model: "Module", accelerator: "Accelerator"):
 def prepare_fsdp(model, accelerator):
     # Adapted from accelerate: https://github.com/huggingface/accelerate/blob/739b135f8367becb67ffaada12fe76e3aa60fefd/src/accelerate/accelerator.py#L1421
     from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp import FSDPModule
 
     # Check if the model is already a FSDP model due to `Manual Wrapping` and if so,
     # don't wrap it again
-    if not isinstance(model, FSDP):
+    if not (isinstance(model, FSDP) or isinstance(model, FSDPModule)):
         accelerator.state.fsdp_plugin.set_auto_wrap_policy(model)
         fsdp_plugin = accelerator.state.fsdp_plugin
         kwargs = {
@@ -383,9 +378,7 @@ class _ForwardRedirection:
 
     """
 
-    def __call__(
-        self, wrapper_module: nn.Module, original_module: nn.Module, method: callable, *args: Any, **kwargs: Any
-    ):
+    def __call__(self, wrapper_module: nn.Module, original_module: nn.Module, method: callable, *args: Any, **kwargs: Any):
         """Reroutes a method call through the `wrapper_module`'s `forward` method.
 
         Args:
