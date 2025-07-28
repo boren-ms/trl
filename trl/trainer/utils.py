@@ -1791,7 +1791,7 @@ def merge_adapter(cls, merge=True, adapter="speech"):
         if not isinstance(module, LoraLayer):
             continue
         if merge:
-            rank_print("merging Lora", name, adapter)
+            # rank_print("merging Lora", name, adapter)
             module.merge(adapter_names=adapter)
         else:
             module.unmerge()
