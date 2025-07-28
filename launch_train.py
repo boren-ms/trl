@@ -99,7 +99,7 @@ def get_acc_config(name=None):
     return name_dict.get(name, None)
 
 
-def main(config_file, task=None, forced=False, acc="zero2"):
+def main(config_file, task=None, forced=False, acc=None):
     """Launch the job on all nodes by preparing the environment and data."""
     script_path = get_task_script(task, config_file)
     print(f"Using script: {script_path}")
@@ -108,7 +108,9 @@ def main(config_file, task=None, forced=False, acc="zero2"):
 
     config_file = Path(config_file).absolute()
     print(f"Using config file: {config_file}")
-    output_dir, remote_output_dir = get_output_dirs(config_file.stem)
+    acc_config = get_acc_config(acc)
+    output_name = f"{config_file.stem}_{acc_config.stem}" if acc_config else config_file.stem
+    output_dir, remote_output_dir = get_output_dirs(output_name)
 
     results = []
     print("Preparing environment on all nodes...")
@@ -133,7 +135,7 @@ def main(config_file, task=None, forced=False, acc="zero2"):
     watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
 
     print(f"Launching training with {config_file}...")
-    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir), acc_config=get_acc_config(acc))
+    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir), acc_config=acc_config)
     print("Training completed on all nodes.")
 
     print("Launching evaluation on all nodes")
