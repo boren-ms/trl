@@ -105,7 +105,8 @@ def get_task_script(task=None, config_file=None):
     }
 
     if not task and config_file:
-        name_parts = Path(config_file).stem.split("_")
+        name_parts = Path(config_file).parent.name.split("_")
+        name_parts += Path(config_file).stem.split("_")
         task = next((t for t in tasks if t in name_parts), None)
     assert task, "Task must be specified or inferred from config_file"
     script_path = tasks[task]
