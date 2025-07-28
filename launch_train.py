@@ -163,7 +163,7 @@ def main(config_file, task=None, forced=False, acc=None):
     watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
 
     print(f"Launching training with {config_file}...")
-    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir), acc_config=str(acc_config))
+    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir), acc_config=acc_config)
     print("Training completed on all nodes.")
 
     print("Launching evaluation on all nodes")
