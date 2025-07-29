@@ -66,10 +66,10 @@ from .utils import (
     pad,
     print_rich_dataframe,
     selective_log_softmax,
-    can_merge_adapter,
     get_func_name,
     has_lora_adapter,
     rank_print,
+    merge_adapter_if_possible,
 )
 
 if is_peft_available():
@@ -548,6 +548,9 @@ class GRPOTrainer(Trainer):
         self.vllm_mode = args.vllm_mode
         self.vllm_gpu_memory_utilization = args.vllm_gpu_memory_utilization  # only applies to colocation mode
         self.vllm_tensor_parallel_size = args.vllm_tensor_parallel_size  # only applies to colocation mode
+        self.vllm_base_updated = False  # whether the vLLM base model has been updated
+        self.use_vllm_lora_update = args.use_vllm_lora_update
+
         self.use_liger_loss = args.use_liger_loss
         self.loss_type = args.loss_type
         self.scale_rewards = args.scale_rewards
@@ -685,7 +688,7 @@ class GRPOTrainer(Trainer):
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
                     max_num_batched_tokens=max_all_tokens,
                     trust_remote_code=True,
-                    enable_lora=self.args.use_vllm_lora_update,
+                    enable_lora=self.use_vllm_lora_update,
                     max_lora_rank=320,
                 )
 
@@ -901,56 +904,57 @@ class GRPOTrainer(Trainer):
         entropies = torch.cat(all_entropies, dim=0) if compute_entropy else None
         return {"logps": logps, "entropies": entropies}
 
-    @profiling_decorator
-    def _move_model_to_vllm(self):
-        rank_print(f"Update vllm @ {self.state.global_step} step")
+    def _move_params_to_vllm(self, model):
+        # This method is called by the vLLM server to update the model weights.
+        # It is not used in colocate mode, as the model is already colocated with vLLM.
+        for name, param in model.named_parameters():
+            name = name.removeprefix("base_model.model.").replace(".base_layer", "")
+            if hasattr(model, "prefix") and model.prefix in name:
+                continue
+            if isinstance(param, DTensor):  # for fsdp2 DTensor
+                param = param.full_tensor()
+            for extra in ("modules_to_save.default.", "_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
+                name = name.replace(extra, "")
+            if self.vllm_mode == "server" and self.accelerator.is_main_process:
+                self.vllm_client.update_named_param(name, param.data)
+            elif self.vllm_mode == "colocate":
+                llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                llm_model.load_weights([(name, param.data)])
+
+    def gather_context(self):
+        """Gather context for vLLM updates."""
         deepspeed_plugin = self.accelerator.state.deepspeed_plugin
         zero_stage_3 = deepspeed_plugin is not None and deepspeed_plugin.zero_stage == 3
         if zero_stage_3:
             import deepspeed
 
-            gather_if_zero3 = deepspeed.zero.GatheredParameters
+            return deepspeed.zero.GatheredParameters
         else:
-            gather_if_zero3 = nullcontext
-        if has_lora_adapter(self.model) and self.args.use_vllm_lora_update:
+            return nullcontext
+
+    @profiling_decorator
+    def _move_base_to_vllm(self, merge_adapter=True):
+        # This method is called by the vLLM server to update the model weights.
+        # It is not used in colocate mode, as the model is already colocated with vLLM.
+        model_str = "merged" if merge_adapter else "unmerged"
+        rank_print(f"Update vLLM with {model_str} model {self.state.global_step} step")
+        gather_if_zero3 = self.gather_context()
+        with gather_if_zero3(list(self.model.parameters())), merge_adapter_if_possible(self.model, merge_adapter) as model:
+            self._move_params_to_vllm(model)
+
+    @profiling_decorator
+    def _move_model_to_vllm(self):
+        rank_print(f"Update vLLM @ {self.state.global_step} step")
+        if has_lora_adapter(self.model) and self.use_vllm_lora_update:
+            if not self.vllm_base_updated:
+                self._move_base_to_vllm(merge_adapter=False)
+                self.vllm_base_updated = True
+
             alpha = self.model.config.speech_lora["lora_alpha"]
             r = self.model.config.speech_lora["r"]
             update_vllm_lora(self.llm, self.model, alpha, r)
-        elif is_peft_model(self.model) or can_merge_adapter(self.model):
-            with gather_if_zero3(list(self.model.parameters())):
-                self.model.merge_adapter()
-                for name, param in self.model.named_parameters():
-                    # When using PEFT, we need to recover the original parameter name and discard some parameters
-                    name = name.removeprefix("base_model.model.").replace(".base_layer", "")
-                    if hasattr(self.model, "prefix") and self.model.prefix in name:
-                        continue
-                    # When module to save, remove its prefix and discard the original module
-                    if "original_module" in name:
-                        continue
-                    if isinstance(param, DTensor):  # for fsdp2 DTensor
-                        param = param.full_tensor()
-                    for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
-                        name = name.replace(extra, "")
-                    if self.vllm_mode == "server" and self.accelerator.is_main_process:
-                        self.vllm_client.update_named_param(name, param.data)
-                    elif self.vllm_mode == "colocate":
-                        llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
-                        llm_model.load_weights([(name, param.data)])
-                # Unmerge adapters while parameters are still gathered
-                self.model.unmerge_adapter()
-                # Parameters will automatically be repartitioned when exiting the context
         else:
-            for name, param in self.model.named_parameters():
-                for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
-                    name = name.replace(extra, "")
-                with gather_if_zero3([param]):
-                    if isinstance(param, DTensor):  # for fsdp2 DTensor
-                        param = param.full_tensor()
-                    if self.vllm_mode == "server" and self.accelerator.is_main_process:
-                        self.vllm_client.update_named_param(name, param.data)
-                    elif self.vllm_mode == "colocate":
-                        llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
-                        llm_model.load_weights([(name, param.data)])
+            self._move_base_to_vllm()
 
         # Reset cache on vLLM
         if self.vllm_mode == "server" and self.accelerator.is_main_process:

@@ -44,6 +44,7 @@ from transformers import (
     TrainingArguments,
     is_comet_available,
 )
+from contextlib import contextmanager
 from trl.import_utils import is_rich_available
 from transformers.utils import (
     ModelOutput,
@@ -1775,6 +1776,19 @@ def print_rich_dataframe(step: int, df: pd.DataFrame, check_rich: bool = True) -
 
 def can_merge_adapter(model):
     return hasattr(model, "merge_adapter") and hasattr(model, "unmerge_adapter")
+
+
+@contextmanager
+def merge_adapter_if_possible(model, merge=True):
+    """Context manager to merge and unmerge adapter layers if the model supports it."""
+    if can_merge_adapter(model) and merge:
+        model.merge_adapter()
+        try:
+            yield model
+        finally:
+            model.unmerge_adapter()
+    else:
+        yield model
 
 
 def has_lora_adapter(cls):
