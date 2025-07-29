@@ -75,8 +75,8 @@ def read_words(file_path):
     return words
 
 
-def entity_dataset(jsonl_paths, bias_key=None, bias_file=None, tag="*", data_dir=None, **kwargs):
-    ds = jsonl_dataset(jsonl_paths, **kwargs)
+def entity_dataset(jsonl_path, bias_key=None, bias_file=None, tag="*", data_dir=None, **kwargs):
+    ds = jsonl_dataset(jsonl_path, **kwargs)
 
     def load_sample(example):
         """Load audio from a file."""
@@ -280,6 +280,8 @@ def create_audio_dataset(dataset_name="openasr", **kwargs):
     """Create a dataset from the given split."""
     if dataset_name == "ls_bias":
         ds = ls_bias_dataset(**kwargs)
+    if dataset_name == "inhouse_entity":
+        ds = entity_dataset(**kwargs)
     elif dataset_name == "openasr":
         ds = openasr_dataset(**kwargs)
         ds = augment(ds, **kwargs)

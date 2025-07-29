@@ -11,10 +11,11 @@ new_run: True
 # model_path: /root/data/ckp/hf_models/phi4_mm_bias
 model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 eval_data:
-  - nickname: clean_no
-    num_egs: 512
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+  - nickname: health
+    num_egs: 2
+    dataset_name: inhouse_entity
+    jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DeliciousHealthy_Entity_FY24Q1_en-US_DTEST/test.jsonl
+    data_dir: /root/data/
   # - nickname: clean_1000
   #   num_egs: 512
   #   dataset_name: ls_bias

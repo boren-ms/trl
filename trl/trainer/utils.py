@@ -1846,20 +1846,11 @@ def add_adapter_func(obj):
 
 def move_model_to_vllm(model, llm):
     rank_print("Move model to vllm")
-    llm_model = llm.llm_engine.model_executor.driver_worker.model
-    if can_merge_adapter(model):
-        model.merge_adapter()
+    llm_model = llm.llm_engine.model_executor.driver_worker.model_runner.model
+    with merge_adapter_if_possible(model) as model:
         for name, param in model.named_parameters():
-            name = name.removeprefix("base_model.model.").replace(".base_layer", "")
-            if hasattr(model, "prefix") and model.prefix in name:
-                continue
+            name = name.removeprefix("base_model.model.")
             for extra in ("modules_to_save.default.", "_checkpoint_wrapped_module."):
-                name = name.replace(extra, "")
-            llm_model.load_weights([(name, param.data)])
-        model.unmerge_adapter()
-    else:
-        for name, param in model.named_parameters():
-            for extra in ("_fsdp_wrapped_module.", "_checkpoint_wrapped_module."):
                 name = name.replace(extra, "")
             llm_model.load_weights([(name, param.data)])
     # Reset cache on vLLM
