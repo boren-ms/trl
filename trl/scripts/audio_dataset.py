@@ -152,7 +152,7 @@ def bias_sampling(ds, **kwargs):
         context, text, keywords = bias_sampler.sample(sample["text"])
         prompt = get_task_prompt(task="biasing", rand=rand_prompt)
         return {
-            "prompt": f"{prompt} {context}",
+            "prompt": prompt_format.format(f"{prompt} {context}"),
             "text": text,  # text is updated
             "keywords": keywords,
         }
