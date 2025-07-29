@@ -908,7 +908,7 @@ class GRPOTrainer(Trainer):
         # This method is called by the vLLM server to update the model weights.
         # It is not used in colocate mode, as the model is already colocated with vLLM.
         for name, param in model.named_parameters():
-            name = name.removeprefix("base_model.model.").replace(".base_layer", "")
+            name = name.removeprefix("base_model.model.")
             if hasattr(model, "prefix") and model.prefix in name:
                 continue
             if isinstance(param, DTensor):  # for fsdp2 DTensor
@@ -919,6 +919,9 @@ class GRPOTrainer(Trainer):
                 self.vllm_client.update_named_param(name, param.data)
             elif self.vllm_mode == "colocate":
                 llm_model = self.llm.llm_engine.model_executor.driver_worker.model_runner.model
+                # can't work with Phi4-MM LORA weight,
+                # https://github.com/vllm-project/vllm/blob/e18f0851033fbc4ef55c1989411f2a5666b518c6/vllm/model_executor/models/phi4mm.py#L891
+                #  "base_layer." will be removed from name, lead to unknown parameter name to LoRA models
                 llm_model.load_weights([(name, param.data)])
 
     def gather_context(self):
