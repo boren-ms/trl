@@ -126,11 +126,13 @@ class WandbHelper:
     def _load_info(self):
         """Load run info from JSON and resume the run."""
         if not self.run_info_file.exists():
-            rank_print(f"Run info file {self.run_info_name} does not exist.")
+            rank_print(f"Run info file {self.run_info_file} does not exist.")
             return {}
         rank_print(f"Loading run info from {self.run_info_file}")
         info = json.load(self.run_info_file.open("r"))
-        url = info.get("run_url", "")
+        url = info.get("run_url", None)
+        if not url:
+            return info
         rank_print(f"Reuse run: {url}")
         parts = Path(url).parts
         if url.startswith("https://msaip.wandb.io/") and len(parts) > 4:
