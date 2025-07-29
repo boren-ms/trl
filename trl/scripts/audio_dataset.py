@@ -7,6 +7,7 @@ from pathlib import Path
 from datasets import load_dataset, concatenate_datasets
 from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
+from trl.scripts.audio_prompts import get_task_prompt
 from trl.data_utils import sf_read
 import blobfile as bf
 import pandas as pd
@@ -137,6 +138,7 @@ def stream_shuffle(ds, **kwargs):
 
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
+    rand_prompt = kwargs.pop("rand_prompt", False)
     kwargs = kwargs or {
         "bias_prob": 0.9,
         "hit_prob": 0.9,
@@ -148,9 +150,9 @@ def bias_sampling(ds, **kwargs):
     def proc_sample(sample):
         """Process a sample from the dataset."""
         context, text, keywords = bias_sampler.sample(sample["text"])
-        side_prompt = f"Pay extra attention to the following phrases/words: {context}." if context else ""
+        prompt = get_task_prompt(task="biasing", rand=rand_prompt)
         return {
-            "prompt": prompt_format.format(f"Transcribe the audio clip into text. {side_prompt}"),
+            "prompt": f"{prompt} {context}",
             "text": text,  # text is updated
             "keywords": keywords,
         }
