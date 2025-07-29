@@ -353,18 +353,34 @@ def prepare_env(forced=False):
     """Prepare the environment on each node by installing necessary packages."""
     hostname = os.uname().nodename
     print(f"Preparing environment on node: {hostname}")
-    packages = [
+    required = [
         "torch==2.6.0",
         "ray==2.46.0",
         "transformers==4.51.3",
         "vllm==0.8.5.post1",
         "trl==0.20.0.dev0",
     ]
-    if all(is_package_version(*package.split("==")) for package in packages) and not forced:
+    if all(is_package_version(*pkg.split("==")) for pkg in required) and not forced:
         print(f"Required packages already installed on {hostname}, skipping installation.")
         return
     run_cmd("pip uninstall -y torch torchvision torchaudio transformers flash-attn vllm trl")
-    run_cmd("uv pip install --system torch==2.6.0 torchvision torchaudio transformers==4.51.3  trl peft tensorboardX blobfile soundfile more-itertools whisper_normalizer fire deepspeed")
+    required = [
+        "torch==2.6.0",
+        "torchvision",
+        "torchaudio",
+        "transformers==4.51.3",
+        "trl",
+        "peft",
+        "tensorboardX",
+        "blobfile",
+        "soundfile",
+        "more-itertools",
+        "whisper_normalizer",
+        "fire",
+        "deepspeed",
+        "beautifulsoup4",
+    ]
+    run_cmd(f"uv pip install --system {' '.join(required)}")
     run_cmd("pip install vllm==0.8.5.post1 && pip install ray==2.46.0")
     run_cmd("pip install torch==2.6.0 flash-attn ")
     run_cmd("pip uninstall -y trl")

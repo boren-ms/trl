@@ -11,50 +11,95 @@ from trl.scripts.audio_prompts import get_task_prompt
 from trl.data_utils import sf_read
 import blobfile as bf
 import pandas as pd
+from bs4 import BeautifulSoup
 
 prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
 
 
+def extract_entities(text):
+    """extract named entities from text that are surrounded by <NE> </NE> or <NE:type> </NE:type> tags."""
+
+    bs = BeautifulSoup(text, "html.parser")
+    entities = [tag.get_text().strip() for tag in bs.find_all() if tag.name.startswith("ne")]
+    return set(entities)
+
+
+def jsonl_dataset(jsonl_paths, **kwargs):
+    data_files = [jsonl_paths] if isinstance(jsonl_paths, str) else jsonl_paths
+    data_files = [str(file_path) for file_path in data_files]
+    ds = load_dataset("json", data_files=data_files, split="train")
+    ds = stream_shuffle(ds, **kwargs)
+    return ds
+
+
+def update_dir(data_path, src_dir=None, dst_dir=None):
+    if not src_dir:
+        return data_path
+    dst_dir = dst_dir or ""  # default to empty string if not provided
+    data_path = str(data_path)
+    src_dir = src_dir.rstrip("/") + "/"  # Ensure src_dir is a clean path
+    dst_dir = dst_dir.rstrip("/") + "/"  # Ensure dst_dir is a clean path
+    return data_path.replace(src_dir, dst_dir) if data_path.startswith(src_dir) else data_path
+
+
 def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs):
     """Create a dataset from the given split."""
-    data_files = [jsonl_path] if isinstance(jsonl_path, str) else jsonl_path
-    data_files = [str(file_path) for file_path in data_files]
-
-    ds = load_dataset(
-        "json",
-        data_files=data_files,
-        split="train",
-    )
-
-    ds = stream_shuffle(ds, **kwargs)
+    ds = jsonl_dataset(jsonl_path, **kwargs)
 
     def load_sample(example):
         """Load audio from a file."""
-
         bias_words = example.get(bias_key, [])
         bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
-        instruct = "Transcribe the audio clip into text."
-        if bias_str:
-            instruct += f" Pay extra attention to the following phrases/words: {bias_str}."
-        audio_path = Path(example["audio_path"])
-        idx = audio_path.stem
-        if data_dir:
-            if audio_path.is_absolute():
-                audio_path = audio_path.relative_to("/root/data")
-            audio_path = f"{data_dir}/{audio_path}"  # not use Path here, since it may be a remote path
+        prompt = get_task_prompt(task="biasing" if bias_str else "asr")
+        audio_path = update_dir(example["audio_path"], src_dir="/root/data", dst_dir=data_dir)
         words = example.get("text", "").strip().split()
         gt_words = example.get("ground_truth", [])
         words = tag_pieces(words, tag=tag, specified=gt_words, norm=text_norm)
         return {
-            "prompt": prompt_format.format(instruct),
-            "audio_path": str(audio_path),
+            "prompt": prompt_format.format(f"{prompt} {bias_str}"),
+            "audio_path": audio_path,
             "text": " ".join(words),
             "keywords": gt_words,
-            "id": example.get("id", idx),
+            "id": example.get("id", Path(audio_path).stem),
         }
 
     ds = ds.map(load_sample)
     return ds
+
+
+def read_words(file_path):
+    if not bf.exists(file_path):
+        return []
+    with bf.BlobFile(file_path, "r") as f:
+        words = [line.strip() for line in f if line.strip()]
+    return words
+
+
+def entity_dataset(jsonl_paths, bias_key=None, bias_file=None, tag="*", data_dir=None, **kwargs):
+    ds = jsonl_dataset(jsonl_paths, **kwargs)
+
+    def load_sample(example):
+        """Load audio from a file."""
+        trans = example.get("Transcription", "").strip()
+        audio_path = update_dir(example["WavPath"], src_dir="/datablob1/users/ruchaofan/", dst_dir=data_dir)
+
+        if bias_file:
+            bias_words = read_words(bias_file)
+        else:
+            bias_words = example.get(bias_key, [])
+
+        bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
+        prompt = get_task_prompt(task="biasing" if bias_str else "asr")
+
+        return {
+            "prompt": prompt_format.format(f"{prompt} {bias_str}"),
+            "audio_path": audio_path,
+            "text": trans,
+            "keywords": extract_entities(trans),
+            "id": example.get("UUID", Path(audio_path).stem),
+        }
+
+    return ds.map(load_sample)
 
 
 def load_tsv(tsv_file):
