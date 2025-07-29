@@ -95,7 +95,7 @@ class WandbHelper:
     def _login(self):
         """Login to wandb."""
         key = os.environ.get("WANDB_API_KEY", "")
-        host = os.environ.get("WANDB_ORGANIZATION", "")
+        host = os.environ.get("WANDB_ORGANIZATION", "https://msaip.wandb.io")
         wandb.login(host=host, key=key, relogin=True)
 
     def init(self, main_only=True):
