@@ -278,7 +278,7 @@ class Evaluation:
                 chk_egs["chk_idx"] = i
                 sub_examples.append(chk_egs)
             batches.append(sub_examples)
-        batches = zip_longest(*batches, fillvalue=None)
+        batches = list(zip_longest(*batches, fillvalue=None))
         return batches
 
     def generate(self, examples):
