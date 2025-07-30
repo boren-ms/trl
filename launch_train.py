@@ -140,8 +140,7 @@ def main(config_file, task=None, forced=False, acc=None, seed_name=None):
     print(f"Training config: {config_file}")
     print(f"Accelerate config: {acc_config}")
     print(f"Job name: {job_name}")
-    print(f"Seed name: {seed_name}")
-    output_dir, remote_output_dir = get_output_dirs(job_name, seed_name)
+    output_dir, remote_output_dir = get_output_dirs(job_name)
 
     results = []
     print("Preparing environment on all nodes...")
@@ -153,8 +152,9 @@ def main(config_file, task=None, forced=False, acc=None, seed_name=None):
     print("Releasing GPUs on all nodes...")
     results += run_nodes(release_gpus, waiting=False)
 
-    print("Preparing output on all nodes...")
-    results += run_nodes(prepare_local_output, local_dir=output_dir, remote_dir=remote_output_dir, waiting=False)
+    remote_seed_dir = remote_output_dir.replace(job_name, seed_name) if seed_name else remote_output_dir
+    print("Preparing output on all nodes from seed: ", remote_seed_dir)
+    results += run_nodes(prepare_local_output, local_dir=output_dir, remote_dir=remote_seed_dir, waiting=False)
 
     # Ensure all tasks are completed before proceeding
     ray.get(results)
