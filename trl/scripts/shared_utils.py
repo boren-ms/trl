@@ -82,8 +82,9 @@ class WandbHelper:
             run_name = config_path.stem
             project = config_path.parent.name or "biasing"
         run_name = self.run_name or run_name
+        print(f"Run name: {run_name}, Project: {project}, New run: {self.new_run}, Work dir: {self.run_info_file.parent}")
         run_info = {} if self.new_run else self._load_info()
-
+        print("WandB Run Info:", run_info)
         return {
             "entity": run_info.get("entity", "genai"),
             "project": run_info.get("project", project),
