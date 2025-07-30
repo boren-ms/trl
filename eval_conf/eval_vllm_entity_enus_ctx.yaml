@@ -1,0 +1,168 @@
+use_vllm: true
+vllm_max_length: 10240 # default 1024*10 #10k
+batch_size: 4
+generation_config:
+    max_new_tokens: 1024
+    do_sample: false
+
+max_chunk_len: 30
+with_history: True
+# model_path: /root/data/ckp/hf_models/phi4_mm_bias
+#
+# model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+model_path: /root/data/ckp/hf_models/phi4_mm_bias
+eval_data:
+    - nickname: Conversation_CapitalMarket
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_CapitalMarket_Entity_FY24Q3_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_ConsumerGood
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ConsumerGood_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_DefenseIntelligence
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DefenseIntelligence_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_DeliciousHealthy
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DeliciousHealthy_Entity_FY24Q1_en-US_DTEST/test.jsonl
+
+    - nickname: Conversation_DoctorPatientConsultation
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DoctorPatientConsultation_Entity_FY25Q2_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_Energy
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Energy_Entity_FY24Q3_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_EnhancedMedical
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_EnhancedMedical_Entity_FY24Q1_en-US_DTEST/test.jsonl
+
+    - nickname: Conversation_Gaming
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/test.jsonl
+
+    - nickname: Conversation_Insurance
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/test.jsonl
+
+    - nickname: Conversation_K12HigherEdu
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_LawEnforcement
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_LawEnforcement_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_Legal
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Legal_Entity_FY24Q3_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_LibraryMuseum
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_LibraryMuseum_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_LifeHealth
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_LifeHealth_Entity_FY24Q3_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_Manufactory
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Manufactory_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_Media
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Media_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_MedicalTeamMeetings
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_MedicalTeamMeetings_Entity_FY25Q2_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_PatientHistoryDictation
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_PatientHistoryDictation_Entity_FY25Q2_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_PayorProvider
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_PayorProvider_Entity_FY24Q3_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_Pharmaceutical
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Pharmaceutical_Entity_FY24Q3_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_PharmacyInstruction
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_PharmacyInstruction_Entity_FY25Q2_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_PublicSafetyJustice
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_PublicSafetyJustice_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_Retail
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_ScienceTech
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/test.jsonl
+
+    - nickname: Conversation_SurgeryInstruction
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_SurgeryInstruction_Entity_FY25Q2_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_Sustain
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Sustain_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_Telecommunication
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Telecommunication_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
+
+    - nickname: Conversation_Vehicles
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Vehicles_Entity_FY24Q1_en-US_DTEST/test.jsonl
+
+    - nickname: CustomerSpeech_Banking
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/CustomerSpeechDomainSet_DTEST_Banking_Entity_FY23Q4_en-US_DTEST/test.jsonl
+
+    - nickname: CustomerSpeech_LawEnforcement
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/CustomerSpeechDomainSet_DTEST_LawEnforcement_Entity_FY23Q4_en-US_DTEST/test.jsonl
+
+    - nickname: CustomerSpeech_Medical
+      dataset_name: inhouse_entity
+      data_dir: /root/data/
+      jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/CustomerSpeechDomainSet_DTEST_Medical_Entity_FY23Q4_en-US_DTEST/test.jsonl
