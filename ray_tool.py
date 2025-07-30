@@ -379,6 +379,7 @@ def prepare_env(forced=False):
         "fire",
         "deepspeed",
         "beautifulsoup4",
+        "onnxruntime",
     ]
     run_cmd(f"uv pip install --system {' '.join(required)}")
     run_cmd("pip install vllm==0.8.5.post1 && pip install ray==2.46.0")
