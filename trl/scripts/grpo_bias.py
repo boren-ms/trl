@@ -88,7 +88,8 @@ def main(script_args, training_args):
     if latest_chkp_dir:
         print("Resuming from ", latest_chkp_dir)
     trainer.train(resume_from_checkpoint=latest_chkp_dir)
-    print("All Done.")
+    trainer.save_model()
+    print("Training completed.")
 
 
 def make_parser(subparsers: argparse._SubParsersAction = None):

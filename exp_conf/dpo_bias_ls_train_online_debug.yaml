@@ -30,7 +30,7 @@ bf16: True
 max_prompt_length: 2048
 max_completion_length: 512
 wandb_log_unique_prompts: True
-save_steps: 200
+save_steps: 100
 # beta: 0.0
 
 ref_lora_name: speech_ref # only speech_ref

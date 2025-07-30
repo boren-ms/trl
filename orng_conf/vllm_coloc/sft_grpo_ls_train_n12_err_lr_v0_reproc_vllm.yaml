@@ -25,6 +25,8 @@ model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 report_to: [wandb]
 learning_rate: 1e-5
 save_only_model: True
+save_total_limit: 5
+save_on_each_node: True
 lr_scheduler_type: cosine
 output_dir: ./output
 per_device_train_batch_size: 24

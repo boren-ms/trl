@@ -25,6 +25,8 @@ report_to: [wandb]
 num_train_epochs: 2
 learning_rate: 1e-5
 save_only_model: True
+save_total_limit: 5
+save_on_each_node: True
 lr_scheduler_type: cosine #cosine
 temperature: 1.0
 max_new_tokens: 512
@@ -37,7 +39,7 @@ gradient_checkpointing: True
 use_vllm: True
 vllm_gpu_memory_utilization: 0.45
 # resume_from_checkpoint: True
-save_steps: 200
+save_steps: 100
 # eval_strategy: no
 # eval_on_start: False
 # eval_steps: 200
