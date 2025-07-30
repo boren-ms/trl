@@ -22,6 +22,7 @@ model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 report_to: [wandb]
 num_train_epochs: 5
 learning_rate: 1e-5
+save_only_model: True
 lr_scheduler_type: cosine #cosine
 
 scale_rewards: True

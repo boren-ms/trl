@@ -23,6 +23,7 @@ model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 report_to: [wandb]
 num_train_epochs: 1
 learning_rate: 1e-5
+save_only_model: True
 lr_scheduler_type: constant #cosine
 
 scale_rewards: False

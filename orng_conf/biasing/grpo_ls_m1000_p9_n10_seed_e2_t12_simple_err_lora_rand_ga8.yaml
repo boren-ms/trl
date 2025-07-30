@@ -26,6 +26,7 @@ model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000
 report_to: [wandb]
 num_train_epochs: 2
 learning_rate: 1e-5
+save_only_model: True
 gradient_accumulation_steps: 8
 new_lora: True
 lr_scheduler_type: cosine #cosine
