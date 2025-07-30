@@ -1,0 +1,31 @@
+
+
+ARG BASE_IMAGE=nvcr.io/nvidia/pytorch:25.01-py3
+FROM ${BASE_IMAGE}
+LABEL description="TRL"
+
+RUN pip install bs4 \
+    nvidia-ml-py \
+    accelerate \
+    datasets \
+    transformers==4.51.3 \
+    librosa \
+    soundfile \
+    jiwer \
+    wandb \
+    backoff \
+    fire \
+    peft \
+    vllm==0.8.5.post1 \
+    trl \
+    tensorboardX \
+    blobfile \
+    more-itertools \
+    whisper_normalizer \
+    fire \
+    vllm==0.8.5.post1
+
+
+#
+ARG WANDB_API_KEY
+ENV WANDB_API_KEY=${WANDB_API_KEY}
