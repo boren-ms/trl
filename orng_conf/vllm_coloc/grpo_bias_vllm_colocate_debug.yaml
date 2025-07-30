@@ -16,7 +16,7 @@ output_dir: ~/outputs/debug
 per_device_train_batch_size: 24
 num_generations: 8
 # dataloader_drop_last: True
-
+fake_response_injection: True # fake response inject when zero reward std is detected
 scale_rewards: False
 temperature: 1.1
 logging_steps: 1

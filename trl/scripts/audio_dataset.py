@@ -208,6 +208,17 @@ def bias_sampling(ds, **kwargs):
     return ds
 
 
+def to_conversation(text, role="assistant"):
+    """Convert text to conversation format."""
+    assert role in ["assistant", "user"], "Role must be either 'assistant' or 'user'."
+    return [
+        {
+            "role": role,
+            "content": text,
+        }
+    ]
+
+
 def simulate_perference(ds, **kwargs):
     """simulate the perference  to the dataset."""
     error_range = kwargs.pop("error_range", (0.1, 0.25))
@@ -215,25 +226,20 @@ def simulate_perference(ds, **kwargs):
         error_range = [float(error_range), float(error_range)]
     simulator = ErrorSimulator(**kwargs)
 
+    def format_output(good, bad):
+        """Format the output based on conversation flag."""
+        chat = kwargs.get("conversation", False)
+        return {
+            "chosen": to_conversation(good, role="assistant") if chat else good,
+            "rejected": to_conversation(bad, role="assistant") if chat else bad,
+        }
+
     def add_perference(sample, error_range):
         """Process a sample from the dataset."""
         err_rate = random.uniform(*error_range)
         text = sample["text"]
         bad_text = simulator.random_error(text, err_rate)
-        return {
-            "chosen": [
-                {
-                    "role": "assistant",
-                    "content": text,
-                }
-            ],
-            "rejected": [
-                {
-                    "role": "assistant",
-                    "content": bad_text,
-                }
-            ],
-        }
+        return format_output(bad_text, text)
 
     return ds.map(add_perference, fn_kwargs={"error_range": error_range})
 

@@ -438,6 +438,10 @@ class GRPOConfig(TrainingArguments):
             "help": "Upper-bound epsilon value for clipping. If not specified, it defaults to the same value as the " "lower-bound specified in argument `epsilon`. Paper DAPO recommends `0.28`."
         },
     )
+    fake_response_injection: bool = field(
+        default=False,
+        metadata={"help": "Whether to inject fake responses into the training data, when zero reward std is detected. "},
+    )
     reward_weights: Optional[list[float]] = field(
         default=None,
         metadata={"help": "Weights for each reward function. Must match the number of reward functions. If `None`, all " "rewards are weighted equally with weight `1.0`."},
