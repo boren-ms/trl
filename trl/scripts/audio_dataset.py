@@ -90,11 +90,14 @@ def entity_dataset(jsonl_path, bias_key=None, bias_file=None, tag="*", data_dir=
         bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
         prompt = get_task_prompt(task="biasing" if bias_str else "asr")
 
+        bs = BeautifulSoup(trans, "html.parser")
+        entities = [tag.get_text().strip() for tag in bs.find_all() if tag.name.startswith("ne")]
+
         return {
             "prompt": prompt_format.format(f"{prompt} {bias_str}"),
             "audio_path": audio_path,
-            "text": trans,
-            "keywords": extract_entities(trans),
+            "text": bs.get_text().strip(),
+            "keywords": list(set(entities)),
             "id": example.get("UUID", Path(audio_path).stem),
         }
 

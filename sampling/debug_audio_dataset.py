@@ -2,73 +2,40 @@
 
 from pathlib import Path
 import soundfile as sf
-import sys
-import random
-from collections import defaultdict
-from typing import List, Dict, Any, Iterator
 
-paths = [str(x) for x in Path(__file__).parents[:2]]
-sys.path.extend(paths)
-from trl.scripts.chunk.chunker import Chunker
-
-# %%
-audio_path = Path("/home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/CustomerSpeechDomainSet_DTEST_Medical_Entity_FY23Q4_en-US_DTEST/wav/bca0f4fb-f005-47d4-9b9c-c9de52edf521_0.wav")
 # %%
 from torch.utils.data.sampler import Sampler
 from torch.utils.data import DataLoader
 import torch
 import string
+from datasets import load_dataset, concatenate_datasets
 
+jsonl_path = Path("/home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/CustomerSpeechDomainSet_DTEST_Banking_Entity_FY23Q4_en-US_DTEST/test.jsonl")
 
-def generate_random_string(length: int) -> str:
-    """Generate a random string of specified length."""
-    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+ds = load_dataset("json", data_files=[str(jsonl_path)], split="train")
 
-
-class DummyDataset:
-    """Simple dataset with random character strings."""
-
-    def __init__(self, num_samples: int, min_length: int = 5, max_length: int = 50):
-        self.data = [generate_random_string(random.randint(min_length, max_length)) for _ in range(num_samples)]
-
-    def __len__(self) -> int:
-        return len(self.data)
-
-    def __getitem__(self, idx: int) -> str:
-        return self.data[idx]
-
-
-class LengthBatchSampler(Sampler[List[int]]):
-    """Batch sampler that groups data by length."""
-
-    def __init__(self, dataset: DummyDataset, batch_size: int) -> None:
-        self.dataset = dataset
-        self.batch_size = batch_size
-
-    def __len__(self) -> int:
-        return (len(self.dataset) + self.batch_size - 1) // self.batch_size
-
-    def __iter__(self) -> Iterator[List[int]]:
-        sizes = torch.tensor([len(x) for x in self.dataset])
-        for batch in torch.chunk(torch.argsort(sizes), len(self)):
-            yield batch.tolist()
-
+ds[0]
+from bs4 import BeautifulSoup
 
 # %%
-# Create dummy dataset and data loader
-dataset = DummyDataset(num_samples=100, min_length=5, max_length=50)
-batch_sampler = LengthBatchSampler(dataset, batch_size=8)
-dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
+text = ds[0]["Transcription"]
+bs = BeautifulSoup(text, "html.parser")
+entities = [tag.get_text().strip() for tag in bs.find_all() if tag.name.startswith("ne")]
 
-# Demonstrate usage
-print(f"Dataset size: {len(dataset)}")
-print(f"Number of batches: {len(dataloader)}")
+# %%
+import re
 
-for i, batch in enumerate(dataloader):
-    if i < 3:  # Show first 3 batches
-        lengths = [len(item) for item in batch]
-        print(f"Batch {i}: sizes {lengths}, items: {batch}")
-    else:
-        break
+# Extract clean text content from the parsed HTML
+# clean_text = bs.get_text()
+clean_text = text
+# Split text into utterances by punctuation (.!?;)
+utterances = re.split(r"[.!?;]+", clean_text)
+
+# Clean up utterances: strip whitespace and filter out empty ones
+utterances = [utterance.strip() for utterance in utterances if utterance.strip()]
+
+print(f"Number of utterances: {len(utterances)}")
+for i, utterance in enumerate(utterances):
+    print(f"{i+1}: {utterance}")
 
 # %%
