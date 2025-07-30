@@ -33,9 +33,8 @@ def jsonl_dataset(jsonl_paths, **kwargs):
 
 
 def update_dir(data_path, src_dir=None, dst_dir=None):
-    if not src_dir:
+    if not src_dir or not dst_dir:
         return data_path
-    dst_dir = dst_dir or ""  # default to empty string if not provided
     data_path = str(data_path)
     src_dir = src_dir.rstrip("/") + "/"  # Ensure src_dir is a clean path
     dst_dir = dst_dir.rstrip("/") + "/"  # Ensure dst_dir is a clean path
@@ -280,7 +279,7 @@ def create_audio_dataset(dataset_name="openasr", **kwargs):
     """Create a dataset from the given split."""
     if dataset_name == "ls_bias":
         ds = ls_bias_dataset(**kwargs)
-    if dataset_name == "inhouse_entity":
+    elif dataset_name == "inhouse_entity":
         ds = entity_dataset(**kwargs)
     elif dataset_name == "openasr":
         ds = openasr_dataset(**kwargs)

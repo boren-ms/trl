@@ -7,18 +7,20 @@ from transformers import GenerationConfig
 from trl import TrlParser
 import wandb
 from more_itertools import unique_everseen
+from itertools import zip_longest
 from torch.utils.data import DataLoader, Sampler
 from accelerate import Accelerator, find_executable_batch_size
 from accelerate.utils import gather_object
-import defaultdict
+from collections import defaultdict
 import json
 from vllm import LLM, SamplingParams
 from pathlib import Path
+import blobfile as bf
 from trl.data_utils import sf_read, find_chkps, chkp_index
 from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, WandbHelper
 from trl.scripts.audio_metrics import compute_wers
 from trl.trainer.utils import move_model_to_vllm
-import trl.scripts.chunk as SVadChunker
+from trl.scripts.chunk.svad import SVadChunker
 
 
 @dataclass
@@ -60,9 +62,13 @@ class EvalArguments:
         default=None,
         metadata={"help": "Generation parameters for the model."},
     )
-    max_segment_len: Optional[int] = field(
+    max_chunk_len: Optional[int] = field(
         default=None,
         metadata={"help": "Maximum segment length for audio chunking in seconds."},
+    )
+    with_history: bool = field(
+        default=False,
+        metadata={"help": "whether to use history for next chunk decoding."},
     )
 
 
@@ -141,6 +147,12 @@ def load_audio(x):
     return sf_read(x["audio_path"])
 
 
+def file_size(file_path):
+    if not bf.exists(file_path):
+        return -1
+    return bf.stat(file_path).size
+
+
 class LengthBatchSampler(Sampler[List[int]]):
     """Batch sampler that groups data by length."""
 
@@ -154,7 +166,7 @@ class LengthBatchSampler(Sampler[List[int]]):
     def __iter__(self):
         """Yield batches of indices grouped by length."""
         # sort by the transcription length
-        sizes = torch.tensor([len(x.get("text", "")) for x in self.dataset])
+        sizes = torch.tensor([file_size(x.get("audio_path", "")) for x in self.dataset])
         for batch in torch.chunk(torch.argsort(sizes), len(self)):
             yield batch.tolist()
 
@@ -171,8 +183,10 @@ class Evaluation:
         self.wandb_dir = wandb_dir or self.output_dir
         self.job_name = job_name
         self.vllm_max_length = vllm_max_length
-        max_segment_len = kwargs.get("max_segment_len", None)
-        self.chunker = SVadChunker(max_len=max_segment_len) if max_segment_len else None
+        max_chunk_len = kwargs.get("max_chunk_len", None)
+        self.with_history = kwargs.get("with_history", False)
+
+        self.chunker = SVadChunker(max_len_sec=max_chunk_len) if max_chunk_len else None
         WandbHelper(run_name=self.job_name, work_dir=self.wandb_dir, new_run=new_run).init(main_only=True)
 
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
@@ -220,13 +234,28 @@ class Evaluation:
 
     def _generate_single(self, examples):
         """Generate outputs for a batch of audio files."""
+
+        def load_prompt(x):
+            """load prompt with/without context"""
+
+            prompt = x["prompt"]
+            if not self.with_history:
+                return prompt
+            contexts = x.get("history", [])
+            if not contexts:
+                return prompt
+            HISTORY_PROMPT = "Please consider the following context:"
+            TAIL_STR = "<|end|><|assistant|>"
+            prefix = prompt.replace(TAIL_STR, "").strip()
+            return f"{prefix} {HISTORY_PROMPT} {contexts[-1]} {TAIL_STR}"
+
         if self.use_vllm:
-            inputs = [{"prompt": x["prompt"], "multi_modal_data": {"audio": [load_audio(x)]}} for x in examples]
+            inputs = [{"prompt": load_prompt(x), "multi_modal_data": {"audio": [load_audio(x)]}} for x in examples]
             outputs = self.llm.generate(inputs, sampling_params=self.sampling_params)
             texts = [output.outputs[0].text for output in outputs]
         else:
             audios = [load_audio(x) for x in examples]
-            prompts = [x["prompt"] for x in examples]
+            prompts = [load_prompt(x) for x in examples]
             inputs = self.processor(text=prompts, audios=audios, return_tensors="pt").to(self.accelerator.device)
             model = self.accelerator.unwrap_model(self.model)
             generate_ids = model.generate(**inputs, generation_config=self.generation_config)
@@ -239,29 +268,32 @@ class Evaluation:
         if self.chunker is None:
             return [examples]
         batches = []
-        for example in examples:
+        for example in tqdm(examples, desc="Chunking examples", disable=not self.is_main):
             sub_examples = []
             data, sr = load_audio(example)
-            for i, (s, e) in enumerate(self.chunker(data, sr)):
+            for i, (s, e) in enumerate(self.chunker.chunk(data, sr)):
                 chk_egs = example.copy()
                 chk_egs["audio"] = data[int(s * sr) : int(e * sr)]
                 chk_egs["sr"] = sr
                 chk_egs["chk_idx"] = i
                 sub_examples.append(chk_egs)
             batches.append(sub_examples)
-        batches = zip(*batches)
+        batches = zip_longest(*batches, fillvalue=None)
         return batches
 
     def generate(self, examples):
         """Generate outputs for a batch of examples."""
-        batches = self._chunk_batch(examples)
-
-        outputs = defaultdict(list)
-        for i, inputs in tqdm(batches):
-            outputs = self._generate_single(inputs)
-            for inp, oup in zip(inputs, outputs):
-                outputs[inp["id"]].append(oup)
-        return outputs
+        IDX_KEY = "_egs_idx_"
+        examples = [{**x, IDX_KEY: i} for i, x in enumerate(examples)]
+        chunks = self._chunk_batch(examples)
+        output_dict = defaultdict(list)
+        for chk_inputs in tqdm(chunks, desc="Evaluating chunks", disable=not self.is_main):
+            chk_inputs = [{**x, "history": output_dict[x[IDX_KEY]]} for x in chk_inputs if x is not None]
+            chk_outputs = self._generate_single(chk_inputs)
+            for inp, oup in zip(chk_inputs, chk_outputs):
+                output_dict[inp[IDX_KEY]].append(oup)
+        all_outputs = [" ".join(output_dict[k]) for k in sorted(output_dict.keys())]
+        return all_outputs
 
     def evaluate(self, dataset):
         assert dataset is not None, "Dataset must not be None"
@@ -280,9 +312,8 @@ class Evaluation:
             keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER"]
             for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
                 outputs = self.generate(inputs)
-                for x in inputs:
-                    idx = x["id"]
-                    x["hyp"] = outputs[idx]
+                for x, hyp in zip(inputs, outputs):
+                    x["hyp"] = hyp
                     x["ref"] = x["text"]
                     x.update(self.measure([x]))
                     results.append({k: x.get(k, None) for k in keys})
