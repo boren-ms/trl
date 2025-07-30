@@ -269,14 +269,15 @@ def local_home():
 ORNG_USER = UserStorage()
 
 
-def get_output_dirs(rel_path=None):
+def get_output_dirs(local_rel_path=None, remote_rel_path=None):
     """Get the remote output directory based on the job name."""
     # job_name = job_name or os.environ.get("RCALL_JOB_NAME", None)
     remote_output_dir = f"{ORNG_USER.output_path}"
     local_output_dir = local_home() / "outputs"
-    if rel_path:
-        remote_output_dir = f"{remote_output_dir}/{rel_path}"
-        local_output_dir = local_output_dir / rel_path
+    if local_rel_path:
+        local_output_dir = local_output_dir / local_rel_path
+        remote_rel_path = remote_rel_path or local_rel_path
+        remote_output_dir = f"{remote_output_dir}/{remote_rel_path}"
     return str(local_output_dir), remote_output_dir
 
 

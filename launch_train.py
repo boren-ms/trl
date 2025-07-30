@@ -126,7 +126,7 @@ def get_acc_config(name=None):
     return name_dict.get(name, None)
 
 
-def main(config_file, task=None, forced=False, acc=None):
+def main(config_file, task=None, forced=False, acc=None, seed_name=None):
     """Launch the job on all nodes by preparing the environment and data."""
     script_path = get_task_script(task, config_file)
     print(f"Using script: {script_path}")
@@ -139,7 +139,9 @@ def main(config_file, task=None, forced=False, acc=None):
 
     print(f"Training config: {config_file}")
     print(f"Accelerate config: {acc_config}")
-    output_dir, remote_output_dir = get_output_dirs(job_name)
+    print(f"Job name: {job_name}")
+    print(f"Seed name: {seed_name}")
+    output_dir, remote_output_dir = get_output_dirs(job_name, seed_name)
 
     results = []
     print("Preparing environment on all nodes...")
