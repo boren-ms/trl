@@ -251,7 +251,7 @@ class Evaluation:
 
         if self.use_vllm:
             inputs = [{"prompt": load_prompt(x), "multi_modal_data": {"audio": [load_audio(x)]}} for x in examples]
-            outputs = self.llm.generate(inputs, sampling_params=self.sampling_params)
+            outputs = self.llm.generate(inputs, sampling_params=self.sampling_params, use_tqdm=False)
             texts = [output.outputs[0].text for output in outputs]
         else:
             audios = [load_audio(x) for x in examples]
