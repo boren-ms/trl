@@ -325,6 +325,8 @@ class Evaluation:
             results = []
             keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER"]
             for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
+                if not inputs:
+                    continue
                 outputs = self.generate(inputs)
                 for x, hyp in zip(inputs, outputs):
                     x["hyp"] = hyp
