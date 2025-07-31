@@ -1,6 +1,6 @@
 use_vllm: False
 vllm_max_length: 8192
-batch_size: 20
+batch_size: 128
 generation_config:
   max_new_tokens: 512
   # temperature: 0.0
