@@ -317,17 +317,16 @@ class Evaluation:
             self.rank_log("Evaluating batch size:", batch_size, all=True)
             dl_kwargs = {
                 "collate_fn": lambda x: x,
+                "batch_size": batch_size,
                 # "num_workers": 2,
                 # "prefetch_factor": 2,
             }
-            batch_sampler = LengthBatchSampler(dataset, batch_size)
-            dataloader = self.accelerator.prepare(DataLoader(dataset, batch_sampler=batch_sampler, **dl_kwargs))
+            # batch_sampler = LengthBatchSampler(dataset, batch_size)
+            # dataloader = self.accelerator.prepare(DataLoader(dataset, batch_sampler=batch_sampler, **dl_kwargs))
+            dataloader = self.accelerator.prepare(DataLoader(dataset, **dl_kwargs))
             results = []
             keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER"]
             for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
-                if not inputs:  # sometimes the batch can be empty
-                    self.rank_log("Empty batch, skipping.")
-                    continue
                 outputs = self.generate(inputs)
                 for x, hyp in zip(inputs, outputs):
                     x["hyp"] = hyp
