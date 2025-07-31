@@ -148,9 +148,9 @@ class OutputWatcher:
         print("Watcher stopped.")
 
 
-def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=False):
+def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=False, nodes=None):
     """Start the output watcher to sync outputs periodically."""
-    head_node = head_node_label()
+    head_node = node_label(0 if nodes is None else nodes[0])
     print(f"Watching  @ {head_node} every {interval/60} minutes")
     print(f"Local directory: {local_dir}")
     print(f"Remote directory: {remote_dir}")
@@ -471,10 +471,10 @@ def head_hostname():
     return f"{job_name}-0"  # head node IP
 
 
-def head_node_label():
-    """Get the head node IP address from environment variables."""
+def node_label(index=0):
+    """Get the node IP address from environment variables."""
     nodes = ray.nodes()
-    node_ip = nodes[0]["NodeManagerAddress"]
+    node_ip = nodes[index]["NodeManagerAddress"]
     return f"node:{node_ip}"
 
 

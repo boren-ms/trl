@@ -18,12 +18,20 @@ from ray_tool import (
     get_remote_path,
     run_output_watcher,
     sync_local_dir,
-    search_models
+    search_models,
 )
 
 
+def get_node_count(nodes=None):
+    """Get the number of nodes in the Ray cluster."""
+    if nodes is None:
+        return int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
+    else:
+        return len(nodes)
+
+
 @ray.remote
-def launch_evaluation(model_path, config_file=None):
+def launch_evaluation(model_path, config_file=None, nodes=None):
     """Launch evaluation using the specified YAML config file."""
     cur_dir = Path(__file__).parent
     os.chdir(cur_dir)
@@ -39,12 +47,13 @@ def launch_evaluation(model_path, config_file=None):
     print(f"Model path: {model_path}")
     assert model_path.exists(), f"Model {model_path} does not exist."
 
-    rank = int(os.environ.get("RCALL_INSTANCE_INDEX", "0"))
-    rank_size = int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
+    head = 0 if nodes is None else nodes[0]
+    rank = int(os.environ.get("RCALL_INSTANCE_INDEX", "0")) - head
+    rank_size = get_node_count(nodes)
     num_gpu = int(os.environ.get("RCALL_NUM_GPU", "8"))
     job_name = os.environ.get("RCALL_JOB_NAME", None)
     assert job_name is not None, "RCALL_JOB_NAME must be set"
-    main_process_ip = f"{job_name}-0"  # head node IP
+    main_process_ip = f"{job_name}-{head}"  # head node IP
     main_process_port = 12345
     script_path = cur_dir / "trl/scripts/eval_bias.py"
     cmd = [
@@ -81,38 +90,38 @@ def launch_evaluation(model_path, config_file=None):
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, cmd)
 
-def evaluate_model(remote_model_dir=None, local_model_dir=None, config=None):
+
+def evaluate_model(remote_model_dir=None, local_model_dir=None, config=None, nodes=None):
     """Evaluate the model using the specified configuration."""
-    
+
     if remote_model_dir:
         print(f"Evaluating {remote_model_dir}")
         local_model_dir = get_local_path(remote_model_dir)
-        print("Preparing models from ",  remote_model_dir)
-        run_nodes(prepare_local_output, local_dir=local_model_dir, remote_dir=remote_model_dir)
+        print("Preparing models from ", remote_model_dir)
+        run_nodes(prepare_local_output, local_dir=local_model_dir, remote_dir=remote_model_dir, indexs=nodes)
     elif local_model_dir:
         print(f"Evaluating {local_model_dir}")
         remote_model_dir = get_remote_path(local_model_dir)
     else:
         raise ValueError("Either remote_model_dir or local_model_dir must be provided.")
- 
+
     print("Syncing outputs from head to other nodes...")
-    run_nodes(sync_local_dir, str(local_model_dir))
-    
-    print("Watching on ", local_model_dir) 
-    watcher = run_output_watcher(local_dir=local_model_dir, remote_dir=remote_model_dir, interval=120, sync_all=True)
+    run_nodes(sync_local_dir, str(local_model_dir), indexs=nodes)
+
+    print("Watching on ", local_model_dir)
+    watcher = run_output_watcher(local_dir=local_model_dir, remote_dir=remote_model_dir, interval=120, sync_all=True, nodes=nodes)
 
     print(f"Evaluating {local_model_dir} with config {config}")
-    run_nodes(launch_evaluation, local_model_dir, config)
+    run_nodes(launch_evaluation, local_model_dir, config, nodes=nodes, indexs=nodes)
     watcher.flush.remote()
     print("Evaluation completed on ", local_model_dir)
-
 
 
 def main(model_path="", config=None, forced=False):
     """Launch the job on all nodes by preparing the environment and data."""
     init_ray()
     list_nodes()
-    
+
     print(f"Search models: {model_path if model_path else 'default'}")
     model_paths = search_models(model_path)
     if not model_paths:
@@ -122,7 +131,6 @@ def main(model_path="", config=None, forced=False):
         print(f"Found {len(model_paths)} models")
         for i, model_path in enumerate(model_paths):
             print(f"[{i}] Model: {model_path}")
-    
 
     results = []
     print("Preparing environment on all nodes...")
@@ -132,7 +140,7 @@ def main(model_path="", config=None, forced=False):
     print("Releasing GPUs on all nodes...")
     results += run_nodes(release_gpus, waiting=False)
     ray.get(results)
-    
+
     for model_path in model_paths:
         evaluate_model(remote_model_dir=model_path, config=config)
 
