@@ -26,3 +26,19 @@ Testing different reward function formulations:
 1. ✓ `orng_conf/biasing/grpo_ls_m1000_p9_n10_seed_e1_t12_simple_err_lora_ga8.yaml` (word+bias error reward)
 2. Running: `orng_conf/biasing/grpo_ls_m1000_p9_n10_seed_e1_t12_simple_bias_err_lora_ga8.yaml` (bias error reward)
 3. Running: `orng_conf/biasing/grpo_ls_m1000_p9_n10_seed_e1_t12_simple_word_err_lora_ga8.yaml` (word error reward)
+
+## Different seed model
+
+Testing the impact of using a different seed model for training: 
+Seed models include: zero, seed0, seed.
+
+1. ✓ `orng_conf/biasing/grpo_ls_m1000_p9_n10_seed_e1_t12_simple_err_lora_ga8.yaml` (match sft+RL)
+2. ✓ `orng_conf/biasing/grpo_ls_m1000_p9_n10_zero_e2_t12_notag.yaml` (zero RL)
+3. ✓ `orng_conf/biasing/grpo_ls_m1000_p9_n10_seed0_e2_t12_lower_err.yaml` (mismatch SFT + match RL)
+
+## high entropy only 
+
+Play the paper https://arxiv.org/abs/2506.01939
+Beyond the 80/20 Rule: High-Entropy Minority Tokens Drive Effective Reinforcement Learning for LLM Reasoning
+
+1. ✓ `orng_conf/biasing/grpo_ls_m1000_p9_n10_seed_e2_t12_simple_err_lora_ga8.yaml` (80/20)
