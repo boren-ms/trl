@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import subprocess
+from httpx import head
 import ray
 import os
 from pathlib import Path
@@ -150,11 +151,11 @@ class OutputWatcher:
 
 def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=False, nodes=None):
     """Start the output watcher to sync outputs periodically."""
-    head_node = node_label(0 if nodes is None else nodes[0])
-    print(f"Watching  @ {head_node} every {interval/60} minutes")
+    head_label = node_label(head_node(nodes))
+    print(f"Watching  @ {head_label} every {interval/60} minutes")
     print(f"Local directory: {local_dir}")
     print(f"Remote directory: {remote_dir}")
-    watcher = OutputWatcher.options(resources={head_node: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all)
+    watcher = OutputWatcher.options(resources={head_label: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all)
     watcher.start.remote()
     return watcher
 
@@ -464,11 +465,17 @@ def run_cmd(cmd, check=True):
     return ret
 
 
-def head_hostname():
+def head_node(nodes=None):
+    """Get the head node index from the list of nodes."""
+    return 0 if nodes is None else nodes[0]
+
+
+def head_hostname(nodes=None):
     """Get the head node hostname from environment variables."""
     job_name = os.environ.get("RCALL_JOB_NAME", None)
     assert job_name is not None, "RCALL_JOB_NAME must be set"
-    return f"{job_name}-0"  # head node IP
+    head = head_node(nodes)
+    return f"{job_name}-{head}"  # head node IP
 
 
 def node_label(index=0):
@@ -515,9 +522,9 @@ def init_ray():
 
 
 @ray.remote
-def sync_local_dir(folder):
+def sync_local_dir(folder, nodes=None):
     """Sync the Folder from the remote storage."""
-    head_node = head_hostname()
+    head_node = head_hostname(nodes)
     cur_node = os.uname().nodename
     # Ensure the Folder exists for each node
     Path(folder).mkdir(parents=True, exist_ok=True)

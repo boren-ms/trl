@@ -106,7 +106,7 @@ def evaluate_model(remote_model_dir=None, local_model_dir=None, config=None, nod
         raise ValueError("Either remote_model_dir or local_model_dir must be provided.")
 
     print("Syncing outputs from head to other nodes...")
-    run_nodes(sync_local_dir, str(local_model_dir), indexs=nodes)
+    run_nodes(sync_local_dir, str(local_model_dir), nodes=nodes, indexs=nodes)
 
     print("Watching on ", local_model_dir)
     watcher = run_output_watcher(local_dir=local_model_dir, remote_dir=remote_model_dir, interval=120, sync_all=True, nodes=nodes)

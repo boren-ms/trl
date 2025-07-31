@@ -181,7 +181,7 @@ def main(config_file, task=None, forced=False, acc=None, seed_name=None, nodes=N
     ray.get(results)
 
     print("Syncing outputs from head to other nodes...")
-    run_nodes(sync_local_dir, str(output_dir), indexs=nodes)
+    run_nodes(sync_local_dir, str(output_dir), nodes=nodes, indexs=nodes)
 
     print("Starting output watcher on head node...")
     watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
