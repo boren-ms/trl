@@ -478,13 +478,16 @@ def head_node_label():
     return f"node:{node_ip}"
 
 
-def run_nodes(fun, *args, waiting=True, head_only=False, **kwargs):
+def run_nodes(fun, *args, waiting=True, indexs=None, **kwargs):
     nodes = ray.nodes()
     # Launch one task per node, each pinned to a specific node
     results = []
     nodes = [node for node in nodes if node["Alive"]]
-    if head_only:
-        nodes = nodes[:1]  # Only run on the head node
+    if indexs is not None:
+        if not isinstance(indexs, (list, tuple)):
+            indexs = [indexs]
+        nodes = [nodes[i] for i in indexs if i < len(nodes)]
+
     for node in nodes:
         node_ip = node["NodeManagerAddress"]
         # Use custom resource label to ensure the function runs on this node
@@ -598,15 +601,15 @@ def job_log(cmd="tail", key=None, n=100, log_dir=None):
 class RayTool:
     """A command-line tool for managing Ray clusters and nodes."""
 
-    def __init__(self, head=False):
+    def __init__(self, node=None):
         """Initialize the RayTool class."""
         init_ray()
-        self.head_only = head
+        self.node = node
         print("Ray cluster initialized.")
 
     def _run_nodes(self, fun, *args, **kwargs):
         """Run a function on all Ray nodes."""
-        return run_nodes(fun, *args, head_only=self.head_only, **kwargs)
+        return run_nodes(fun, *args, indexs=self.node, **kwargs)
 
     def list_gpus(self):
         """List available GPUs on the current node."""

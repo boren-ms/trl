@@ -126,12 +126,20 @@ def get_acc_config(name=None):
     return name_dict.get(name, None)
 
 
-def main(config_file, task=None, forced=False, acc=None, seed_name=None):
+def main(config_file, task=None, forced=False, acc=None, seed_name=None, node=None):
     """Launch the job on all nodes by preparing the environment and data."""
     script_path = get_task_script(task, config_file)
     print(f"Using script: {script_path}")
     init_ray()
     list_nodes()
+
+    def run_on_nodes(fun, *args, **kwargs):
+        """Run a function on all Ray nodes."""
+        indexs = None
+        if node is not None:
+            if isinstance(node, str):
+                indexs = [int(x) for x in node.split(",")]
+        return run_nodes(fun, *args, indexs=indexs, **kwargs)
 
     config_file = Path(config_file).absolute()
     acc_config = get_acc_config(acc)
@@ -144,29 +152,29 @@ def main(config_file, task=None, forced=False, acc=None, seed_name=None):
 
     results = []
     print("Preparing environment on all nodes...")
-    results += run_nodes(prepare_env, forced=forced, waiting=False)
+    results += run_on_nodes(prepare_env, forced=forced, waiting=False)
 
     print("Preparing data on all nodes...")
-    results += run_nodes(prepare_data, forced=forced, waiting=False)
+    results += run_on_nodes(prepare_data, forced=forced, waiting=False)
 
     print("Releasing GPUs on all nodes...")
-    results += run_nodes(release_gpus, waiting=False)
+    results += run_on_nodes(release_gpus, waiting=False)
 
     remote_seed_dir = remote_output_dir.replace(job_name, seed_name) if seed_name else remote_output_dir
     print("Preparing output on all nodes from seed: ", remote_seed_dir)
-    results += run_nodes(prepare_local_output, local_dir=output_dir, remote_dir=remote_seed_dir, waiting=False)
+    results += run_on_nodes(prepare_local_output, local_dir=output_dir, remote_dir=remote_seed_dir, waiting=False)
 
     # Ensure all tasks are completed before proceeding
     ray.get(results)
 
     print("Syncing outputs from head to other nodes...")
-    run_nodes(sync_local_dir, str(output_dir))
+    run_on_nodes(sync_local_dir, str(output_dir))
 
     print("Starting output watcher on head node...")
     watcher = run_output_watcher(local_dir=output_dir, remote_dir=remote_output_dir, interval=600)
 
     print(f"Launching training with {config_file}...")
-    run_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir), acc_config=acc_config)
+    run_on_nodes(launch_training, str(script_path), str(config_file), output_dir=str(output_dir), acc_config=acc_config)
     print("Training completed on all nodes.")
 
     print("Launching evaluation on all nodes")
