@@ -28,9 +28,10 @@ learning_rate: 1e-5
 save_only_model: True
 save_total_limit: 5
 save_on_each_node: True
+gradient_accumulation_steps: 8
 new_lora: True
 lr_scheduler_type: cosine #cosine
-temperature: 1.2
+temperature: 1.5
 output_dir: ./output
 per_device_train_batch_size: 20
 num_generations: 10
