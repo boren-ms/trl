@@ -325,7 +325,8 @@ class Evaluation:
             results = []
             keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER"]
             for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
-                if not inputs:
+                if not inputs:  # sometimes the batch can be empty
+                    self.rank_log("Empty batch, skipping.")
                     continue
                 outputs = self.generate(inputs)
                 for x, hyp in zip(inputs, outputs):
