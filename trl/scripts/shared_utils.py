@@ -14,6 +14,7 @@ from transformers.trainer_utils import get_last_checkpoint
 from accelerate import PartialState
 from trl.trainer.utils import add_adapter_func, rank_print
 from trl.scripts.audio_dataset import create_audio_dataset
+from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 
 def get_speech_peft_model(model, lora_name):
@@ -144,19 +145,27 @@ class WandbHelper:
         return info
 
 
-def print_modules(model, trainable=False):
+def numel(p):
+    if is_deepspeed_zero3_enabled():
+        return p.ds_numel if hasattr(p, "ds_numel") else p.numel()
+    else:
+        return p.numel()
+
+
+def print_modules(model, trainable=False, all_rank=False):
     """List trainable modules in the model and total trainable parameter size."""
-    rank_print("List modules in the model:", {model.__class__.__name__})
+    main_only = not all_rank
+    rank_print("List modules in the model:", {model.__class__.__name__}, main=main_only)
     n_total = 0
     n_trainable = 0
     for name, param in model.named_parameters():
-        n_total += param.numel()
+        n_total += numel(param)
         if param.requires_grad:
-            n_trainable += param.numel()
+            n_trainable += numel(param)
             if trainable:
-                rank_print(f"{name}: {human_readable(param.numel())} trainable")
-    rank_print(f"Total trainable: {human_readable(n_trainable)}")
-    rank_print(f"Total parameter: {human_readable(n_total)}")
+                rank_print(f"{name}: {human_readable(numel(param))} trainable", main=main_only)
+    rank_print(f"Total trainable: {human_readable(n_trainable)}", main=main_only)
+    rank_print(f"Total parameter: {human_readable(n_total)}", main=main_only)
     return n_total, n_trainable
 
 
