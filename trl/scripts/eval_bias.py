@@ -40,7 +40,10 @@ class EvalArguments:
         default=None,
         metadata={"help": "Path to the model."},
     )
-
+    model_with_lora: bool = field(
+        default=True,
+        metadata={"help": "Whether the model is with LoRA adapters."},
+    )
     checkpoints: Optional[list[str]] = field(
         default=None,
         metadata={"help": "Checkpoint indices to evaluate."},
@@ -183,10 +186,11 @@ class Evaluation:
         self.wandb_dir = wandb_dir or self.output_dir
         self.job_name = job_name
         self.vllm_max_length = vllm_max_length
-        max_chunk_len = kwargs.get("max_chunk_len", None)
+        self.max_chunk_len = kwargs.get("max_chunk_len", None)
         self.with_history = kwargs.get("with_history", False)
+        self.model_with_lora = kwargs.get("model_with_lora", True)
 
-        self.chunker = SVadChunker(max_len_sec=max_chunk_len) if max_chunk_len else None
+        self.chunker = SVadChunker(max_len_sec=self.max_chunk_len) if self.max_chunk_len else None
         WandbHelper(run_name=self.job_name, work_dir=self.wandb_dir, new_run=new_run).init(main_only=True)
 
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
@@ -223,9 +227,11 @@ class Evaluation:
                 load_format="auto",
                 limit_mm_per_prompt={"audio": 1},
             )
-            model, _ = init_model(self.model_path)
-            move_model_to_vllm(model, self.llm)
-            del model  # no need any more.
+            if self.model_with_lora:
+                # if model with LoRA, we need merge lora back to normal Linear, and then load the model with LoRA adapters
+                model, _ = init_model(self.model_path)
+                move_model_to_vllm(model, self.llm)
+                del model  # no need any more.
             config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
         else:
@@ -263,15 +269,23 @@ class Evaluation:
             texts = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
         return texts
 
+    def _chunk_audio(self, data, sr):
+        """Chunk audio data into segments."""
+        n_sec = len(data) / sr
+        if self.chunker is None or n_sec <= self.max_chunk_len:
+            return [(0, n_sec)]
+        return self.chunker.chunk(data, sr)
+
     def _chunk_batch(self, examples):
         """Chunk a batch of examples into segments."""
         if self.chunker is None:
             return [examples]
+
         batches = []
         for example in tqdm(examples, desc="Chunking examples", disable=not self.is_main):
             sub_examples = []
             data, sr = load_audio(example)
-            for i, (s, e) in enumerate(self.chunker.chunk(data, sr)):
+            for i, (s, e) in enumerate(self._chunk_audio(data, sr)):
                 chk_egs = example.copy()
                 chk_egs["audio"] = data[int(s * sr) : int(e * sr)]
                 chk_egs["sr"] = sr

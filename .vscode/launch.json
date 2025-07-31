@@ -32,7 +32,8 @@
             "justMyCode": false,
             "args": [
                 "--config",
-                "eval_conf/eval_debug.yaml",
+                "eval_conf/eval_debug_local.yaml",
+                // "eval_conf/eval_debug.yaml",
             ]
         },
         {
