@@ -484,9 +484,6 @@ def run_nodes(fun, *args, waiting=True, indexs=None, **kwargs):
     results = []
     nodes = [node for node in nodes if node["Alive"]]
     if indexs is not None:
-        if not isinstance(indexs, (list, tuple)):
-            indexs = [indexs]
-        print(f"Running on nodes with indices: {indexs}")
         nodes = [nodes[i] for i in indexs if i < len(nodes)]
 
     for node in nodes:
