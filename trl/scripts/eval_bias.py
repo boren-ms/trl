@@ -279,9 +279,6 @@ class Evaluation:
 
     def _chunk_batch(self, examples):
         """Chunk a batch of examples into segments."""
-        if self.chunker is None:
-            return [examples]
-
         batches = []
         for example in tqdm(examples, desc="Chunking examples", disable=not self.is_main):
             sub_examples = []
