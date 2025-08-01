@@ -3,14 +3,13 @@ import re
 import random
 from collections import deque
 import blobfile as bf
-from whisper_normalizer.english import EnglishTextNormalizer
 
 
 def text_norm(word, tn_prob=1.0):
     """Normalize the text by removing special characters and converting to lowercase."""
     if random.random() <= tn_prob:
-        norm = EnglishTextNormalizer()
-        word = norm(word)
+        word = " ".join(re.findall(r"[\w'\-]+", word))
+        word = word.lower()
     return word
 
 
