@@ -16,7 +16,7 @@ def dup_config_file(config_file, new_stem):
         return config_file
     new_config_file = config_file.with_stem(new_stem)
     if new_config_file.exists():
-        return new_config_file
+        new_config_file.unlink()
     shutil.copy(config_file, new_config_file)
     return new_config_file
 
