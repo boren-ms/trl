@@ -10,7 +10,7 @@ learning_rate: 1e-5
 save_only_model: True
 save_total_limit: 5
 save_on_each_node: True
-new_lora: True
+# new_lora: True
 # lr_scheduler_type: cosine
 output_dir: ~/outputs/debug
 per_device_train_batch_size: 24
@@ -60,7 +60,8 @@ train_data:
         sample_range: [10000, 10000] # all rare words
         log_interval: 100 # print biasing every 10000 samples
         # new_sampling: True
-        common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
+        # common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
+        common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 2000
 # eval_strategy: steps
 # eval_on_start: True
