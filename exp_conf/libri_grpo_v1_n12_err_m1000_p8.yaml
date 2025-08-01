@@ -5,13 +5,13 @@ dataset_config:
     biasing:
         buffer_size: 10000
         max_piece_len: 4
-        max_num: 1000
+        sample_range: 1000
         #   bias_prob: 0.6
         hit_prob: 0.8
         log_interval: 1000 # print biasing every 10000 samples
         new_sampling: True
 
-reward_funcs: [reward_word_error,reward_bias_error]
+reward_funcs: [reward_word_error, reward_bias_error]
 reward_weights: [1, 2]
 model_name_or_path: /uksblob/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq
 # job_name: phi4_mm_bias_grpo

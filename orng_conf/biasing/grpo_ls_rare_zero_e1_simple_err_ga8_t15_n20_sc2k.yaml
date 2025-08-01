@@ -6,7 +6,6 @@ train_data:
   biasing:
     buffer_size: 10000
     max_piece_len: 1
-    max_num: 1000
     bias_prob: 1
     hit_prob: 1
     miss_prob: 0
