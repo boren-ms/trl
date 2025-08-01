@@ -1036,6 +1036,7 @@ class GRPOTrainer(Trainer):
 
         # This allows for dynamic reward shaping based on training progress.
         reward_kwargs["trainer_state"] = self.state
+        reward_kwargs["num_generations"] = self.num_generations if self.model.training else self.num_eval_generations
 
         for i, (reward_func, reward_processing_class, reward_func_name) in enumerate(zip(self.reward_funcs, self.reward_processing_classes, self.reward_func_names)):
             with profiling_context(self, reward_func_name):
