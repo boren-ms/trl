@@ -1,9 +1,10 @@
 train_data:
   dataset_name: ls_bias
   jsonl_path:
-    - /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    - /home/boren/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-  data_dir: /home/boren/data
+    - /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    - /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+  tag: ""
+  data_dir: az://${DATA_STORAGE}/data/boren/data
 
 reward_funcs: [reward_major_vote]
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
