@@ -44,6 +44,7 @@ Beyond the 80/20 Rule: High-Entropy Minority Tokens Drive Effective Reinforcemen
 
 1. ✓ `orng_conf/biasing/grpo_ls_m1000_p9_n10_seed_e2_t12_simple_err_lora_ga8.yaml` (80/20)
 2. Running: `orng_conf/biasing/grpo_ls_m1000_p9_n10_seed_e1_t12_simple_err_lora_ga8_entropy80.yaml` (high entropy only) 80/20
+3. Running: `orng_conf/biasing/grpo_ls_m1000_p9_n20_seed_e1_t20_simple_err_lora_ga8_entropy80.yaml` (entropy=80, t=1.5, n=20)
 
 ## Rare word improvement
 
