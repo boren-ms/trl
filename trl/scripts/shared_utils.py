@@ -77,16 +77,19 @@ class WandbHelper:
         work_dir = work_dir or Path.cwd()
         self.run_info_file = Path(work_dir) / "run_info.json"
 
+    def _get_run_name(self):
+        """Get the run name from environment variables or command line arguments."""
+        if self.run_name:
+            return self.run_name
+        config_path = get_config_path()
+
+        return config_path.stem if config_path else "default"
+
     def _wandb_info(self):
         """Get wandb information from environment variables."""
-        config_path = get_config_path()
-        if not config_path:
-            run_name = "default_job_name"
-            project = os.environ.get("WANDB_PROJECT", "biasing")
-        else:
-            run_name = config_path.stem
-            project = config_path.parent.name or "biasing"
-        run_name = self.run_name or run_name
+        run_name = self._get_run_name()
+        project = os.environ.get("WANDB_PROJECT", "biasing")
+
         print(f"Run name: {run_name}, Project: {project}, New run: {self.new_run}, Work dir: {self.run_info_file.parent}")
         run_info = {} if self.new_run else self._load_info()
         print("WandB Run Info:", run_info)
