@@ -3,15 +3,14 @@
 # %%
 import os
 import sys
-import pytz
 import json
 import wandb
 import blobfile as bf
 from pathlib import Path
-from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 from transformers.trainer_utils import get_last_checkpoint
 from accelerate import PartialState
+from contextlib import nullcontext
 from trl.trainer.utils import add_adapter_func, rank_print
 from trl.scripts.audio_dataset import create_audio_dataset
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
@@ -45,10 +44,15 @@ def init_model(model_id=None, new_lora=None):
     model.set_lora_adapter("speech")
     model = add_adapter_func(model)
     if new_lora:
-        rank_print("merge and unload model")
-        model.merge_and_unload()  # merge lora and back to normal Linear
-        rank_print("Prepare peft model with adapter:", new_lora)
-        model = get_speech_peft_model(model, lora_name=new_lora)  # revert peft model
+        # TODO: gather context before merging and unloading,
+        # this not work yet.
+        gather_if_zero3 = gather_context()
+        rank_print("Gather context: ", gather_if_zero3)
+        with gather_if_zero3(list(model.parameters())):
+            rank_print("merge and unload model")
+            model.merge_and_unload()  # merge lora and back to normal Linear
+            rank_print("Prepare peft model with adapter:", new_lora)
+            model = get_speech_peft_model(model, lora_name=new_lora)  # revert peft model
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 
@@ -150,6 +154,16 @@ def numel(p):
         return p.ds_numel if hasattr(p, "ds_numel") else p.numel()
     else:
         return p.numel()
+
+
+def gather_context():
+    """Gather context for vLLM updates."""
+    if is_deepspeed_zero3_enabled():
+        import deepspeed
+
+        return deepspeed.zero.GatheredParameters
+    else:
+        return nullcontext
 
 
 def print_modules(model, trainable=False, all_rank=False):
