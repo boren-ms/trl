@@ -186,20 +186,25 @@ def stream_shuffle(ds, **kwargs):
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
     rand_prompt = kwargs.pop("rand_prompt", False)
+    with_context = kwargs.pop("with_context", True)
+
     kwargs = kwargs or {
         "bias_prob": 0.9,
         "hit_prob": 0.9,
         "max_piece_len": 1,
-        "max_num": 2,
     }
     bias_sampler = PieceSampler(**kwargs)
 
     def proc_sample(sample):
         """Process a sample from the dataset."""
         context, text, keywords = bias_sampler.sample(sample["text"])
-        prompt = get_task_prompt(task="biasing", rand=rand_prompt)
+        if with_context:
+            prompt = get_task_prompt(task="biasing", rand=rand_prompt)
+            prompt = f"{prompt} {context}"
+        else:
+            prompt = get_task_prompt(task="asr", rand=rand_prompt)
         return {
-            "prompt": prompt_format.format(f"{prompt} {context}"),
+            "prompt": prompt_format.format(prompt),
             "text": text,  # text is updated
             "keywords": keywords,
         }
