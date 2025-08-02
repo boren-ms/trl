@@ -24,7 +24,8 @@ per_device_train_batch_size: 24
 num_generations: 8
 token_entropy_percentile_threshold: 0.8
 # dataloader_drop_last: True
-
+update_encoder: True
+ddp_find_unused_parameters: True
 scale_rewards: False
 temperature: 1.1
 logging_steps: 1

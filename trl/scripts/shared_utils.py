@@ -1,6 +1,7 @@
 """Shared utility functions for bias training scripts."""
 
 # %%
+import re
 import os
 import sys
 import json
@@ -31,7 +32,7 @@ def get_speech_peft_model(model, lora_name):
     return model
 
 
-def init_model(model_id=None, new_lora=None):
+def init_model(model_id=None, update_encoder=False, new_lora=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -53,6 +54,9 @@ def init_model(model_id=None, new_lora=None):
             model.merge_and_unload()  # merge lora and back to normal Linear
             rank_print("Prepare peft model with adapter:", new_lora)
             model = get_speech_peft_model(model, lora_name=new_lora)  # revert peft model
+    if update_encoder:
+        layers = [r"^model.embed_tokens_extend.audio_embed.encoder.encoders", r"^model.embed_tokens_extend.audio_embed.audio_projection.speech"]
+        model = train_modules(model, layers)
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 
@@ -167,6 +171,17 @@ def gather_context():
         return deepspeed.zero.GatheredParameters
     else:
         return nullcontext
+
+
+def train_modules(model, reg_exp, trainable=True):
+    """Train the model with the given prefix, substring, and/or suffix.
+    Only parameters matching all specified criteria will be set as trainable.
+    """
+    reg_exp = reg_exp if isinstance(reg_exp, (tuple, list)) else [reg_exp]
+    for name, param in model.named_parameters():
+        if any(re.search(exp, name) for exp in reg_exp):
+            param.requires_grad = trainable
+    return model
 
 
 def print_modules(model, trainable=False, all_rank=False):
