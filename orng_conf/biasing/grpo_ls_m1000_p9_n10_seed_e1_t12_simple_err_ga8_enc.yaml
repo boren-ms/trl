@@ -30,7 +30,7 @@ save_total_limit: 5
 save_on_each_node: True
 gradient_accumulation_steps: 8
 update_encoder: True
-ddp_find_unused_parameters: True
+# ddp_find_unused_parameters: True # no need for multi-gpus
 # new_lora: True
 lr_scheduler_type: cosine #cosine
 temperature: 1.2
