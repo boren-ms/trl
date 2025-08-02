@@ -74,7 +74,7 @@ def read_words(file_path):
     return words
 
 
-def entity_dataset(jsonl_path, bias_key=None, bias_file=None, tag="*", data_dir=None, **kwargs):
+def entity_dataset(jsonl_path, bias_key=None, bias_file=None, max_bias=None, tag="*", data_dir=None, **kwargs):
     ds = jsonl_dataset(jsonl_path, **kwargs)
 
     def load_sample(example):
@@ -82,10 +82,13 @@ def entity_dataset(jsonl_path, bias_key=None, bias_file=None, tag="*", data_dir=
         trans = example.get("Transcription", "").strip()
         audio_path = update_dir(example["WavPath"], src_dir="/datablob1/users/ruchaofan/", dst_dir=data_dir)
 
+        bias_words = []
+        if bias_key:
+            bias_words += example.get(bias_key, [])
         if bias_file:
-            bias_words = read_words(bias_file)
-        else:
-            bias_words = example.get(bias_key, [])
+            bias_words += read_words(bias_file)
+        if max_bias:
+            bias_words = bias_words[:max_bias]
 
         bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
         prompt = get_task_prompt(task="biasing" if bias_str else "asr")
