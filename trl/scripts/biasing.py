@@ -30,6 +30,7 @@ def tag_piece(piece, tag="*"):
     """Tag the piece with a specified tag."""
     return f"{tag}{piece}{tag}"
 
+
 def tag_pieces(pieces, tag="*", specified=None, norm=None):
     """Tag the pieces with a specified tag."""
     if specified is None:
@@ -38,15 +39,23 @@ def tag_pieces(pieces, tag="*", specified=None, norm=None):
     specified = {norm(p) for p in specified}
     return [tag_piece(p, tag) if norm(p) in specified else p for p in pieces]
 
-def rand_sample(lst, max_num, new=False):
-    """Randomly sample random num <max_num elements from the list."""
-    if new:
-        n = min(max_num, len(lst))
-        n = random.randint(0, n)
-    else:
-        n = random.randint(0, max_num)
-        n = min(n, len(lst))
-    # print(f"Sampling {n} pieces from {len(lst)}[{max_num}]")
+
+# def rand_sample(lst, max_num, new=False):
+#     """Randomly sample random num <max_num elements from the list."""
+#     if new:
+#         n = min(max_num, len(lst))
+#         n = random.randint(0, n)
+#     else:
+#         n = random.randint(0, max_num)
+#         n = min(n, len(lst))
+#     # print(f"Sampling {n} pieces from {len(lst)}[{max_num}]")
+#     return random.sample(lst, n)
+
+
+def rand_sample(lst, n, new=False):
+    """Randomly sample random n elements from the list."""
+    # ignore new sampling for now
+    n = min(n, len(lst))
     return random.sample(lst, n)
 
 
@@ -62,6 +71,15 @@ def read_words(file_path, N=None, tn_prob=1.0):
     return words
 
 
+def get_range(args):
+    """range function that accepts multiple arguments."""
+    if isinstance(args, int):
+        return 0, args
+    elif isinstance(args, (tuple, list)):
+        return args[0], args[-1]
+    raise ValueError(f"Invalid range argument: {args}. Must be int or tuple/list.")
+
+
 class PieceSampler:
     """Sample segments from the text using instance parameters."""
 
@@ -70,11 +88,12 @@ class PieceSampler:
         buffer_size=100000,
         bias_prob=1.0,
         hit_prob=0.5,
+        miss_prob=1,
         max_piece_len=1,
         new_sampling=False,
         common_word_file=None,
         common_word_num=None,
-        max_num=10,
+        sample_range=10,
         tag="*",
         tag_all=True,
         log_interval=None,
@@ -87,12 +106,14 @@ class PieceSampler:
             bias_prob: biasing prompt probability
             max_num: Maximum number of pieces to sample
             hit_prob: Probability of sampling from positive words
+            miss_prob: Probability of sampling from negative words
         """
         self.buffer = deque(maxlen=buffer_size)
         self.max_piece_len = max_piece_len
         self.bias_prob = bias_prob
-        self.max_num = max_num
+        self.sample_range = get_range(sample_range)
         self.hit_prob = hit_prob
+        self.miss_prob = miss_prob
         self.tag = tag
         self.tag_all = tag_all
         self.new_sampling = new_sampling
@@ -106,22 +127,23 @@ class PieceSampler:
             return examples
         new_examples = []
         for phrase in examples:
-            if all(text_norm(wd) in self.common_words for wd in phrase.split()):
+            if all(wd in self.common_words for wd in text_norm(phrase).split()):
                 continue
             new_examples.append(phrase)
         return new_examples
 
-
     def _sample(self, pieces):
         """Sample segments from the positive pieces."""
-        self.buffer.extend(pieces)
+        if self.miss_prob > 0:  # add negative sampling, if miss_prob > 0
+            self.buffer.extend(pieces)
         if random.random() > self.bias_prob:
             return []
-        num_pieces = random.randint(1, self.max_num)
+        num_pieces = random.randint(*self.sample_range)
         examples = []
         if random.random() <= self.hit_prob:
-            examples = rand_sample(pieces, num_pieces, new=self.new_sampling)
-        examples += rand_sample(self.buffer, num_pieces - len(examples), new=self.new_sampling)
+            examples += rand_sample(pieces, num_pieces, new=self.new_sampling)
+        if random.random() <= self.miss_prob:
+            examples += rand_sample(self.buffer, num_pieces - len(examples), new=self.new_sampling)
         return self.filter_commons(examples)
 
     def sample(self, text):
@@ -175,13 +197,24 @@ if __name__ == "__main__":
     ]
 
     # Create an instance of PieceSampler
-    sampler = PieceSampler(buffer_size=100, max_piece_len=3, bias_prob=1, max_num=100, hit_prob=0.9, log_interval=2)
+    sampler = PieceSampler(
+        buffer_size=100,
+        max_piece_len=1,
+        bias_prob=1,
+        sample_range=(100, 100),
+        hit_prob=1,
+        miss_prob=0,
+        log_interval=2,
+        common_word_file="/home/boren/data/librispeech_biasing/words/all_words.count.txt",  # Path to a file with common words
+        common_word_num=5000,  # Number of common words to read
+    )
     # Sample pieces from the utterances
     for text in sample_utterances:
-        examples, trans = sampler.sample(text)
+        examples, trans, shared = sampler.sample(text)
         print(f"Original Trans: {text}")
         print(f"Updated  Trans: {trans}")
         print(f"Sampled examples: {examples}")
+        print(f"Shared examples: {shared}")
         print("Buffer:", len(sampler.buffer))
         print("-" * 40)
     # # %%

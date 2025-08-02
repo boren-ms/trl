@@ -101,6 +101,42 @@ def prepare_vllm_inputs(texts, audios=None):
     return [{"prompt": text, "multi_modal_data": {"audio": audio}} for text, audio in zip(texts, audios)]
 
 
+def get_high_entropy_mask(entropies: torch.Tensor, mask: torch.Tensor, threshold: float) -> torch.Tensor:
+    """
+    Returns a binary mask identifying tokens whose entropy exceeds a given quantile threshold.
+
+    Args:
+        entropies (`torch.Tensor`):
+            Tensor of shape (batch_size, seq_len) with per-token entropy values.
+        mask (`torch.Tensor`):
+            Binary mask of the same shape as `entropies`, where `1` indicates valid tokens and `0` padding.
+        threshold (`float`):
+            Quantile threshold between `0.0` and `1.0` to select high-entropy tokens.
+
+    Returns:
+        `torch.Tensor`:
+            Boolean mask of shape (batch_size, seq_len), where `True` indicates tokens with entropy >= threshold and
+            `False` otherwise.
+    """
+    non_pad_entropies = entropies[mask.bool()].float()
+    if non_pad_entropies.numel() == 0:
+        return torch.zeros_like(entropies, dtype=torch.bool)
+    entropy_threshold = torch.quantile(non_pad_entropies, threshold)
+    masked_entropies = entropies * mask.float()
+    entropy_mask = masked_entropies >= entropy_threshold
+    return entropy_mask & mask.bool()  # ensure padding tokens are always masked out
+
+
+# Mask special tokens in the input tensor.
+def mask_tokens(x, token_id, pad_id):
+    mask = x == token_id
+    n_masked = mask.sum()
+    if n_masked > 0:
+        rank_print(f"Warning: {n_masked} special tokens [{token_id}] found. They will be masked out.", False)
+        x = x.masked_fill(mask, pad_id)
+    return x
+
+
 class RepeatSampler(Sampler):
     """
     Sampler that repeats the indices of a dataset in a structured manner.
@@ -1010,6 +1046,7 @@ class GRPOTrainer(Trainer):
 
         # This allows for dynamic reward shaping based on training progress.
         reward_kwargs["trainer_state"] = self.state
+        reward_kwargs["num_generations"] = self.num_generations if self.model.training else self.num_eval_generations
 
         for i, (reward_func, reward_processing_class, reward_func_name) in enumerate(zip(self.reward_funcs, self.reward_processing_classes, self.reward_func_names)):
             with profiling_context(self, reward_func_name):
@@ -1204,6 +1241,9 @@ class GRPOTrainer(Trainer):
             prompt_ids = prompt_completion_ids[:, :prompt_length]
             completion_ids = prompt_completion_ids[:, prompt_length:]
 
+        # mask out _AUDIO_SPECIAL_TOKEN_ID if it is present in the completion_ids
+        _AUDIO_SPECIAL_TOKEN_ID = 200011  # '<endoftext11>'
+        completion_ids = mask_tokens(completion_ids, _AUDIO_SPECIAL_TOKEN_ID, self.processing_class.tokenizer.pad_token_id)
         # Mask everything after the first EOS token
         # is_eos = completion_ids == self.processing_class.tokenizer.eos_token_id
         is_eos = torch.isin(completion_ids, self.stop_tokens_ids.to(device))
@@ -1399,13 +1439,12 @@ class GRPOTrainer(Trainer):
 
         # Compute the entropy at each position in the completion
         if self.token_entropy_percentile_threshold > 0.0:
-            logps_and_entropies = self._get_per_token_logps_and_entropies(model, input_ids, attention_mask, logits_to_keep, compute_entropy=True)
+            logps_and_entropies = self._get_per_token_logps_and_entropies(model, input_ids, attention_mask, logits_to_keep, compute_entropy=True, **prompt_inputs)
             per_token_logps = logps_and_entropies["logps"]
             entropies = logps_and_entropies["entropies"]
             # compute the entropy threshold across all tokens in the batch
 
-            entropy_threshold = torch.quantile(entropies.flatten().float(), self.token_entropy_percentile_threshold)
-            entropy_mask = entropies >= entropy_threshold
+            entropy_mask = get_high_entropy_mask(entropies, completion_mask, self.token_entropy_percentile_threshold)
         else:
             per_token_logps = self._get_per_token_logps_and_entropies(model, input_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
             entropy_mask = None

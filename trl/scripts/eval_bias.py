@@ -40,7 +40,10 @@ class EvalArguments:
         default=None,
         metadata={"help": "Path to the model."},
     )
-
+    model_with_lora: bool = field(
+        default=True,
+        metadata={"help": "Whether the model is with LoRA adapters."},
+    )
     checkpoints: Optional[list[str]] = field(
         default=None,
         metadata={"help": "Checkpoint indices to evaluate."},
@@ -183,10 +186,12 @@ class Evaluation:
         self.wandb_dir = wandb_dir or self.output_dir
         self.job_name = job_name
         self.vllm_max_length = vllm_max_length
-        max_chunk_len = kwargs.get("max_chunk_len", None)
+        self.max_chunk_len = kwargs.get("max_chunk_len", None)
         self.with_history = kwargs.get("with_history", False)
+        self.model_with_lora = kwargs.get("model_with_lora", True)
+        self.chk_idx_name = "_chk_idx_"
 
-        self.chunker = SVadChunker(max_len_sec=max_chunk_len) if max_chunk_len else None
+        self.chunker = SVadChunker(max_len_sec=self.max_chunk_len) if self.max_chunk_len else None
         WandbHelper(run_name=self.job_name, work_dir=self.wandb_dir, new_run=new_run).init(main_only=True)
 
         self.generation_config = GenerationConfig.from_pretrained(model_path, "generation_config.json")
@@ -223,9 +228,11 @@ class Evaluation:
                 load_format="auto",
                 limit_mm_per_prompt={"audio": 1},
             )
-            model, _ = init_model(self.model_path)
-            move_model_to_vllm(model, self.llm)
-            del model  # no need any more.
+            if self.model_with_lora:
+                # if model with LoRA, we need merge lora back to normal Linear, and then load the model with LoRA adapters
+                model, _ = init_model(self.model_path)
+                move_model_to_vllm(model, self.llm)
+                del model  # no need any more.
             config = hf2vllm_config(self.generation_config.to_dict())
             self.sampling_params = SamplingParams(**config)
         else:
@@ -263,19 +270,24 @@ class Evaluation:
             texts = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
         return texts
 
+    def _chunk_audio(self, data, sr):
+        """Chunk audio data into segments."""
+        n_sec = len(data) / sr
+        if self.chunker is None or n_sec <= self.max_chunk_len:
+            return [(0, n_sec)]
+        return self.chunker.chunk(data, sr)
+
     def _chunk_batch(self, examples):
         """Chunk a batch of examples into segments."""
-        if self.chunker is None:
-            return [examples]
         batches = []
         for example in tqdm(examples, desc="Chunking examples", disable=not self.is_main):
             sub_examples = []
             data, sr = load_audio(example)
-            for i, (s, e) in enumerate(self.chunker.chunk(data, sr)):
+            for i, (s, e) in enumerate(self._chunk_audio(data, sr)):
                 chk_egs = example.copy()
                 chk_egs["audio"] = data[int(s * sr) : int(e * sr)]
                 chk_egs["sr"] = sr
-                chk_egs["chk_idx"] = i
+                chk_egs[self.chk_idx_name] = i
                 sub_examples.append(chk_egs)
             batches.append(sub_examples)
         batches = list(zip_longest(*batches, fillvalue=None))
@@ -286,13 +298,17 @@ class Evaluation:
         IDX_KEY = "_egs_idx_"
         examples = [{**x, IDX_KEY: i} for i, x in enumerate(examples)]
         chunks = self._chunk_batch(examples)
+        if not self.with_history:  # flatten the chunks if not using history
+            chunks = [chunk for batch in chunks for chunk in batch if chunk is not None]
+            chunks = [chunks[x : x + self.batch_size] for x in range(0, len(chunks), self.batch_size)]
+
         output_dict = defaultdict(list)
         for chk_inputs in tqdm(chunks, desc="Evaluating chunks", disable=not self.is_main):
             chk_inputs = [{**x, "history": output_dict[x[IDX_KEY]]} for x in chk_inputs if x is not None]
             chk_outputs = self._generate_single(chk_inputs)
             for inp, oup in zip(chk_inputs, chk_outputs):
-                output_dict[inp[IDX_KEY]].append(oup)
-        all_outputs = [" ".join(output_dict[k]) for k in sorted(output_dict.keys())]
+                output_dict[inp[IDX_KEY]].append((inp[self.chk_idx_name], oup))
+        all_outputs = [" ".join([x[1] for x in sorted(output_dict[k], key=lambda x: x[0])]) for k in sorted(output_dict.keys())]
         return all_outputs
 
     def evaluate(self, dataset):
@@ -303,13 +319,15 @@ class Evaluation:
             self.rank_log("Evaluating batch size:", batch_size, all=True)
             dl_kwargs = {
                 "collate_fn": lambda x: x,
+                "batch_size": batch_size,
                 # "num_workers": 2,
                 # "prefetch_factor": 2,
             }
-            batch_sampler = LengthBatchSampler(dataset, batch_size)
-            dataloader = self.accelerator.prepare(DataLoader(dataset, batch_sampler=batch_sampler, **dl_kwargs))
+            # batch_sampler = LengthBatchSampler(dataset, batch_size)
+            # dataloader = self.accelerator.prepare(DataLoader(dataset, batch_sampler=batch_sampler, **dl_kwargs))
+            dataloader = self.accelerator.prepare(DataLoader(dataset, **dl_kwargs))
             results = []
-            keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER"]
+            keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER", "keywords", "Transcription"]
             for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
                 outputs = self.generate(inputs)
                 for x, hyp in zip(inputs, outputs):

@@ -1,6 +1,6 @@
 # %%
 import re
-from collections import deque
+from collections import deque, Counter
 from enum import Enum
 from functools import partial
 from whisper_normalizer.english import EnglishTextNormalizer
@@ -447,6 +447,24 @@ def reward_bias_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
     return [-wer[2].error_rate for wer in wers]  # B-WER
+
+
+def reward_major_vote(completions, **kwargs):
+    """Compute the reward for a list of completions."""
+    num_generations = kwargs.get("num_generations", 1)
+    tn = kwargs.get("tn", None)
+    hyps = [text_norm(hyp, tn) for hyp in completions]
+    groups = [hyps[i : i + num_generations] for i in range(0, len(hyps), num_generations)]
+    rewards = []
+    for group in groups:
+        counter = Counter(group)
+        candidate, votes = counter.most_common(1)[0]
+        vote_rate = votes / len(group)
+        rewards += [int(hyp == candidate) for hyp in group]
+    return rewards
+
+
+# %%
 
 
 if __name__ == "__main__":

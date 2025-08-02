@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import subprocess
+from httpx import head
 import ray
 import os
 from pathlib import Path
@@ -8,6 +9,25 @@ import fire
 import time
 import blobfile as bf
 import importlib.metadata
+
+
+def get_node_count(nodes=None):
+    """Get the number of nodes in the Ray cluster."""
+    if nodes is None:
+        return int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
+    else:
+        return len(nodes)
+
+
+def sorted_nodes(nodes):
+    """Sort nodes by their index."""
+    if nodes is None:
+        return None
+    if isinstance(nodes, str):
+        nodes = [int(x) for x in nodes.split(",")]
+    if not isinstance(nodes, (list, tuple)):
+        nodes = [nodes]
+    return sorted(nodes)
 
 
 def to_int(value, default=-1):
@@ -148,13 +168,13 @@ class OutputWatcher:
         print("Watcher stopped.")
 
 
-def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=False):
+def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=False, nodes=None):
     """Start the output watcher to sync outputs periodically."""
-    head_node = head_node_label()
-    print(f"Watching  @ {head_node} every {interval/60} minutes")
+    head_label = node_label(head_node(nodes))
+    print(f"Watching  @ {head_label} every {interval/60} minutes")
     print(f"Local directory: {local_dir}")
     print(f"Remote directory: {remote_dir}")
-    watcher = OutputWatcher.options(resources={head_node: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all)
+    watcher = OutputWatcher.options(resources={head_label: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all)
     watcher.start.remote()
     return watcher
 
@@ -410,7 +430,9 @@ def prepare_data(forced=False):
         # "ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf_merged",
         # "ckp/hf_models/phi4_mm_bias_merged",
         "ckp/hf_models/phi4_mm_bias",
-        "ckp/hf_models/Phi4-7b-ASR-2506",
+        # "ckp/hf_models/Phi4-7b-ASR-2506",
+        "ckp/hf_models/libri_ft_m200_p8_bp6_new_notag_ckp5000",
+        "ckp/hf_models/Phi4-7b-ASR-2506-v2",
         "ckp/hf_models/Phi-4-multimodal-instruct",
         "Evaluation/InhouseASR/EWER/en-US-entity-v3",
         "librispeech_biasing/words",
@@ -463,27 +485,34 @@ def run_cmd(cmd, check=True):
     return ret
 
 
-def head_hostname():
+def head_node(nodes=None):
+    """Get the head node index from the list of nodes."""
+    return 0 if nodes is None else nodes[0]
+
+
+def head_hostname(nodes=None):
     """Get the head node hostname from environment variables."""
     job_name = os.environ.get("RCALL_JOB_NAME", None)
     assert job_name is not None, "RCALL_JOB_NAME must be set"
-    return f"{job_name}-0"  # head node IP
+    head = head_node(nodes)
+    return f"{job_name}-{head}"  # head node IP
 
 
-def head_node_label():
-    """Get the head node IP address from environment variables."""
+def node_label(index=0):
+    """Get the node IP address from environment variables."""
     nodes = ray.nodes()
-    node_ip = nodes[0]["NodeManagerAddress"]
+    node_ip = nodes[index]["NodeManagerAddress"]
     return f"node:{node_ip}"
 
 
-def run_nodes(fun, *args, waiting=True, head_only=False, **kwargs):
+def run_nodes(fun, *args, waiting=True, indexs=None, **kwargs):
     nodes = ray.nodes()
     # Launch one task per node, each pinned to a specific node
     results = []
     nodes = [node for node in nodes if node["Alive"]]
-    if head_only:
-        nodes = nodes[:1]  # Only run on the head node
+    if indexs is not None:
+        nodes = [nodes[i] for i in indexs if i < len(nodes)]
+
     for node in nodes:
         node_ip = node["NodeManagerAddress"]
         # Use custom resource label to ensure the function runs on this node
@@ -513,9 +542,9 @@ def init_ray():
 
 
 @ray.remote
-def sync_local_dir(folder):
+def sync_local_dir(folder, nodes=None):
     """Sync the Folder from the remote storage."""
-    head_node = head_hostname()
+    head_node = head_hostname(nodes)
     cur_node = os.uname().nodename
     # Ensure the Folder exists for each node
     Path(folder).mkdir(parents=True, exist_ok=True)
@@ -597,15 +626,15 @@ def job_log(cmd="tail", key=None, n=100, log_dir=None):
 class RayTool:
     """A command-line tool for managing Ray clusters and nodes."""
 
-    def __init__(self, head=False):
+    def __init__(self, node=None):
         """Initialize the RayTool class."""
         init_ray()
-        self.head_only = head
+        self.node = node
         print("Ray cluster initialized.")
 
     def _run_nodes(self, fun, *args, **kwargs):
         """Run a function on all Ray nodes."""
-        return run_nodes(fun, *args, head_only=self.head_only, **kwargs)
+        return run_nodes(fun, *args, indexs=self.node, **kwargs)
 
     def list_gpus(self):
         """List available GPUs on the current node."""

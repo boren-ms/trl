@@ -1,19 +1,20 @@
 """Shared utility functions for bias training scripts."""
 
 # %%
+import re
 import os
 import sys
-import pytz
 import json
 import wandb
 import blobfile as bf
 from pathlib import Path
-from datetime import datetime
 from transformers import AutoModelForCausalLM, AutoProcessor
 from transformers.trainer_utils import get_last_checkpoint
 from accelerate import PartialState
+from contextlib import nullcontext
 from trl.trainer.utils import add_adapter_func, rank_print
 from trl.scripts.audio_dataset import create_audio_dataset
+from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 
 def get_speech_peft_model(model, lora_name):
@@ -31,7 +32,7 @@ def get_speech_peft_model(model, lora_name):
     return model
 
 
-def init_model(model_id=None, new_lora=None):
+def init_model(model_id=None, update_encoder=False, new_lora=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
@@ -44,10 +45,18 @@ def init_model(model_id=None, new_lora=None):
     model.set_lora_adapter("speech")
     model = add_adapter_func(model)
     if new_lora:
-        rank_print("merge and unload model")
-        model.merge_and_unload()  # merge lora and back to normal Linear
-        rank_print("Prepare peft model with adapter:", new_lora)
-        model = get_speech_peft_model(model, lora_name=new_lora)  # revert peft model
+        # TODO: gather context before merging and unloading,
+        # this not work yet.
+        gather_if_zero3 = gather_context()
+        rank_print("Gather context: ", gather_if_zero3)
+        with gather_if_zero3(list(model.parameters())):
+            rank_print("merge and unload model")
+            model.merge_and_unload()  # merge lora and back to normal Linear
+            rank_print("Prepare peft model with adapter:", new_lora)
+            model = get_speech_peft_model(model, lora_name=new_lora)  # revert peft model
+    if update_encoder:
+        layers = [r"^model.embed_tokens_extend.audio_embed.encoder.encoders", r"^model.embed_tokens_extend.audio_embed.audio_projection.speech"]
+        model = train_modules(model, layers)
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
 
@@ -72,16 +81,19 @@ class WandbHelper:
         work_dir = work_dir or Path.cwd()
         self.run_info_file = Path(work_dir) / "run_info.json"
 
+    def _get_run_name(self):
+        """Get the run name from environment variables or command line arguments."""
+        if self.run_name:
+            return self.run_name
+        config_path = get_config_path()
+
+        return config_path.stem if config_path else "default"
+
     def _wandb_info(self):
         """Get wandb information from environment variables."""
-        config_path = get_config_path()
-        if not config_path:
-            run_name = "default_job_name"
-            project = os.environ.get("WANDB_PROJECT", "biasing")
-        else:
-            run_name = config_path.stem
-            project = config_path.parent.name or "biasing"
-        run_name = self.run_name or run_name
+        run_name = self._get_run_name()
+        project = os.environ.get("WANDB_PROJECT", "biasing")
+
         print(f"Run name: {run_name}, Project: {project}, New run: {self.new_run}, Work dir: {self.run_info_file.parent}")
         run_info = {} if self.new_run else self._load_info()
         print("WandB Run Info:", run_info)
@@ -144,19 +156,48 @@ class WandbHelper:
         return info
 
 
-def print_modules(model, trainable=False):
+def numel(p):
+    if is_deepspeed_zero3_enabled():
+        return p.ds_numel if hasattr(p, "ds_numel") else p.numel()
+    else:
+        return p.numel()
+
+
+def gather_context():
+    """Gather context for vLLM updates."""
+    if is_deepspeed_zero3_enabled():
+        import deepspeed
+
+        return deepspeed.zero.GatheredParameters
+    else:
+        return nullcontext
+
+
+def train_modules(model, reg_exp, trainable=True):
+    """Train the model with the given prefix, substring, and/or suffix.
+    Only parameters matching all specified criteria will be set as trainable.
+    """
+    reg_exp = reg_exp if isinstance(reg_exp, (tuple, list)) else [reg_exp]
+    for name, param in model.named_parameters():
+        if any(re.search(exp, name) for exp in reg_exp):
+            param.requires_grad = trainable
+    return model
+
+
+def print_modules(model, trainable=False, all_rank=False):
     """List trainable modules in the model and total trainable parameter size."""
-    rank_print("List modules in the model:", {model.__class__.__name__})
+    main_only = not all_rank
+    rank_print("List modules in the model:", {model.__class__.__name__}, main=main_only)
     n_total = 0
     n_trainable = 0
     for name, param in model.named_parameters():
-        n_total += param.numel()
+        n_total += numel(param)
         if param.requires_grad:
-            n_trainable += param.numel()
+            n_trainable += numel(param)
             if trainable:
-                rank_print(f"{name}: {human_readable(param.numel())} trainable")
-    rank_print(f"Total trainable: {human_readable(n_trainable)}")
-    rank_print(f"Total parameter: {human_readable(n_total)}")
+                rank_print(f"{name}: {human_readable(numel(param))} trainable", main=main_only)
+    rank_print(f"Total trainable: {human_readable(n_trainable)}", main=main_only)
+    rank_print(f"Total parameter: {human_readable(n_total)}", main=main_only)
     return n_total, n_trainable
 
 

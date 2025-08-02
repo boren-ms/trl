@@ -67,6 +67,8 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
 
 
 def read_words(file_path):
+    if not file_path:
+        return []
     if not bf.exists(file_path):
         return []
     with bf.BlobFile(file_path, "r") as f:
@@ -74,31 +76,36 @@ def read_words(file_path):
     return words
 
 
-def entity_dataset(jsonl_path, bias_key=None, bias_file=None, tag="*", data_dir=None, **kwargs):
+def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=None, tag="*", data_dir=None, **kwargs):
     ds = jsonl_dataset(jsonl_path, **kwargs)
+    distractors = read_words(distractor_file)
+    shared_entities = read_words(entity_file)
 
     def load_sample(example):
         """Load audio from a file."""
         trans = example.get("Transcription", "").strip()
         audio_path = update_dir(example["WavPath"], src_dir="/datablob1/users/ruchaofan/", dst_dir=data_dir)
+        bs = BeautifulSoup(trans, "html.parser")
 
-        if bias_file:
-            bias_words = read_words(bias_file)
-        else:
-            bias_words = example.get(bias_key, [])
+        entities = [tag.get_text().strip() for tag in bs.find_all() if tag.name.startswith("ne")]
+        entities = list(set(entities + shared_entities))  # Combine with shared entities
+
+        utt_id = example.get("UUID", Path(audio_path).stem)
+
+        if max_bias > 0 and max_bias < len(entities):
+            print(f"Groundtruth words [{len(entities)}] exceed max_bias [{max_bias}], truncating.")
+        bias_words = entities.copy()[:max_bias]
+        bias_words += distractors[: max(0, max_bias - len(bias_words))]
 
         bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
         prompt = get_task_prompt(task="biasing" if bias_str else "asr")
-
-        bs = BeautifulSoup(trans, "html.parser")
-        entities = [tag.get_text().strip() for tag in bs.find_all() if tag.name.startswith("ne")]
 
         return {
             "prompt": prompt_format.format(f"{prompt} {bias_str}"),
             "audio_path": audio_path,
             "text": bs.get_text().strip(),
-            "keywords": list(set(entities)),
-            "id": example.get("UUID", Path(audio_path).stem),
+            "keywords": entities,
+            "id": utt_id,
         }
 
     return ds.map(load_sample)
@@ -186,20 +193,25 @@ def stream_shuffle(ds, **kwargs):
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
     rand_prompt = kwargs.pop("rand_prompt", False)
+    with_context = kwargs.pop("with_context", True)
+
     kwargs = kwargs or {
         "bias_prob": 0.9,
         "hit_prob": 0.9,
         "max_piece_len": 1,
-        "max_num": 2,
     }
     bias_sampler = PieceSampler(**kwargs)
 
     def proc_sample(sample):
         """Process a sample from the dataset."""
         context, text, keywords = bias_sampler.sample(sample["text"])
-        prompt = get_task_prompt(task="biasing", rand=rand_prompt)
+        if with_context:
+            prompt = get_task_prompt(task="biasing", rand=rand_prompt)
+            prompt = f"{prompt} {context}"
+        else:
+            prompt = get_task_prompt(task="asr", rand=rand_prompt)
         return {
-            "prompt": prompt_format.format(f"{prompt} {context}"),
+            "prompt": prompt_format.format(prompt),
             "text": text,  # text is updated
             "keywords": keywords,
         }

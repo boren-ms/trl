@@ -6,7 +6,7 @@ train_data:
   biasing:
     buffer_size: 10000
     max_piece_len: 1
-    max_num: 1000
+    sample_range: 1000
     bias_prob: 0.8
     hit_prob: 0.8
     log_interval: 1000 # print biasing every 10000 samples
