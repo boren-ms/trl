@@ -19,15 +19,9 @@ from ray_tool import (
     run_output_watcher,
     sync_local_dir,
     search_models,
+    get_node_count,
+    sorted_nodes,
 )
-
-
-def get_node_count(nodes=None):
-    """Get the number of nodes in the Ray cluster."""
-    if nodes is None:
-        return int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
-    else:
-        return len(nodes)
 
 
 @ray.remote
@@ -117,11 +111,12 @@ def evaluate_model(remote_model_dir=None, local_model_dir=None, config=None, nod
     print("Evaluation completed on ", local_model_dir)
 
 
-def main(model_path="", config=None, forced=False):
+def main(model_path="", config=None, forced=False, nodes=None):
     """Launch the job on all nodes by preparing the environment and data."""
     init_ray()
     list_nodes()
-
+    nodes = sorted_nodes(nodes)
+    print(f"Using nodes: {nodes}")
     print(f"Search models: {model_path if model_path else 'default'}")
     model_paths = search_models(model_path)
     if not model_paths:
@@ -134,15 +129,15 @@ def main(model_path="", config=None, forced=False):
 
     results = []
     print("Preparing environment on all nodes...")
-    results += run_nodes(prepare_env, forced=forced, waiting=False)
+    results += run_nodes(prepare_env, forced=forced, waiting=False, indexs=nodes)
     print("Preparing data on all nodes...")
-    results += run_nodes(prepare_data, forced=forced, waiting=False)
+    results += run_nodes(prepare_data, forced=forced, waiting=False, indexs=nodes)
     print("Releasing GPUs on all nodes...")
-    results += run_nodes(release_gpus, waiting=False)
+    results += run_nodes(release_gpus, waiting=False, indexs=nodes)
     ray.get(results)
 
     for model_path in model_paths:
-        evaluate_model(remote_model_dir=model_path, config=config)
+        evaluate_model(remote_model_dir=model_path, config=config, nodes=nodes)
 
 
 if __name__ == "__main__":

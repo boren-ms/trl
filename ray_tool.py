@@ -11,6 +11,25 @@ import blobfile as bf
 import importlib.metadata
 
 
+def get_node_count(nodes=None):
+    """Get the number of nodes in the Ray cluster."""
+    if nodes is None:
+        return int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
+    else:
+        return len(nodes)
+
+
+def sorted_nodes(nodes):
+    """Sort nodes by their index."""
+    if nodes is None:
+        return None
+    if isinstance(nodes, str):
+        nodes = [int(x) for x in nodes.split(",")]
+    if not isinstance(nodes, (list, tuple)):
+        nodes = [nodes]
+    return sorted(nodes)
+
+
 def to_int(value, default=-1):
     """Convert a value to an integer, if possible."""
     try:

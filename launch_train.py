@@ -6,7 +6,21 @@ import os
 from pathlib import Path
 import ray
 import fire
-from ray_tool import run_nodes, update_envs, prepare_env, prepare_data, release_gpus, prepare_local_output, sync_local_dir, init_ray, list_nodes, get_output_dirs, run_output_watcher
+from ray_tool import (
+    run_nodes,
+    update_envs,
+    prepare_env,
+    prepare_data,
+    release_gpus,
+    prepare_local_output,
+    sync_local_dir,
+    init_ray,
+    list_nodes,
+    get_output_dirs,
+    run_output_watcher,
+    get_node_count,
+    sorted_nodes,
+)
 from launch_eval import evaluate_model
 
 
@@ -19,14 +33,6 @@ def dup_config_file(config_file, new_stem):
         new_config_file.unlink()
     shutil.copy(config_file, new_config_file)
     return new_config_file
-
-
-def get_node_count(nodes=None):
-    """Get the number of nodes in the Ray cluster."""
-    if nodes is None:
-        return int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
-    else:
-        return len(nodes)
 
 
 def get_job_name(config_file, acc_config=None, nodes=None):
@@ -133,17 +139,6 @@ def get_acc_config(name=None):
         "fsdp2": cwd / "trl/accelerate_configs/fsdp2.yaml",
     }
     return name_dict.get(name, None)
-
-
-def sorted_nodes(nodes):
-    """Sort nodes by their index."""
-    if nodes is None:
-        return None
-    if isinstance(nodes, str):
-        nodes = [int(x) for x in nodes.split(",")]
-    if not isinstance(nodes, (list, tuple)):
-        nodes = [nodes]
-    return sorted(nodes)
 
 
 def main(config_file, task=None, forced=False, acc=None, seed_name=None, nodes=None):
