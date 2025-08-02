@@ -1,6 +1,6 @@
-use_vllm: False
+use_vllm: True
 vllm_max_length: 8192
-batch_size: 128
+batch_size: 32
 generation_config:
   max_new_tokens: 512
   # temperature: 0.0
@@ -21,6 +21,8 @@ eval_data:
     num_egs: 2
     dataset_name: inhouse_entity
     jsonl_path: /datablob1/users/ruchaofan/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DeliciousHealthy_Entity_FY24Q1_en-US_DTEST/test.jsonl
+    bias_file: /home/boren/data/librispeech_biasing/words/all_rare_words.txt
+    max_bias: 100
   # jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DeliciousHealthy_Entity_FY24Q1_en-US_DTEST/test.jsonl
   # data_dir: /root/data/
   # - nickname: clean_no
