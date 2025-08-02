@@ -127,6 +127,16 @@ def get_high_entropy_mask(entropies: torch.Tensor, mask: torch.Tensor, threshold
     return entropy_mask & mask.bool()  # ensure padding tokens are always masked out
 
 
+# Mask special tokens in the input tensor.
+def mask_tokens(x, token_id, pad_id):
+    mask = x == token_id
+    n_masked = mask.sum()
+    if n_masked > 0:
+        rank_print(f"Warning: {n_masked} special tokens [{token_id}] found. They will be masked out.", False)
+        x = x.masked_fill(mask, pad_id)
+    return x
+
+
 class RepeatSampler(Sampler):
     """
     Sampler that repeats the indices of a dataset in a structured manner.
@@ -1231,6 +1241,9 @@ class GRPOTrainer(Trainer):
             prompt_ids = prompt_completion_ids[:, :prompt_length]
             completion_ids = prompt_completion_ids[:, prompt_length:]
 
+        # mask out _AUDIO_SPECIAL_TOKEN_ID if it is present in the completion_ids
+        _AUDIO_SPECIAL_TOKEN_ID = 200011  # '<endoftext11>'
+        completion_ids = mask_tokens(completion_ids, _AUDIO_SPECIAL_TOKEN_ID, self.processing_class.tokenizer.pad_token_id)
         # Mask everything after the first EOS token
         # is_eos = completion_ids == self.processing_class.tokenizer.eos_token_id
         is_eos = torch.isin(completion_ids, self.stop_tokens_ids.to(device))
