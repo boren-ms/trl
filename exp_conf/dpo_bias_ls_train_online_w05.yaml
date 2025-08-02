@@ -7,7 +7,7 @@ dataset_config:
         hit_prob: 0.9
         max_piece_len: 1
         max_num: 500
-    simu_perference:
+    simu_preference:
         error_range: 0.05
         buffer_size: 5000
 model_name_or_path: /uksblob/users/boren/data/hf_models/phi4_mm_bias

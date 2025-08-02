@@ -231,8 +231,8 @@ def to_conversation(text, role="assistant"):
     ]
 
 
-def simulate_perference(ds, **kwargs):
-    """simulate the perference  to the dataset."""
+def simulate_preference(ds, **kwargs):
+    """simulate the preference  to the dataset."""
     error_range = kwargs.pop("error_range", (0.1, 0.25))
     if not isinstance(error_range, (tuple, list)):
         error_range = [float(error_range), float(error_range)]
@@ -246,14 +246,14 @@ def simulate_perference(ds, **kwargs):
             "rejected": to_conversation(bad, role="assistant") if chat else bad,
         }
 
-    def add_perference(sample, error_range):
+    def add_preference(sample, error_range):
         """Process a sample from the dataset."""
         err_rate = random.uniform(*error_range)
         text = sample["text"]
         bad_text = simulator.random_error(text, err_rate)
         return format_output(bad_text, text)
 
-    return ds.map(add_perference, fn_kwargs={"error_range": error_range})
+    return ds.map(add_preference, fn_kwargs={"error_range": error_range})
 
 
 def load_audio(ds):
@@ -289,8 +289,8 @@ def augment(ds, **kwargs):
         ds = filter_ds(ds, **filter_kwargs)
     if biasing_kwargs := kwargs.get("biasing", {}):
         ds = bias_sampling(ds, **biasing_kwargs)
-    if perf_kwargs := kwargs.get("simu_perference", {}):
-        ds = simulate_perference(ds, **perf_kwargs)
+    if perf_kwargs := kwargs.get("simu_preference", {}):
+        ds = simulate_preference(ds, **perf_kwargs)
     if kwargs.get("load_audio", False):
         ds = load_audio(ds)
     return ds
