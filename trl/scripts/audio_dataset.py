@@ -220,8 +220,10 @@ def bias_sampling(ds, **kwargs):
     return ds
 
 
-def to_conversation(text, role="assistant"):
+def to_chat(text, chat=True, role="assistant"):
     """Convert text to conversation format."""
+    if not chat:
+        return text
     assert role in ["assistant", "user"], "Role must be either 'assistant' or 'user'."
     return [
         {
@@ -234,24 +236,20 @@ def to_conversation(text, role="assistant"):
 def simulate_preference(ds, **kwargs):
     """simulate the preference  to the dataset."""
     error_range = kwargs.pop("error_range", (0.1, 0.25))
+    num_rejections = kwargs.pop("num_rejections", 1)
+    chat = kwargs.get("chat", False)
     if not isinstance(error_range, (tuple, list)):
         error_range = [float(error_range), float(error_range)]
     simulator = ErrorSimulator(**kwargs)
 
-    def format_output(good, bad):
-        """Format the output based on conversation flag."""
-        chat = kwargs.get("conversation", False)
-        return {
-            "chosen": to_conversation(good, role="assistant") if chat else good,
-            "rejected": to_conversation(bad, role="assistant") if chat else bad,
-        }
-
     def add_preference(sample, error_range):
         """Process a sample from the dataset."""
-        err_rate = random.uniform(*error_range)
         text = sample["text"]
-        bad_text = simulator.random_error(text, err_rate)
-        return format_output(bad_text, text)
+        rejections = [simulator.random_error(text, random.uniform(*error_range)) for _ in range(num_rejections)]
+        return {
+            "chosen": to_chat(text, chat),
+            "rejected": [to_chat(x, chat) for x in rejections],
+        }
 
     return ds.map(add_preference, fn_kwargs={"error_range": error_range})
 
@@ -287,10 +285,10 @@ def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
     if filter_kwargs := kwargs.get("filter", {}):
         ds = filter_ds(ds, **filter_kwargs)
-    if pref_kwargs := kwargs.get("simu_preference", {}):
-        ds = simulate_preference(ds, **pref_kwargs)
     if biasing_kwargs := kwargs.get("biasing", {}):
         ds = bias_sampling(ds, **biasing_kwargs)
+    if pref_kwargs := kwargs.get("simu_preference", {}):
+        ds = simulate_preference(ds, **pref_kwargs)
     if kwargs.get("load_audio", False):
         ds = load_audio(ds)
     return ds

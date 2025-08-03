@@ -1,6 +1,6 @@
 # model_name_or_path: az://orngcresco/data/boren/data/ckp/phi4_mm_bias
-# model_name_or_path: /home/boren/data/ckp/hf_models/phi4_mm_bias
-model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
+model_name_or_path: /home/boren/data/ckp/hf_models/phi4_mm_bias
+# model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 new_run: True
 reward_funcs: [reward_word_error, reward_bias_error]
 reward_func_kwargs:
@@ -55,6 +55,7 @@ train_data:
     simu_preference:
         error_range: [0.01, 0.15]
         buffer_size: 5000
+        num_rejections: 8
     biasing:
         # bias_prob: 0.8
         hit_prob: 0.5

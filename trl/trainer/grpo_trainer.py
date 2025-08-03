@@ -1094,15 +1094,19 @@ class GRPOTrainer(Trainer):
         max_seq = completion_ids.size(1)
 
         for i in range(len(inputs) // n_gen):
-            x = inputs[i]
-            x_completion = completions[i * n_gen : (i + 1) * n_gen]
-            repeated_txt, vote = Counter(x_completion).most_common(1)[0]
-            rejected_txt = x.get("rejected", None)
-            if vote > 1 and rejected_txt is not None:
-                j = x_completion.index(repeated_txt)
-                rejected_ids = self.processing_class.tokenizer(rejected_txt + "<|end|>", add_special_tokens=True, return_tensors="pt").input_ids[0]
+            x = inputs[i * n_gen]
+            x_completions = completions[i * n_gen : (i + 1) * n_gen]
+            rejections = x.get("rejected", [])
+            seen_completions = []
+            for j, completion in enumerate(x_completions):
+                if completion not in seen_completions:
+                    seen_completions.append(completion)
+                    continue
+                if not rejections:
+                    break
+                rejected_ids = self.processing_class.tokenizer(rejections.pop() + "<|end|>", add_special_tokens=True, return_tensors="pt").input_ids[0]
                 rejected_ids = rejected_ids[:max_seq]  # Ensure the length matches
-                n = rejected_ids.size(0)
+                n = len(rejected_ids)
                 completion_ids[i * n_gen + j, :n] = rejected_ids
                 completion_mask[i * n_gen + j, :n] = 1
                 completion_mask[i * n_gen + j, n:] = 0
