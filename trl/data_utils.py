@@ -67,7 +67,8 @@ def is_conversational(example: dict[str, Any]) -> bool:
     ```
     """
     supported_keys = ["prompt", "chosen", "rejected", "completion", "messages"]
-    example_keys = {key for key in example.keys() if key in supported_keys}
+    # example_keys = {key for key in example.keys() if key in supported_keys}
+    example_keys = [key for key in supported_keys if key in example]
 
     # It must have one of the supported keys
     if example_keys:
@@ -840,6 +841,6 @@ def find_chkps(model_dir, specified=None):
     if isinstance(specified, int):
         specified = [specified]
 
-    idxs = [chkp_index(chkp.name) for chkp in reversed(chkps)] # ascending
+    idxs = [chkp_index(chkp.name) for chkp in reversed(chkps)]  # ascending
     chkp_indices = [i if i >= 0 else idxs[i] for i in map(to_int, specified) if -i <= len(idxs)]
     return [chkp.path for chkp in chkps if chkp_index(chkp.name) in chkp_indices]
