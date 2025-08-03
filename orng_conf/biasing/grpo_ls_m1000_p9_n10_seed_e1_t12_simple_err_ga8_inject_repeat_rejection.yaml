@@ -6,7 +6,7 @@ train_data:
   simu_preference:
     error_range: [0.01, 0.15]
     buffer_size: 5000 # buffer words for sub error sampling.
-    num_rejections: 10
+    # num_rejections: 10
 
   biasing:
     buffer_size: 10000

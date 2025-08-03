@@ -1104,9 +1104,10 @@ class GRPOTrainer(Trainer):
                 if not rejections:
                     break
                 rejected_ids = self.processing_class.tokenizer(rejections.pop() + "<|end|>", add_special_tokens=True, return_tensors="pt").input_ids[0]
-                rejected_ids = rejected_ids[:max_seq]  # Ensure the length matches
+                rejected_ids = rejected_ids[:max_seq]  # Ensure the rejected_ids fit into the max_seq length
                 n = len(rejected_ids)
                 completion_ids[i * n_gen + j, :n] = rejected_ids
+                completion_ids[i * n_gen + j, n:] = self.processing_class.tokenizer.pad_token_id
 
         return completion_ids
 
