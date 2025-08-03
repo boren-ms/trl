@@ -51,3 +51,13 @@ Beyond the 80/20 Rule: High-Entropy Minority Tokens Drive Effective Reinforcemen
 design a reward function to concentrate on rare words, but without additional biasing list as input.
 
 1. TODO: implement the dataset to tag rare words for each utterance.
+
+## add noisy completions
+1. add bad completions to replace repeated completions. [Do not work]
+
+
+## Evaluation on out-of-domain dataset
+
+1. evaluation on out-of-domain dataset (internal entity dataset)
+   1. grpo_ls_m1000_p9_n10_zero_e2_notag_err_lora [zeroRL]
+   2. grpo_ls_m1000_p9_n10_seed_e2_t12_simple_err_lora [seed RL]
