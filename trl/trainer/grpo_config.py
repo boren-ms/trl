@@ -270,6 +270,10 @@ class GRPOConfig(TrainingArguments):
         default=256,
         metadata={"help": "Maximum length of the generated completion."},
     )
+    inject_rejection_completion: bool = field(
+        default=False,
+        metadata={"help": "Whether to inject rejection completions during training."},
+    )
     ds3_gather_for_generation: bool = field(
         default=True,
         metadata={

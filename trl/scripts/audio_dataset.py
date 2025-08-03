@@ -287,10 +287,10 @@ def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
     if filter_kwargs := kwargs.get("filter", {}):
         ds = filter_ds(ds, **filter_kwargs)
+    if pref_kwargs := kwargs.get("simu_preference", {}):
+        ds = simulate_preference(ds, **pref_kwargs)
     if biasing_kwargs := kwargs.get("biasing", {}):
         ds = bias_sampling(ds, **biasing_kwargs)
-    if perf_kwargs := kwargs.get("simu_preference", {}):
-        ds = simulate_preference(ds, **perf_kwargs)
     if kwargs.get("load_audio", False):
         ds = load_audio(ds)
     return ds

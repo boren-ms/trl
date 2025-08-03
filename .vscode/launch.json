@@ -56,9 +56,9 @@
             "justMyCode": false,
             "args": [
                 "--config",
-                "orng_conf/biasing/grpo_ttrl_debug_local.yaml",
+                // "orng_conf/biasing/grpo_ttrl_debug_local.yaml",
                 // "orng_conf/biasing/grpo_rare_debug_local.yaml",
-                // "orng_conf/biasing/grpo_bias_vllm_colocate_debug_local.yaml",
+                "orng_conf/biasing/grpo_bias_vllm_colocate_debug_local.yaml",
                 // "orng_conf/biasing/grpo_bias_vllm_colocate_debug.yaml",
                 // "/root/code/trl/orng_conf/grpo_bias_debug.yaml",
             ]

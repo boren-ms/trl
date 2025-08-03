@@ -17,7 +17,7 @@ import textwrap
 import warnings
 import time
 import pandas as pd
-from collections import defaultdict
+from collections import defaultdict, Counter
 from collections.abc import Sized
 from contextlib import nullcontext
 from functools import partial
@@ -25,7 +25,6 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Union
 from more_itertools import chunked, unique_everseen
 from dataclasses import asdict
-
 import datasets
 import torch
 import torch.utils.data
@@ -1080,6 +1079,36 @@ class GRPOTrainer(Trainer):
         rewards_per_func = gather(rewards_per_func)
         return rewards_per_func
 
+    def _post_process_completions(self, completion_ids, completion_mask, inputs):
+        """Post-processes the generated completions by grouping them into batches and handling bad cases."""
+        if not self.args.inject_rejection_completion:
+            return completion_ids, completion_mask
+
+        if inputs[0].get("rejected", None) is None:
+            rank_print("No 'rejected' key found in inputs, skipping post-processing of completions.")
+            return completion_ids, completion_mask
+
+        completion_masked_ids = completion_ids.masked_fill(completion_mask == 0, self.processing_class.tokenizer.pad_token_id)
+        completions = self.processing_class.tokenizer.batch_decode(completion_masked_ids, skip_special_tokens=True)
+        n_gen = self.num_generations if self.model.training else self.num_eval_generations
+        max_seq = completion_ids.size(1)
+
+        for i in range(len(inputs) // n_gen):
+            x = inputs[i]
+            x_completion = completions[i * n_gen : (i + 1) * n_gen]
+            repeated_txt, vote = Counter(x_completion).most_common(1)[0]
+            rejected_txt = x.get("rejected", None)
+            if vote > 1 and rejected_txt is not None:
+                j = x_completion.index(repeated_txt)
+                rejected_ids = self.processing_class.tokenizer(rejected_txt + "<|end|>", add_special_tokens=True, return_tensors="pt").input_ids[0]
+                rejected_ids = rejected_ids[:max_seq]  # Ensure the length matches
+                n = rejected_ids.size(0)
+                completion_ids[i * n_gen + j, :n] = rejected_ids
+                completion_mask[i * n_gen + j, :n] = 1
+                completion_mask[i * n_gen + j, n:] = 0
+
+        return completion_ids, completion_mask
+
     def _generate_and_score_completions(self, inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> dict[str, Union[torch.Tensor, Any]]:
         device = self.accelerator.device
         mode = "train" if self.model.training else "eval"
@@ -1252,6 +1281,7 @@ class GRPOTrainer(Trainer):
         sequence_indices = torch.arange(is_eos.size(1), device=device).expand(is_eos.size(0), -1)
         completion_mask = (sequence_indices <= eos_idx.unsqueeze(1)).int()
 
+        completion_ids, completion_mask = self._post_process_completions(completion_ids, completion_mask, inputs)
         # Convert tensor to a list of lists of token IDs. This will be passed to the reward function, avoiding the need
         # to re-tokenize completions if the reward is computed from tokens.
         completion_ids_list = [[id.item() for id, m in zip(row, mask_row) if m] for row, mask_row in zip(completion_ids, completion_mask)]

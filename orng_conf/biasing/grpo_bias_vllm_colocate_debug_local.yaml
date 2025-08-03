@@ -4,13 +4,13 @@ model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 new_run: True
 reward_funcs: [reward_word_error, reward_bias_error]
 reward_func_kwargs:
-    tn: simple_with_tag
+    tn: simple
 report_to: [wandb]
 learning_rate: 1e-5
 save_only_model: True
 save_total_limit: 5
 save_on_each_node: True
-new_lora: True
+# new_lora: True
 # lr_scheduler_type: cosine
 output_dir: ~/outputs/debug
 per_device_train_batch_size: 24
@@ -23,10 +23,11 @@ temperature: 1.1
 logging_steps: 1
 bf16: True
 gradient_checkpointing: True
-gradient_accumulation_steps: 2
+# gradient_accumulation_steps: 2
 log_completions: True
 max_prompt_length: 6000
 max_completion_length: 512
+inject_rejection_completion: True
 #
 # beta: 0.1
 epsilon_high: 0.28
@@ -58,7 +59,7 @@ train_data:
         # bias_prob: 0.8
         hit_prob: 0.5
         max_piece_len: 1
-        max_num: 100
+        sample_range: 100
         log_interval: 1000 # print biasing every 10000 samples
         new_sampling: True
         # common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
