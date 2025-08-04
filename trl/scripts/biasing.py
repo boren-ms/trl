@@ -52,11 +52,12 @@ def tag_pieces(pieces, tag="*", specified=None, norm=None):
 #     return random.sample(lst, n)
 
 
-def rand_sample(lst, n, new=False):
+def rand_sample(lst, n_max, n_min=0):
     """Randomly sample random n elements from the list."""
     # ignore new sampling for now
-    n = min(n, len(lst))
-    return random.sample(lst, n)
+    n_max = min(n_max, len(lst))
+    n_min = min(n_min, n_max)
+    return random.sample(lst, random.randint(n_min, n_max))
 
 
 def read_words(file_path, N=None, tn_prob=1.0):
@@ -141,9 +142,10 @@ class PieceSampler:
         num_pieces = random.randint(*self.sample_range)
         examples = []
         if random.random() <= self.hit_prob:
-            examples += rand_sample(pieces, num_pieces, new=self.new_sampling)
+            examples += rand_sample(pieces, num_pieces)
         if random.random() <= self.miss_prob:
-            examples += rand_sample(self.buffer, num_pieces - len(examples), new=self.new_sampling)
+            n_miss = num_pieces - len(examples)
+            examples += rand_sample(self.buffer, n_miss, n_miss)
         return self.filter_commons(examples)
 
     def sample(self, text):

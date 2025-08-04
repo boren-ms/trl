@@ -52,12 +52,11 @@ train_data:
     #     wer_file: az://orngscuscresco/data/boren/data/LibriSpeech/ls_train_bad_ids.jsonl
     # wer_range: [0.0, 1.0]
     biasing:
-        # bias_prob: 0.8
         hit_prob: 1
-        miss_prob: 0
-        with_context: False
+        miss_prob: 1
+        context_prob: 0.8
         max_piece_len: 1
-        sample_range: [10000, 10000] # all rare words
+        sample_range: [1, 1000] # all rare words
         log_interval: 100 # print biasing every 10000 samples
         # new_sampling: True
         # common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt

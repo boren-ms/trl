@@ -9,7 +9,7 @@ train_data:
     bias_prob: 1
     hit_prob: 1
     miss_prob: 0
-    with_context: False # No context/phrase list in prompt
+    context_prob: 0 # No context/phrase list in prompt
     sample_range: [10000, 10000] # all rare words
     log_interval: 10000 # print biasing every 10000 samples
     tag: ""

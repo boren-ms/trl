@@ -23,6 +23,8 @@ from ray_tool import (
     sorted_nodes,
 )
 
+DEFAULT_EVAL_CONFIG = "eval_conf/eval_vllm_dev_tiny.yaml"
+
 
 @ray.remote
 def launch_evaluation(model_path, config_file=None, nodes=None):
@@ -30,8 +32,7 @@ def launch_evaluation(model_path, config_file=None, nodes=None):
     cur_dir = Path(__file__).parent
     os.chdir(cur_dir)
     print(f"Working Dir: {os.getcwd()}")
-
-    config_file = config_file or "eval_conf/eval_baseline_hf.yaml"
+    config_file = config_file or DEFAULT_EVAL_CONFIG
     config_file = Path(config_file).absolute()
     update_envs(config_file)
 
