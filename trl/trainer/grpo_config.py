@@ -258,13 +258,17 @@ class GRPOConfig(TrainingArguments):
         default=512,
         metadata={"help": "Maximum length of the prompt. If the prompt is longer than this value, it will be truncated left."},
     )
+    per_device_train_batch_samples: Optional[int] = field(
+        default=None,
+        metadata={"help": "Number of samples per device for training. If set, per_device_train_batch_size will be  `per_device_train_batch_samples*num_generations`."},
+    )
     num_generations: Optional[int] = field(
         default=8,
-        metadata={"help": "Number of generations to sample. The effective batch size (num_processes * per_device_batch_size " "* gradient_accumulation_steps) must be evenly divisible by this value."},
+        metadata={"help": "Number of generations to sample. The effective batch size (num_processes * per_device_batch_size * gradient_accumulation_steps) must be evenly divisible by this value."},
     )
-    generation_downscale: Optional[int] = field(
+    generation_scale: Optional[int] = field(
         default=None,
-        metadata={"help": "The downscaling factor for generation. should be (0,1]"},
+        metadata={"help": "The scale factor for generation. should be >=1 "},
     )
     num_eval_generations: Optional[int] = field(
         default=None,
@@ -540,10 +544,20 @@ class GRPOConfig(TrainingArguments):
         self.bf16 = not (self.fp16) if self.bf16 is None else self.bf16
 
         super().__post_init__()
-
         num_processes = self.world_size
-        if self.generation_downscale is not None and (self.generation_downscale <= 0 or self.generation_downscale > 1):
-            raise ValueError(f"Invalid generation_downscale: {self.generation_downscale}. It must be in (0, 1].")
+
+        if self.generation_scale is not None:
+            if self.generation_scale < 1:
+                raise ValueError(f"generation_scale must be >= 1, but got {self.generation_scale}.")
+
+            print(f"Using num_generations={self.num_generations}x{self.generation_scale} due to generation_scale being set to {self.generation_scale}.")
+            self.num_generations = int(self.num_generations * self.generation_scale)
+
+        if self.per_device_train_batch_samples is not None:
+            print(
+                f"Using per_device_train_batch_size={self.per_device_train_batch_samples}x{self.num_generations}, due to per_device_train_batch_samples set to {self.per_device_train_batch_samples}."
+            )
+            self.per_device_train_batch_size = self.per_device_train_batch_samples * self.num_generations
 
         # The current default effective batch size
         if self.generation_batch_size is not None and self.steps_per_generation is not None:

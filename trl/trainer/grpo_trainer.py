@@ -1129,10 +1129,8 @@ class GRPOTrainer(Trainer):
     def downsample_by_rewards(self, rewards):
         """Downsamples the completions based on the rewards."""
         n_gen = self.num_generations
-        n_left = int(self.args.generation_downscale * n_gen)
-        if n_left == n_gen:
-            return None
-        n_head = n_left // 2
+        n_left = round(n_gen / self.args.generation_scale)  # downscaled number of generations
+        n_head = round(n_left / 2)
         n_tail = n_left - n_head
         indexs = []
         for i, group in enumerate(rewards.view(-1, n_gen)):
@@ -1371,7 +1369,7 @@ class GRPOTrainer(Trainer):
         # Apply weights to each reward function's output and sum
         rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
 
-        if mode == "train" and self.args.generation_downscale is not None:
+        if mode == "train" and self.args.generation_scale is not None:
             indexs, num_generations = self.downsample_by_rewards(rewards)
             # Downsample the completions and rewards if needed
             rewards = rewards[indexs]

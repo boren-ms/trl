@@ -13,9 +13,9 @@ save_on_each_node: True
 # new_lora: True
 # lr_scheduler_type: cosine
 output_dir: ~/outputs/debug
-per_device_train_batch_size: 30
-num_generations: 15
-generation_downscale: 0.5
+per_device_train_batch_samples: 2
+num_generations: 5
+generation_scale: 3
 token_entropy_percentile_threshold: 0.8
 # dataloader_drop_last: True
 
@@ -59,13 +59,14 @@ train_data:
     #     num_rejections: 8
     biasing:
         # bias_prob: 0.8
-        hit_prob: 0.5
+        hit_prob: 1
+        miss_prob: 1
+        context_prob: 0.5
         max_piece_len: 1
-        sample_range: 100
+        sample_range: [0, 100]
         log_interval: 1000 # print biasing every 10000 samples
-        new_sampling: True
-        # common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
-        # common_word_num: 1000
+        common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
+        common_word_num: 1000
 # eval_strategy: steps
 # eval_on_start: True
 # eval_steps: 10
