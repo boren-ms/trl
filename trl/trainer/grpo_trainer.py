@@ -1138,8 +1138,9 @@ class GRPOTrainer(Trainer):
         for i, group in enumerate(rewards.view(-1, n_gen)):
             idx = group.argsort(descending=True)
             idx += i * n_gen  # Adjust indices to match the original batch
-            indexs += [idx[:n_head], idx[-n_tail:]]
-        return torch.cat(indexs, dim=0), n_left
+            indexs += idx[:n_head].tolist()
+            indexs += idx[-n_tail:].tolist()
+        return indexs, n_left
 
     def _generate_and_score_completions(self, inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> dict[str, Union[torch.Tensor, Any]]:
         device = self.accelerator.device
