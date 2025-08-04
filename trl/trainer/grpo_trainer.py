@@ -730,7 +730,7 @@ class GRPOTrainer(Trainer):
                     model=model.name_or_path,
                     tensor_parallel_size=args.vllm_tensor_parallel_size,
                     gpu_memory_utilization=self.vllm_gpu_memory_utilization,
-                    max_num_seqs=self.args.per_device_train_batch_size * self.vllm_tensor_parallel_size * self.args.gradient_accumulation_steps,
+                    max_num_seqs=self.vllm_tensor_parallel_size * self.args.gradient_accumulation_steps,
                     max_model_len=max_all_tokens,
                     distributed_executor_backend="external_launcher",
                     # Feed identical seed for tp groups to ensure sampling results are the same across workers
