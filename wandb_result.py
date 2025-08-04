@@ -45,6 +45,10 @@ class WandbChecker:
         self.host = os.environ.get("WANDB_ORGANIZATION", "https://msaip.wandb.io")
         self.entity = entity or os.environ.get("WANDB_ENTITY", "genai")
         self.project = project or os.environ.get("WANDB_PROJECT", "biasing")
+        key = os.environ.get("WANDB_API_KEY", "")
+        print(f"Using W&B : {self.host}/{self.entity}/{self.project}")
+        wandb.login(host=self.host, key=key, relogin=True)
+
         self.metric = metric
         self.excel_dir = Path(excel_dir) if excel_dir else Path.home() / "wandb_results"
 
