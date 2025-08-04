@@ -32,7 +32,7 @@ def get_run_result(runs, prefix="metric"):
     df = df.T
     if df.empty:
         return None
-    df[["dataset", "#bias", "metric"]] = df.index.to_series().str.split("_", n=2, expand=True)
+    df[["dataset", "#bias", "metric"]] = df.index.to_series().str.rsplit("_", n=2, expand=True)
     df["#bias"] = pd.to_numeric(df["#bias"], errors="coerce").fillna(0).astype(int)  # Convert to int
     df = df[df["metric"].isin(["WER", "BWER", "UWER"])]
     df = df.sort_values(by=["dataset", "#bias", "metric"], ascending=[True, True, False])

@@ -10,7 +10,13 @@
             "request": "launch",
             "program": "${file}",
             "justMyCode": false,
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": [
+                "--metric",
+                "metric_vllm",
+                "search",
+                "grpo_ls_m1000_p9_n10_seed_e2_t12_simple_err_lora",
+            ]
         },
         {
             "name": "eval_bias",

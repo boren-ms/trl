@@ -276,7 +276,7 @@ class GRPOConfig(TrainingArguments):
     )
     inject_rejection_completion: bool = field(
         default=False,
-        metadata={"help": "Whether to inject rejection completions during training."},
+        metadata={"help": "Whether to inject rejection completions during training."},  # This does not work, do not set True.
     )
     ds3_gather_for_generation: bool = field(
         default=True,
