@@ -1091,7 +1091,7 @@ class GRPOTrainer(Trainer):
 
         # Gather the reward per function: this part is crucial, because the rewards are normalized per group and the
         # completions may be distributed across processes
-        rewards_per_func = gather(rewards_per_func)
+        # rewards_per_func = gather(rewards_per_func) # not needed, all in the same process.
         return rewards_per_func
 
     def _post_process_completions(self, completion_ids, inputs):
@@ -1375,8 +1375,8 @@ class GRPOTrainer(Trainer):
             indexs, num_generations = self.downsample_by_rewards(rewards)
             # Downsample the completions and rewards if needed
             rewards = rewards[indexs]
-            is_eos = is_eos[indexs]
             rewards_per_func = rewards_per_func[indexs]
+            is_eos = is_eos[indexs]
             completions = [completions[i] for i in indexs]
             completion_ids = completion_ids[indexs]
             completion_mask = completion_mask[indexs]
@@ -1400,14 +1400,6 @@ class GRPOTrainer(Trainer):
         advantages = rewards - mean_grouped_rewards
         if self.scale_rewards:
             advantages = advantages / (std_grouped_rewards + 1e-4)
-
-        # Slice to keep only the local part of the data
-        process_slice = slice(
-            self.accelerator.process_index * len(prompts),
-            (self.accelerator.process_index + 1) * len(prompts),
-        )
-        all_process_advantages = advantages.clone()  # keep the aggregated advantages for logging
-        advantages = advantages[process_slice]
 
         # Log the metrics
         if mode == "train":
@@ -1446,7 +1438,7 @@ class GRPOTrainer(Trainer):
         self._textual_logs["completion"].extend(gather_object(completions_text))
         for i, name in enumerate(self.reward_func_names):
             self._textual_logs[name].extend(rewards_per_func[:, i].tolist())
-        self._textual_logs["advantages"].extend(all_process_advantages.tolist())
+        self._textual_logs["advantages"].extend(advantages.tolist())
 
         # remove empty tensors from prompt_inputs
         prompt_inputs = {k: v for k, v in prompt_inputs.items() if not (isinstance(v, torch.Tensor) and v.numel() == 0)}
