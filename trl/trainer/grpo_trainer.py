@@ -290,6 +290,21 @@ def split_sequence_dict(tensor_dict, num_chunks: int):
     return chunks
 
 
+def slice_sequence_dict(tensor_dict, indexs):
+    """Splits a dictionary of tensors  along the first dimension into specified indices."""
+    return_dict = {}
+    for key, val in tensor_dict.items():
+        if isinstance(val, torch.Tensor) and len(val) > max(indexs):
+            return_dict[key] = val[indexs]
+        elif isinstance(val, (list, tuple)) and len(val) > max(indexs):
+            return_dict[key] = [val[i] for i in indexs]
+        elif isinstance(val, dict):
+            return_dict[key] = slice_sequence_dict(val, indexs)
+        else:
+            return_dict[key] = val  # If it's not a tensor, dict, or list, just return the value as is.
+    return return_dict
+
+
 def shuffle_sequence_dict(seq_dict, permutation=None):
     """
     Shuffles all sequence-like values in a dictionary along the first dimension in unison.
@@ -1111,6 +1126,21 @@ class GRPOTrainer(Trainer):
 
         return completion_ids
 
+    def downsample_by_rewards(self, rewards):
+        """Downsamples the completions based on the rewards."""
+        n_gen = self.num_generations
+        n_left = int(self.args.generation_downscale * n_gen)
+        if n_left == n_gen:
+            return None
+        n_head = n_left // 2
+        n_tail = n_left - n_head
+        indexs = []
+        for i, group in enumerate(rewards.view(-1, n_gen)):
+            idx = group.argsort(descending=True)
+            idx += i * n_gen  # Adjust indices to match the original batch
+            indexs += [idx[:n_head], idx[-n_tail:]]
+        return torch.cat(indexs, dim=0), n_left
+
     def _generate_and_score_completions(self, inputs: list[dict[str, Union[torch.Tensor, Any]]]) -> dict[str, Union[torch.Tensor, Any]]:
         device = self.accelerator.device
         mode = "train" if self.model.training else "eval"
@@ -1340,6 +1370,24 @@ class GRPOTrainer(Trainer):
         # Apply weights to each reward function's output and sum
         rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
 
+        if mode == "train" and self.args.generation_downscale is not None:
+            indexs, num_generations = self.downsample_by_rewards(rewards)
+            # Downsample the completions and rewards if needed
+            rewards = rewards[indexs]
+            is_eos = is_eos[indexs]
+            rewards_per_func = rewards_per_func[indexs]
+            completions = [completions[i] for i in indexs]
+            completion_ids = completion_ids[indexs]
+            completion_mask = completion_mask[indexs]
+            completions_text = [completions_text[i] for i in indexs]
+            completion_lengths = completion_lengths[indexs]
+            prompts = [prompts[i] for i in indexs]
+            prompt_ids = prompt_ids[indexs]
+            prompt_mask = prompt_mask[indexs]
+            prompts_text = [prompts_text[i] for i in indexs]
+            prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
+            attention_mask = attention_mask[indexs]
+
         # Compute grouped-wise rewards
         mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
         std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
@@ -1409,9 +1457,9 @@ class GRPOTrainer(Trainer):
             "completions": completions,
             "completion_ids": completion_ids,
             "completion_mask": completion_mask,
-            "advantages": advantages,
             "old_per_token_logps": old_per_token_logps,
             "ref_per_token_logps": ref_per_token_logps,
+            "advantages": advantages,
         }
 
     def compute_liger_loss(self, unwrapped_model, inputs, **kwargs):

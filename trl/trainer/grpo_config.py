@@ -262,6 +262,10 @@ class GRPOConfig(TrainingArguments):
         default=8,
         metadata={"help": "Number of generations to sample. The effective batch size (num_processes * per_device_batch_size " "* gradient_accumulation_steps) must be evenly divisible by this value."},
     )
+    generation_downscale: Optional[int] = field(
+        default=None,
+        metadata={"help": "The downscaling factor for generation. should be (0,1]"},
+    )
     num_eval_generations: Optional[int] = field(
         default=None,
         metadata={"help": "Number of generations to sample for evaluation."},
@@ -538,6 +542,9 @@ class GRPOConfig(TrainingArguments):
         super().__post_init__()
 
         num_processes = self.world_size
+        if self.generation_downscale is not None and (self.generation_downscale <= 0 or self.generation_downscale > 1):
+            raise ValueError(f"Invalid generation_downscale: {self.generation_downscale}. It must be in (0, 1].")
+
         # The current default effective batch size
         if self.generation_batch_size is not None and self.steps_per_generation is not None:
             raise ValueError("'generation_batch_size' and 'steps_per_generation' can not be both configured at the same time")
