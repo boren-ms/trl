@@ -1,0 +1,112 @@
+train_data:
+  dataset_name: tsv
+  # num_egs: 5000
+  # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
+  tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
+  biasing:
+    buffer_size: 10000
+    max_piece_len: 1
+    bias_prob: 1
+    hit_prob: 1
+    miss_prob: 1
+    context_prob: 0.5 # prob for context
+    sample_range: [0, 1000] # all rare words
+    log_interval: 10000 # print biasing every 10000 samples
+    tag: ""
+    common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
+    common_word_num: 3000
+
+reward_funcs: [reward_word_error, reward_bias_error]
+reward_func_kwargs:
+  tn: simple
+# reward_funcs: [reward_unbias_accuracy, reward_bias_accuracy]
+# reward_weights: [1, 2]
+# scale_rewards: True
+# model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
+model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+# model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
+# model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
+# job_name: phi4_mm_bias_grpo
+report_to: [wandb]
+num_train_epochs: 1
+learning_rate: 1e-5
+# new_lora: True
+lr_scheduler_type: cosine #cosine
+temperature: 1.2
+output_dir: ./output
+per_device_train_batch_samples: 2
+num_generations: 10
+# generation_scale: 2
+gradient_accumulation_steps: 8
+logging_steps: 10
+bf16: True
+gradient_checkpointing: True
+log_completions: True
+max_prompt_length: 6000
+max_completion_length: 512
+wandb_log_unique_prompts: True
+# beta: 0.1
+epsilon_high: 0.28
+save_only_model: True
+save_total_limit: 5
+save_on_each_node: True
+save_steps: 100
+use_vllm: True
+vllm_mode: colocate
+vllm_tensor_parallel_size: 1
+vllm_gpu_memory_utilization: 0.3
+# vllm_server_host: ${VLLM_SERVER_HOST} # dev-n1-wus2-0
+# vllm_server_port: 26500
+
+eval_strategy: steps
+eval_on_start: False
+eval_steps: 200
+per_device_eval_batch_size: 200
+num_eval_generations: 2
+eval_data:
+  - nickname: clean_no
+    dataset_name: ls_bias
+    jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    tag: ""
+    data_dir: az://${DATA_STORAGE}/data/boren/data
+  - nickname: other_no
+    dataset_name: ls_bias
+    jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+    tag: ""
+    data_dir: az://${DATA_STORAGE}/data/boren/data
+  - nickname: clean_100
+    dataset_name: ls_bias
+    jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    tag: ""
+    data_dir: az://${DATA_STORAGE}/data/boren/data
+    bias_key: distractors # distractors
+  - nickname: other_100
+    dataset_name: ls_bias
+    jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+    tag: ""
+    bias_key: distractors # distractors
+    data_dir: az://${DATA_STORAGE}/data/boren/data
+  - nickname: clean_500
+    dataset_name: ls_bias
+    jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
+    tag: ""
+    bias_key: distractors # distractors
+    data_dir: az://${DATA_STORAGE}/data/boren/data
+  - nickname: other_500
+    dataset_name: ls_bias
+    jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
+    tag: ""
+    bias_key: distractors # distractors
+    data_dir: az://${DATA_STORAGE}/data/boren/data
+  # - nickname: clean_1000
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
+  #   tag: ""
+  #   bias_key: distractors # distractors
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  # - nickname: other_1000
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
+  #   tag: ""
+  #   bias_key: distractors # distractors
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
