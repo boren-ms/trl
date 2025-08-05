@@ -3,10 +3,10 @@
 
 import io
 import json
+from pathlib import Path
 import numpy as np
 import soundfile as sf
-from pathlib import Path
-from datasets import Dataset
+from torch.utils.data import Dataset
 import pandas as pd
 
 
@@ -28,11 +28,6 @@ def load_chunk_info(manifest_file, **kwargs):
     return [{**chunk, **kwargs} for chunk in chunk_info["fileInfo"]]
 
 
-def example_count(chunks):
-    return sum(chunk["count"] for chunk in chunks)
-
-
-# %%
 def load_examples(chunk, types):
     examples = {}
     chunk_path = chunk.get("chunk_path", None)
@@ -82,37 +77,54 @@ def load_data_from_chunk(chunk_path: str, chunk_type: str, chunk_size: int):
     return data_list
 
 
-# %%
-def load_chunks(spec_file, chunk_types=None):
+def load_chunks(spec_file):
     """Load and chunk dataset based on the provided data specification and chunk types."""
     with open(spec_file, "r", encoding="utf-8") as f:
         spec_dict = json.load(f)
-    chunk_types = chunk_types or spec_dict.get("chunk_type", ["audio", "transcription"])
-    if isinstance(chunk_types, str):
-        chunk_types = [chunk_types]
     chunks = []
     for data_source in spec_dict["data_sources"]:
         chunks += load_chunk_info(**data_source)
     return chunks
 
 
+class ChunkDataset(Dataset):
+    """Dataset class for loading and managing audio chunks based on a specification file."""
+
+    def __init__(self, spec_file, chunk_types=None):
+        self.chunks = load_chunks(spec_file)
+        self.types = chunk_types or ["audio", "transcription"]
+
+        print(f"Loaded dataset with {len(self.chunks)} chunks for types {self.types}.")
+        self.samples = []  # (chunk_idx, chunk_shift)
+        for idx, chunk in enumerate(self.chunks):
+            for shift in range(chunk["count"]):
+                self.samples.append((idx, shift))
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        chunk_idx, shift = self.samples[idx]
+        chunk = self.chunks[chunk_idx]
+        assert 0 <= shift < chunk["count"], f"Shift {shift} out of bounds for chunk {chunk_idx} with count {chunk['count']}."
+        examples = chunk.get("examples", None)
+        if examples is None:
+            print(f"Loading examples for chunk {chunk_idx} for shift {shift}.")
+            # TODO: consider to delete the examples after loading
+            examples = load_examples(chunk, self.types)
+            chunk["examples"] = examples
+
+        return examples[shift]
+
+
 # %%
-spec_file = "/datablob1/users/ruchaofan/DataSpecs/mlang_s2/asr_person_filtered/asr_chunk_inhouse_en.json"
-chunk_types = ["audio", "transcription"]
+if __name__ == "__main__":
+    # spec_file = "/datablob1/users/ruchaofan/DataSpecs/mlang_s2/asr_person_filtered/asr_chunk_inhouse_en.json"
+    # chunk_types = ["audio", "transcription"]
+    # dataset = ChunkDataset(spec_file, chunk_types)
+    # for i in range(0, 100, 10):  # Print every 10th sample, 50 samples in each chunk
+    #     sample = dataset[i]
+    #     print(f"Sample {i}: {sample}")  # Output the sample data
+    pass
 
-chunks = load_chunks(spec_file, chunk_types)
-print(f"Loaded dataset with {len(chunks)} chunks.")
-
-
-# %%
-def generate_examples(chunks, chunk_types=None):
-    for chunk in chunks:
-        for egs in load_examples(chunk, chunk_types):
-            yield egs
-
-
-# %%
-for egs in generate_examples(chunks[:1], chunk_types):
-    print(egs)
-    break  # Remove this line to process all examples.
 # %%
