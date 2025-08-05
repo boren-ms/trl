@@ -7,6 +7,7 @@ import numpy as np
 import soundfile as sf
 from pathlib import Path
 from datasets import Dataset
+import pandas as pd
 
 
 def parse_data(data, data_type, **kwargs):
@@ -31,22 +32,30 @@ def example_count(chunks):
     return sum(chunk["count"] for chunk in chunks)
 
 
+# %%
 def load_examples(chunk, types):
     examples = {}
     chunk_path = chunk.get("chunk_path", None)
-
+    type_mapping = {
+        "audio": "audio_path",
+        "transcription": "trans_path",
+    }
+    chunk_name = chunk.get("name", None)
     for chunk_type in types:
-        chunk_type_path = Path(chunk.get("chunk_type", chunk_path))
-        assert chunk_type_path is not None, f"Chunk type path for {chunk_type} is not provided in {chunk}"
-        chunk_file = chunk_type_path / chunk["name"] + "." + chunk_type
+        chunk_type_key = type_mapping.get(chunk_type, chunk_type)
+        chunk_type_path = chunk.get(chunk_type_key, chunk_path)
+        print(f"Loading {chunk_type} from {chunk_type_path} for chunk {chunk_name}")
+        chunk_file = Path(chunk_type_path) / f"{chunk_name}.{chunk_type}"
         assert chunk_file.exists(), f"Chunk file {chunk_file} does not exist."
-        examples[chunk_type] = load_chunk_with_chunkname(chunk_file, chunk_type, chunk["count"])
-    return examples
+        examples[chunk_type] = load_data_from_chunk(chunk_file, chunk_type, chunk["count"])
+
+    df = pd.DataFrame(examples)
+    return df.to_dict(orient="records")
 
 
-def load_chunk_with_chunkname(chunk_path: str, chunk_type: str, chunk_size: int):
+def load_data_from_chunk(chunk_path: str, chunk_type: str, chunk_size: int):
     ENDIAN = "little"
-    examples = []
+    data_list = []
     with open(chunk_path, "rb") as f:
         target_type = f.read(len(chunk_type.encode())).decode()
         if chunk_type.lower() != target_type.lower():
@@ -69,11 +78,12 @@ def load_chunk_with_chunkname(chunk_path: str, chunk_type: str, chunk_size: int)
                     data_size = int.from_bytes(f.read(2), byteorder=ENDIAN)
                 data = f.read(data_size)
                 parsed_data = parse_data(data, chunk_type)
-            examples.append(parsed_data)
-    return examples
+            data_list.append(parsed_data)
+    return data_list
 
 
-def chunk_dataset(spec_file, chunk_types=None):
+# %%
+def load_chunks(spec_file, chunk_types=None):
     """Load and chunk dataset based on the provided data specification and chunk types."""
     with open(spec_file, "r", encoding="utf-8") as f:
         spec_dict = json.load(f)
@@ -83,15 +93,26 @@ def chunk_dataset(spec_file, chunk_types=None):
     chunks = []
     for data_source in spec_dict["data_sources"]:
         chunks += load_chunk_info(**data_source)
-    # examples = [load_examples(chunk, chunk_types) for chunk in chunks]
-    return Dataset.from_list(chunks)
+    return chunks
 
 
 # %%
 spec_file = "/datablob1/users/ruchaofan/DataSpecs/mlang_s2/asr_person_filtered/asr_chunk_inhouse_en.json"
 chunk_types = ["audio", "transcription"]
 
-ds = chunk_dataset(spec_file, chunk_types)
-print(f"Loaded dataset with {len(ds)} chunks.")
+chunks = load_chunks(spec_file, chunk_types)
+print(f"Loaded dataset with {len(chunks)} chunks.")
 
+
+# %%
+def generate_examples(chunks, chunk_types=None):
+    for chunk in chunks:
+        for egs in load_examples(chunk, chunk_types):
+            yield egs
+
+
+# %%
+for egs in generate_examples(chunks[:1], chunk_types):
+    print(egs)
+    break  # Remove this line to process all examples.
 # %%
