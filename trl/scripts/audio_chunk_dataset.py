@@ -21,13 +21,6 @@ def parse_data(data, data_type, **kwargs):
     return str(data, "utf-8")
 
 
-def load_chunk_info(manifest_file, **kwargs):
-    assert Path(manifest_file).exists(), f"Chunk info file {manifest_file} does not exist."
-    with open(manifest_file, "r", encoding="utf-8") as f:
-        chunk_info = json.load(f)
-    return [{**chunk, **kwargs} for chunk in chunk_info["fileInfo"]]
-
-
 def load_examples(chunk, types):
     examples = {}
     chunk_path = chunk.get("chunk_path", None)
@@ -77,22 +70,37 @@ def load_data_from_chunk(chunk_path: str, chunk_type: str, chunk_size: int):
     return data_list
 
 
-def load_chunks(spec_file):
+def to_list(data):
+    """Convert data to a list if it is not already."""
+    if isinstance(data, (list, tuple)):
+        return list(data)
+    return [data]
+
+
+def load_chunk_info(manifest_file, **kwargs):
+    assert Path(manifest_file).exists(), f"Chunk info file {manifest_file} does not exist."
+    with open(manifest_file, "r", encoding="utf-8") as f:
+        chunk_info = json.load(f)
+    return [{**chunk, **kwargs} for chunk in chunk_info["fileInfo"]]
+
+
+def load_chunks(spec_files):
     """Load and chunk dataset based on the provided data specification and chunk types."""
-    with open(spec_file, "r", encoding="utf-8") as f:
-        spec_dict = json.load(f)
     chunks = []
-    for data_source in spec_dict["data_sources"]:
-        chunks += load_chunk_info(**data_source)
+    for spec_file in to_list(spec_files):
+        with open(spec_file, "r", encoding="utf-8") as f:
+            spec_dict = json.load(f)
+        for data_source in spec_dict.get("data_sources", []):
+            chunks += load_chunk_info(**data_source)
     return chunks
 
 
 class ChunkDataset(Dataset):
     """Dataset class for loading and managing audio chunks based on a specification file."""
 
-    def __init__(self, spec_file, chunk_types=None):
-        self.chunks = load_chunks(spec_file)
-        self.types = chunk_types or ["audio", "transcription"]
+    def __init__(self, spec_files, chunk_types=None):
+        self.chunks = load_chunks(spec_files)
+        self.types = to_list(chunk_types or ["audio", "transcription"])
 
         print(f"Loaded dataset with {len(self.chunks)} chunks for types {self.types}.")
         self.samples = []  # (chunk_idx, chunk_shift)
@@ -119,12 +127,14 @@ class ChunkDataset(Dataset):
 
 # %%
 if __name__ == "__main__":
-    # spec_file = "/datablob1/users/ruchaofan/DataSpecs/mlang_s2/asr_person_filtered/asr_chunk_inhouse_en.json"
-    # chunk_types = ["audio", "transcription"]
-    # dataset = ChunkDataset(spec_file, chunk_types)
-    # for i in range(0, 100, 10):  # Print every 10th sample, 50 samples in each chunk
-    #     sample = dataset[i]
-    #     print(f"Sample {i}: {sample}")  # Output the sample data
+    spec_file = [
+        "/datablob1/users/ruchaofan/DataSpecs/mlang_s2/asr_person_filtered/asr_chunk_inhouse_en.json",
+        "/datablob1/users/ruchaofan/DataSpecs/mlang_s2/asr_person_filtered/asr_chunk_inhouse_en.json",
+    ]
+    dataset = ChunkDataset(spec_file)
+    for i in range(0, 100, 10):  # Print every 10th sample, 50 samples in each chunk
+        sample = dataset[i]
+        print(f"Sample {i}: {sample}")  # Output the sample data
     pass
 
 # %%
