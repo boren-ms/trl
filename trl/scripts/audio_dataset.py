@@ -80,9 +80,9 @@ def read_words(file_path):
     return words
 
 
-def chunk_dataset(spec_files, chunk_types=None, max_chunks=None, chunks_per_source=None, streaming=False, **kwargs):
+def chunk_dataset(specs, chunk_types=None, max_chunks=None, chunks_per_source=None, streaming=False, **kwargs):
     """Iterate over the chunk dataset based on the specification files."""
-    gen = partial(generate_examples, spec_files, chunk_types, max_chunks, chunks_per_source)
+    gen = partial(generate_examples, specs, chunk_types, max_chunks, chunks_per_source)
     if streaming:
         print("Creating streaming chunk dataset.")
         ds = Dataset.from_generator(gen)

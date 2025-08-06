@@ -32,10 +32,10 @@ def load_examples(chunk, types):
     chunk_name = chunk.get("name", None)
     for chunk_type in types:
         chunk_type_key = type_mapping.get(chunk_type, chunk_type)
-        chunk_type_path = chunk.get(chunk_type_key, chunk_path)
+        chunk_type_path = chunk.get(chunk_type_key, chunk_path).rstrip("/")
         print(f"Loading {chunk_type} from {chunk_type_path} for chunk {chunk_name}")
-        chunk_file = Path(chunk_type_path) / f"{chunk_name}.{chunk_type}"
-        assert chunk_file.exists(), f"Chunk file {chunk_file} does not exist."
+        chunk_file = f"{chunk_type_path}/{chunk_name}.{chunk_type}"
+        assert bf.exists(chunk_file), f"Chunk file {chunk_file} does not exist."
         data = load_data_from_chunk(chunk_file, chunk_type, chunk["count"])
         if chunk_type == "audio":
             examples["audio"], examples["sr"] = zip(*data)
@@ -83,28 +83,37 @@ def to_list(data):
 
 
 def load_chunk_info(manifest_file, **kwargs):
-    assert Path(manifest_file).exists(), f"Chunk info file {manifest_file} does not exist."
-    with bf.BlobFile(manifest_file, "r", encoding="utf-8") as f:
+    assert bf.exists(manifest_file), f"Chunk info file {manifest_file} does not exist."
+    with bf.BlobFile(manifest_file, "r") as f:
         chunk_info = json.load(f)
     return [{**chunk, **kwargs} for chunk in chunk_info["fileInfo"]]
 
 
-def load_chunks(spec_files, chunks_per_source=None):
-    """Load and chunk dataset based on the provided data specification and chunk types."""
-    chunks = []
-    print(f"Loading chunks from {len(spec_files)} spec_files.")
+def load_specs(spec_files):
+    """Load and return the specifications from the provided spec files."""
+    specs = []
     for spec_file in to_list(spec_files):
-        with bf.BlobFile(spec_file, "r", encoding="utf-8") as f:
+        with bf.BlobFile(spec_file, "r") as f:
             spec_dict = json.load(f)
-        for data_source in spec_dict.get("data_sources", []):
-            chunks += load_chunk_info(**data_source)[:chunks_per_source]
+        specs.append(spec_dict)
+    return specs
+
+
+def load_chunks(specs, chunks_per_source=None):
+    """Load and chunk dataset based on the provided data specification and chunk types."""
+    if not isinstance(specs[0], dict):  # if specs is not list of dicts, assume list of files.
+        specs = load_specs(specs)
+    chunks = []
+    print(f"Loading chunks from {len(specs)} specs.")
+    for spec in specs:
+        chunks += load_chunk_info(**spec)[:chunks_per_source]
     print(f"Loaded {len(chunks)} chunks.", f"Max chunks per source: {chunks_per_source}.")
     return chunks
 
 
-def generate_examples(spec_files, chunk_types=None, max_chunks=None, chunks_per_source=None):
+def generate_examples(specs, chunk_types=None, max_chunks=None, chunks_per_source=None):
     """Generate examples from the chunk dataset based on the specification files."""
-    chunks = load_chunks(spec_files, chunks_per_source)
+    chunks = load_chunks(specs, chunks_per_source)
     types = to_list(chunk_types or ["audio", "transcription"])
     for chunk in chunks[:max_chunks]:
         yield from load_examples(chunk, types)
