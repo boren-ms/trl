@@ -3,8 +3,10 @@
 
 import io
 import json
+import random
 from tqdm import tqdm
 import numpy as np
+from math import ceil
 import soundfile as sf
 from cachetools import LRUCache
 import blobfile as bf
@@ -67,10 +69,16 @@ class ChunkLoader:
         return self._examples
 
 
+MAZ_LOADERS = 1000
+
+
 class ChunkManager:
     """Manager for loading and managing chunks of data."""
 
-    def __init__(self, maxsize=1):
+    def __init__(self, maxsize=None):
+        """Initialize the ChunkManager with a maximum size for the cache."""
+        maxsize = maxsize or MAZ_LOADERS
+        rank_print(f"Initializing ChunkManager with max {maxsize} ChunkLoaders.")
         self.chunk_loaders = LRUCache(maxsize=maxsize)
 
     def get(self, chunk_path, count, chunk_type=None):
@@ -81,31 +89,20 @@ class ChunkManager:
         return self.chunk_loaders[chunk_path]
 
 
-def get_chunk_manager():
+def get_chunk_manager(maxsize=MAZ_LOADERS):
     """Return the global singleton ChunkManager."""
     global _chunk_manager_instance
     try:
         return _chunk_manager_instance
     except NameError:
-        rank_print("Creating a new ChunkManager instance.")
-        _chunk_manager_instance = ChunkManager()
+        _chunk_manager_instance = ChunkManager(maxsize)
         return _chunk_manager_instance
-
-
-def load_chunk_example(chunk_path):
-    """Load a single example from the chunk file."""
-    chunk_file, chunk_count, chunk_index = chunk_path.rsplit(":", 2)
-    chunk_loader = get_chunk_manager().get(chunk_file, int(chunk_count))
-    return chunk_loader.get(int(chunk_index))
 
 
 def load_examples(chunk, types):
     examples = {}
     chunk_path = chunk.get("chunk_path", None)
-    type_mapping = {
-        "audio": "audio_path",
-        "transcription": "trans_path",
-    }
+    type_mapping = {"audio": "audio_path", "transcription": "trans_path"}
     count = chunk["count"]
     for chunk_type in types:
         chunk_type_key = type_mapping.get(chunk_type, chunk_type)
@@ -187,42 +184,41 @@ def load_chunks(specs, chunks_per_source=None):
     return chunks
 
 
-def generate_examples(specs, chunk_types=None, max_chunks=None, chunks_per_source=None):
+def limit_chunks(chunks, max_egs=None, max_chunks=None):
+    """Limit the number of chunks to max_chunks."""
+    n_chunks = len(chunks)
+    if max_chunks is not None:
+        chunks = chunks[:max_chunks]
+        rank_print(f"Limiting chunks {n_chunks} -> {len(chunks)} by max_chunks={max_chunks}.")
+    if max_egs is not None:
+        new_chunks = []
+        total_egs = 0
+        for chunk in chunks:
+            if total_egs >= max_egs:
+                break
+            new_chunks.append(chunk)
+            total_egs += chunk["count"]
+        rank_print(f"Limiting chunks {n_chunks} -> {len(new_chunks)} by max_egs={max_egs}.")
+        chunks = new_chunks
+    return chunks
+
+
+def generate_examples(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, max_egs=None):
     """Generate examples from the chunk dataset based on the specification files."""
-    chunks = load_chunks(specs, chunks_per_source)
+    chunks_per_spec = ceil(max_chunks / len(specs)) if max_chunks else None
+    chunks = load_chunks(specs, chunks_per_spec)
+    chunks = random.shuffle(chunks) if chunk_shuffle else chunks
+    chunks = limit_chunks(chunks, max_egs, max_chunks)
     types = to_list(chunk_types or ["audio", "transcription"])
-    for chunk in tqdm(chunks[:max_chunks], desc="Loading Chunks"):
+    for chunk in tqdm(chunks, desc="Loading Chunks"):
         yield from load_examples(chunk, types)
 
 
-class ChunkDataset(Dataset):
-    """Dataset class for loading and managing audio chunks based on a specification file."""
-
-    def __init__(self, spec_files, chunk_types=None):
-        self.chunks = load_chunks(spec_files)
-        self.types = to_list(chunk_types or ["audio", "transcription"])
-
-        rank_print(f"Loaded dataset with {len(self.chunks)} chunks for types {self.types}.")
-        self.samples = []  # (chunk_idx, chunk_shift)
-        for idx, chunk in enumerate(self.chunks):
-            for shift in range(chunk["count"]):
-                self.samples.append((idx, shift))
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        chunk_idx, shift = self.samples[idx]
-        chunk = self.chunks[chunk_idx]
-        assert 0 <= shift < chunk["count"], f"Shift {shift} out of bounds for chunk {chunk_idx} with count {chunk['count']}."
-        examples = chunk.get("examples", None)
-        if examples is None:
-            rank_print(f"Loading examples for chunk {chunk_idx} for shift {shift}.")
-            # TODO: consider to delete the examples after loading
-            examples = load_examples(chunk, self.types)
-            chunk["examples"] = examples
-
-        return examples[shift]
+def load_chunk_example(chunk_path):
+    """Load a single example from the chunk file."""
+    chunk_file, chunk_count, chunk_index = chunk_path.rsplit(":", 2)  # make sure rsplit.
+    chunk_loader = get_chunk_manager().get(chunk_file, int(chunk_count))
+    return chunk_loader.get(int(chunk_index))
 
 
 # %%

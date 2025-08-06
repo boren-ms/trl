@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
 from trl.scripts.audio_prompts import get_task_prompt
-from trl.scripts.audio_chunk_dataset import generate_examples
+from trl.scripts.audio_chunk_dataset import generate_examples, get_chunk_manager
 from trl.data_utils import sf_read
 
 
@@ -80,16 +80,17 @@ def read_words(file_path):
     return words
 
 
-def chunk_dataset(specs, chunk_types=None, max_chunks=None, chunks_per_source=None, streaming=False, **kwargs):
+def chunk_dataset(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, max_egs=None, streaming=False, max_cached_chunk=None, **kwargs):
     """Iterate over the chunk dataset based on the specification files."""
-    gen = partial(generate_examples, specs, chunk_types, max_chunks, chunks_per_source)
+    if max_cached_chunk is not None:
+        get_chunk_manager(max_cached_chunk)  # Initialize the chunk manager with a maximum size. and reuse later.
+    gen = partial(generate_examples, specs, chunk_types, chunk_shuffle, max_chunks, max_egs)
     if streaming:
         print("Creating streaming chunk dataset.")
         ds = Dataset.from_generator(gen)
     else:
         print("Creating non-streaming chunk dataset, please be patient.")
-        examples = list(gen())
-        ds = Dataset.from_list(examples)
+        ds = Dataset.from_list(list(gen()))
         print(f"Loaded {len(ds)} examples from chunk dataset.")
     ds = ds.rename_column("transcription", "text")
     return ds
