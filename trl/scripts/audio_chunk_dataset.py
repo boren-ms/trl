@@ -172,15 +172,15 @@ def load_specs(spec_files):
     return specs
 
 
-def load_chunks(specs, chunks_per_source=None):
+def load_chunks(specs, chunks_per_spec=None):
     """Load and chunk dataset based on the provided data specification and chunk types."""
     if not isinstance(specs[0], dict):  # if specs is not list of dicts, assume list of files.
         specs = load_specs(specs)
     chunks = []
     rank_print(f"Loading chunks from {len(specs)} specs.")
     for spec in tqdm(specs, desc="Loading Specs"):
-        chunks += load_chunk_info(**spec)[:chunks_per_source]
-    rank_print(f"Loaded {len(chunks)} chunks.", f"Max chunks per source: {chunks_per_source}.")
+        chunks += load_chunk_info(**spec)[:chunks_per_spec]
+    rank_print(f"Loaded {len(chunks)} chunks.", f"Max chunks per spec: {chunks_per_spec}.")
     return chunks
 
 
@@ -207,8 +207,10 @@ def generate_examples(specs, chunk_types=None, chunk_shuffle=True, max_chunks=No
     """Generate examples from the chunk dataset based on the specification files."""
     chunks_per_spec = ceil(max_chunks / len(specs)) if max_chunks else None
     chunks = load_chunks(specs, chunks_per_spec)
-    chunks = random.shuffle(chunks) if chunk_shuffle else chunks
     chunks = limit_chunks(chunks, max_egs, max_chunks)
+
+    if chunk_shuffle:
+        random.shuffle(chunks)
     types = to_list(chunk_types or ["audio", "transcription"])
     for chunk in tqdm(chunks, desc="Loading Chunks"):
         yield from load_examples(chunk, types)
