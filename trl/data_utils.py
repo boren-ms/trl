@@ -26,7 +26,7 @@ from datasets import Dataset, DatasetDict
 from transformers import PreTrainedTokenizerBase
 import blobfile as bf
 import soundfile as sf
-from trl.scripts.audio_chunk_dataset import load_chunk_example
+from trl.scripts.chunk_dataset import load_chunk_example
 
 DatasetType = TypeVar("DatasetType", Dataset, DatasetDict)
 

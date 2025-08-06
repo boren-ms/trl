@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
 from trl.scripts.audio_prompts import get_task_prompt
-from trl.scripts.audio_chunk_dataset import generate_examples, get_chunk_manager
+from trl.scripts.chunk_dataset import generate_examples, get_chunk_manager
 from trl.data_utils import sf_read
 
 
