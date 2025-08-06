@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import numpy as np
 import soundfile as sf
+import blobfile as bf
 from torch.utils.data import Dataset
 import pandas as pd
 
@@ -48,7 +49,7 @@ def load_examples(chunk, types):
 def load_data_from_chunk(chunk_path: str, chunk_type: str, chunk_size: int):
     ENDIAN = "little"
     data_list = []
-    with open(chunk_path, "rb") as f:
+    with bf.BlobFile(chunk_path, "rb") as f:
         target_type = f.read(len(chunk_type.encode())).decode()
         if chunk_type.lower() != target_type.lower():
             raise ValueError(f"Target type is not expected in {chunk_path}, expected {chunk_type}, but got {target_type}")
@@ -83,7 +84,7 @@ def to_list(data):
 
 def load_chunk_info(manifest_file, **kwargs):
     assert Path(manifest_file).exists(), f"Chunk info file {manifest_file} does not exist."
-    with open(manifest_file, "r", encoding="utf-8") as f:
+    with bf.BlobFile(manifest_file, "r", encoding="utf-8") as f:
         chunk_info = json.load(f)
     return [{**chunk, **kwargs} for chunk in chunk_info["fileInfo"]]
 
@@ -93,7 +94,7 @@ def load_chunks(spec_files, chunks_per_source=None):
     chunks = []
     print(f"Loading chunks from {len(spec_files)} spec_files.")
     for spec_file in to_list(spec_files):
-        with open(spec_file, "r", encoding="utf-8") as f:
+        with bf.BlobFile(spec_file, "r", encoding="utf-8") as f:
             spec_dict = json.load(f)
         for data_source in spec_dict.get("data_sources", []):
             chunks += load_chunk_info(**data_source)[:chunks_per_source]
