@@ -1,9 +1,10 @@
 train_data:
   dataset_name: chunk
-  max_chunks: 200 # ~40k samples
+  max_egs: 300000
+  max_chunks: 6000 # 50 egs/chunk
+  max_cached_chunks: 3000
   chunk_types: [audio, transcription]
-  # chunks_per_source: 2
-  # spec_files: az://orngwus2cresco/data/boren/data/inhouse/data_spec/human_caption_v2.json
+  # specs: [az://orngwus2cresco/data/boren/data/inhouse/data_spec/human_caption_v2.json]
   specs:
     - manifest_file: az://${DATA_STORAGE}/data/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
       chunk_path: az://${DATA_STORAGE}/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
