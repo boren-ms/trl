@@ -45,9 +45,9 @@ vllm_gpu_memory_utilization: 0.35
 train_data:
     dataset_name: chunk
     # streaming: True
-    max_chunks: 1
+    max_chunks: 2
     chunks_per_source: 2
-    spec_files: /home/boren/data/inhouse/data_spec/asr_chunk_inhouse_en_egs.json
+    specs: [/home/boren/data/inhouse/data_spec/asr_chunk_inhouse_en_egs.json]
     # dataset_name: tsv
     # nug_egs: 5000
     # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv

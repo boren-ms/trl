@@ -92,7 +92,6 @@ def chunk_dataset(specs, chunk_types=None, max_chunks=None, chunks_per_source=No
         ds = Dataset.from_list(examples)
         print(f"Loaded {len(ds)} examples from chunk dataset.")
     ds = ds.rename_column("transcription", "text")
-    ds = ds.with_format("torch")  # Convert audio to numpy format
     return ds
 
 

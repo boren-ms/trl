@@ -23,10 +23,10 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.types
 from datasets import Dataset, DatasetDict
-from torch import Tensor
 from transformers import PreTrainedTokenizerBase
 import blobfile as bf
 import soundfile as sf
+from trl.scripts.audio_chunk_dataset import load_chunk_example
 
 DatasetType = TypeVar("DatasetType", Dataset, DatasetDict)
 
@@ -43,14 +43,13 @@ def sf_read(file_path):
 
 def load_audio(x):
     """Load audio data from the input dictionary."""
-    audio, sr = x.get("audio", None), x.get("sr", None)
-    if audio is not None and sr is not None:
-        if isinstance(audio, Tensor):
-            audio = audio.cpu().numpy()
-        if isinstance(sr, Tensor):
-            sr = sr.item()
-        return (audio, sr)
-    return sf_read(x["audio_path"])
+    if "audio" in x and "sr" in x:
+        return x["audio"], x["sr"]
+    elif "audio_path" in x:
+        return sf_read(x["audio_path"])
+    elif "audio_chunk" in x:
+        return load_chunk_example(x["audio_chunk"])
+    raise ValueError("No audio data found in the input dictionary.")
 
 
 def is_conversational(example: dict[str, Any]) -> bool:

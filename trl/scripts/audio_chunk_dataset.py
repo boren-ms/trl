@@ -6,9 +6,11 @@ import json
 from tqdm import tqdm
 import numpy as np
 import soundfile as sf
+from cachetools import LRUCache
 import blobfile as bf
 from torch.utils.data import Dataset
 import pandas as pd
+from trl.trainer.utils import rank_print
 
 
 def parse_data(data, data_type, **kwargs):
@@ -22,6 +24,81 @@ def parse_data(data, data_type, **kwargs):
     return str(data, "utf-8")
 
 
+class ChunkLoader:
+    def __init__(self, chunk_path, chunk_type, count):
+        self.chunk_path = chunk_path
+        self.chunk_type = chunk_type
+        self.count = count
+        self._examples = None  # Will be loaded on demand
+        self._unused = None
+
+    def __repr__(self):
+        return f"<ChunkLoader({self.chunk_path}, {self.chunk_type}, {self.count})>"
+
+    def __len__(self):
+        """Return the number of examples in the chunk."""
+        return self.count
+
+    def get(self, i):
+        """Get the example at the specified index."""
+        examples = self._get_examples()
+        if i < 0 or i >= self.count:
+            raise IndexError(f"Index {i} out of bounds for chunk with count {self.count}.")
+        egs = examples[i]
+        self._maybe_release(i)
+        return egs
+
+    def _maybe_release(self, i):
+        """Release the loaded examples."""
+        if self._unused is not None and i in self._unused:
+            self._unused.remove(i)
+        if not self._unused and self._examples is not None:
+            rank_print(f"Releasing examples for chunk {self.chunk_path}.")
+            del self._examples
+            self._examples = None
+            self._unused = None
+
+    def _get_examples(self):
+        """Load examples for the given index."""
+        if self._examples is None:
+            rank_print(f"Loading all examples for chunk {self.chunk_path}.")
+            self._examples = load_data_from_chunk(self.chunk_path, self.chunk_type, self.count)
+            self._unused = list(range(self.count))
+        return self._examples
+
+
+class ChunkManager:
+    """Manager for loading and managing chunks of data."""
+
+    def __init__(self, maxsize=1):
+        self.chunk_loaders = LRUCache(maxsize=maxsize)
+
+    def get(self, chunk_path, count, chunk_type=None):
+        """Get the example at the specified index."""
+        if chunk_path not in self.chunk_loaders:
+            chunk_type = chunk_type or chunk_path.split(".")[-1]
+            self.chunk_loaders[chunk_path] = ChunkLoader(chunk_path, chunk_type, count)
+        return self.chunk_loaders[chunk_path]
+
+
+def get_chunk_manager():
+    """Return the global singleton ChunkManager."""
+    global _chunk_manager_instance
+    try:
+        return _chunk_manager_instance
+    except NameError:
+        rank_print("Creating a new ChunkManager instance.")
+        _chunk_manager_instance = ChunkManager()
+        return _chunk_manager_instance
+
+
+def load_chunk_example(chunk_path):
+    """Load a single example from the chunk file."""
+    chunk_file, chunk_count, chunk_index = chunk_path.rsplit(":", 2)
+    chunk_loader = get_chunk_manager().get(chunk_file, int(chunk_count))
+    return chunk_loader.get(int(chunk_index))
+
+
 def load_examples(chunk, types):
     examples = {}
     chunk_path = chunk.get("chunk_path", None)
@@ -29,18 +106,17 @@ def load_examples(chunk, types):
         "audio": "audio_path",
         "transcription": "trans_path",
     }
-    chunk_name = chunk.get("name", None)
+    count = chunk["count"]
     for chunk_type in types:
         chunk_type_key = type_mapping.get(chunk_type, chunk_type)
         chunk_type_path = chunk.get(chunk_type_key, chunk_path).rstrip("/")
-        # print(f"Loading {chunk_type} from {chunk_type_path} for chunk {chunk_name}")
-        chunk_file = f"{chunk_type_path}/{chunk_name}.{chunk_type}"
+        # rank_print(f"Loading {chunk_type} from {chunk_type_path} for chunk {chunk_name}")
+        chunk_file = f"{chunk_type_path}/{chunk['name']}.{chunk_type}"
         assert bf.exists(chunk_file), f"Chunk file {chunk_file} does not exist."
-        data = load_data_from_chunk(chunk_file, chunk_type, chunk["count"])
         if chunk_type == "audio":
-            examples["audio"], examples["sr"] = zip(*data)
+            examples["audio_chunk"] = [f"{chunk_file}:{count}:{i}" for i in range(count)]
         else:
-            examples[chunk_type] = data
+            examples[chunk_type] = load_data_from_chunk(chunk_file, chunk_type, chunk["count"])
 
     df = pd.DataFrame(examples)
     return df.to_dict(orient="records")
@@ -95,7 +171,7 @@ def load_specs(spec_files):
     for spec_file in to_list(spec_files):
         with bf.BlobFile(spec_file, "r") as f:
             spec_dict = json.load(f)
-        specs.append(spec_dict)
+        specs += spec_dict["data_sources"]
     return specs
 
 
@@ -104,10 +180,10 @@ def load_chunks(specs, chunks_per_source=None):
     if not isinstance(specs[0], dict):  # if specs is not list of dicts, assume list of files.
         specs = load_specs(specs)
     chunks = []
-    print(f"Loading chunks from {len(specs)} specs.")
+    rank_print(f"Loading chunks from {len(specs)} specs.")
     for spec in tqdm(specs, desc="Loading Specs"):
         chunks += load_chunk_info(**spec)[:chunks_per_source]
-    print(f"Loaded {len(chunks)} chunks.", f"Max chunks per source: {chunks_per_source}.")
+    rank_print(f"Loaded {len(chunks)} chunks.", f"Max chunks per source: {chunks_per_source}.")
     return chunks
 
 
@@ -126,7 +202,7 @@ class ChunkDataset(Dataset):
         self.chunks = load_chunks(spec_files)
         self.types = to_list(chunk_types or ["audio", "transcription"])
 
-        print(f"Loaded dataset with {len(self.chunks)} chunks for types {self.types}.")
+        rank_print(f"Loaded dataset with {len(self.chunks)} chunks for types {self.types}.")
         self.samples = []  # (chunk_idx, chunk_shift)
         for idx, chunk in enumerate(self.chunks):
             for shift in range(chunk["count"]):
@@ -141,7 +217,7 @@ class ChunkDataset(Dataset):
         assert 0 <= shift < chunk["count"], f"Shift {shift} out of bounds for chunk {chunk_idx} with count {chunk['count']}."
         examples = chunk.get("examples", None)
         if examples is None:
-            print(f"Loading examples for chunk {chunk_idx} for shift {shift}.")
+            rank_print(f"Loading examples for chunk {chunk_idx} for shift {shift}.")
             # TODO: consider to delete the examples after loading
             examples = load_examples(chunk, self.types)
             chunk["examples"] = examples
@@ -153,12 +229,18 @@ class ChunkDataset(Dataset):
 if __name__ == "__main__":
     spec_file = [
         "/datablob1/users/ruchaofan/DataSpecs/mlang_s2/asr_person_filtered/asr_chunk_inhouse_en.json",
-        "/datablob1/users/ruchaofan/DataSpecs/mlang_s2/asr_person_filtered/asr_chunk_inhouse_en.json",
     ]
-    dataset = ChunkDataset(spec_file)
-    for i in range(0, 100, 10):  # Print every 10th sample, 50 samples in each chunk
-        sample = dataset[i]
-        print(f"Sample {i}: {sample}")  # Output the sample data
-    pass
-
+    # dataset = ChunkDataset(spec_file)
+    # for i in range(0, 100, 10):  # Print every 10th sample, 50 samples in each chunk
+    #     sample = dataset[i]
+    #     rank_print(f"Sample {i}: {sample}")  # Output the sample data
+    # pass
+    for i, example in enumerate(generate_examples(spec_file, max_chunks=2)):
+        rank_print(f"Example {i}: {example}")
+        audio, fs = example["audio"]()
+        rank_print(f"Audio shape: {audio.shape}, Sample rate: {fs}")
+        if i > 52:
+            break
+            # %%
+            break
 # %%
