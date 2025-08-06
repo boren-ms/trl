@@ -23,11 +23,10 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.types
 from datasets import Dataset, DatasetDict
+from torch import Tensor
 from transformers import PreTrainedTokenizerBase
 import blobfile as bf
 import soundfile as sf
-from pathlib import Path
-from more_itertools import unique_everseen
 
 DatasetType = TypeVar("DatasetType", Dataset, DatasetDict)
 
@@ -40,6 +39,18 @@ def sf_read(file_path):
     with bf.BlobFile(file_path, "rb") as f:
         audio, sr = sf.read(f)
     return audio, sr
+
+
+def load_audio(x):
+    """Load audio data from the input dictionary."""
+    audio, sr = x.get("audio", None), x.get("sr", None)
+    if audio is not None and sr is not None:
+        if isinstance(audio, Tensor):
+            audio = audio.cpu().numpy()
+        if isinstance(sr, Tensor):
+            sr = sr.item()
+        return (audio, sr)
+    return sf_read(x["audio_path"])
 
 
 def is_conversational(example: dict[str, Any]) -> bool:

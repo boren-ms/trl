@@ -3,15 +3,19 @@ import os
 import ast
 import urllib
 import random
+import blobfile as bf
+import pandas as pd
+import numpy as np
+from functools import partial
 from pathlib import Path
-from datasets import load_dataset, concatenate_datasets
+from datasets import load_dataset, concatenate_datasets, Dataset
+from bs4 import BeautifulSoup
 from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
 from trl.scripts.audio_prompts import get_task_prompt
+from trl.scripts.audio_chunk_dataset import generate_examples
 from trl.data_utils import sf_read
-import blobfile as bf
-import pandas as pd
-from bs4 import BeautifulSoup
+
 
 prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
 
@@ -74,6 +78,22 @@ def read_words(file_path):
     with bf.BlobFile(file_path, "r") as f:
         words = [line.strip() for line in f if line.strip()]
     return words
+
+
+def chunk_dataset(spec_files, chunk_types=None, max_chunks=None, chunks_per_source=None, streaming=False, **kwargs):
+    """Iterate over the chunk dataset based on the specification files."""
+    gen = partial(generate_examples, spec_files, chunk_types, max_chunks, chunks_per_source)
+    if streaming:
+        print("Creating streaming chunk dataset.")
+        ds = Dataset.from_generator(gen)
+    else:
+        print("Creating non-streaming chunk dataset, please be patient.")
+        examples = list(gen())
+        ds = Dataset.from_list(examples)
+        print(f"Loaded {len(ds)} examples from chunk dataset.")
+    ds = ds.rename_column("transcription", "text")
+    ds = ds.with_format("torch")  # Convert audio to numpy format
+    return ds
 
 
 def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=None, tag="*", data_dir=None, **kwargs):
@@ -305,6 +325,9 @@ def create_audio_dataset(dataset_name="openasr", **kwargs):
         ds = augment(ds, **kwargs)
     elif dataset_name == "tsv":
         ds = tsv_dataset(**kwargs)
+        ds = augment(ds, **kwargs)
+    elif dataset_name == "chunk":
+        ds = chunk_dataset(**kwargs)
         ds = augment(ds, **kwargs)
     else:
         raise ValueError(f"Unknown dataset name: {dataset_name}")

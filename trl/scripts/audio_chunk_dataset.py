@@ -35,7 +35,11 @@ def load_examples(chunk, types):
         print(f"Loading {chunk_type} from {chunk_type_path} for chunk {chunk_name}")
         chunk_file = Path(chunk_type_path) / f"{chunk_name}.{chunk_type}"
         assert chunk_file.exists(), f"Chunk file {chunk_file} does not exist."
-        examples[chunk_type] = load_data_from_chunk(chunk_file, chunk_type, chunk["count"])
+        data = load_data_from_chunk(chunk_file, chunk_type, chunk["count"])
+        if chunk_type == "audio":
+            examples["audio"], examples["sr"] = zip(*data)
+        else:
+            examples[chunk_type] = data
 
     df = pd.DataFrame(examples)
     return df.to_dict(orient="records")
@@ -84,15 +88,25 @@ def load_chunk_info(manifest_file, **kwargs):
     return [{**chunk, **kwargs} for chunk in chunk_info["fileInfo"]]
 
 
-def load_chunks(spec_files):
+def load_chunks(spec_files, chunks_per_source=None):
     """Load and chunk dataset based on the provided data specification and chunk types."""
     chunks = []
+    print(f"Loading chunks from {len(spec_files)} spec_files.")
     for spec_file in to_list(spec_files):
         with open(spec_file, "r", encoding="utf-8") as f:
             spec_dict = json.load(f)
         for data_source in spec_dict.get("data_sources", []):
-            chunks += load_chunk_info(**data_source)
+            chunks += load_chunk_info(**data_source)[:chunks_per_source]
+    print(f"Loaded {len(chunks)} chunks.", f"Max chunks per source: {chunks_per_source}.")
     return chunks
+
+
+def generate_examples(spec_files, chunk_types=None, max_chunks=None, chunks_per_source=None):
+    """Generate examples from the chunk dataset based on the specification files."""
+    chunks = load_chunks(spec_files, chunks_per_source)
+    types = to_list(chunk_types or ["audio", "transcription"])
+    for chunk in chunks[:max_chunks]:
+        yield from load_examples(chunk, types)
 
 
 class ChunkDataset(Dataset):
