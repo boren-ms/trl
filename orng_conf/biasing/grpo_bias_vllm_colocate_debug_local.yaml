@@ -43,13 +43,18 @@ vllm_gpu_memory_utilization: 0.35
 # vllm_server_port: 26500
 
 train_data:
-    dataset_name: tsv
+    dataset_name: chunk
+    # streaming: True
+    max_chunks: 2
+    max_egs: 30
+    specs: [/home/boren/data/inhouse/data_spec/asr_chunk_inhouse_en_egs.json]
+    # dataset_name: tsv
     # nug_egs: 5000
     # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
-    tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
+    # tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
     # filter:
     #     wer_file: az://orngscuscresco/data/boren/data/LibriSpeech/ls_train_bad_ids.jsonl
     # wer_range: [0.0, 1.0]

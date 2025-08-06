@@ -26,8 +26,7 @@ from datasets import Dataset, DatasetDict
 from transformers import PreTrainedTokenizerBase
 import blobfile as bf
 import soundfile as sf
-from pathlib import Path
-from more_itertools import unique_everseen
+from trl.scripts.chunk_dataset import load_chunk_example
 
 DatasetType = TypeVar("DatasetType", Dataset, DatasetDict)
 
@@ -40,6 +39,17 @@ def sf_read(file_path):
     with bf.BlobFile(file_path, "rb") as f:
         audio, sr = sf.read(f)
     return audio, sr
+
+
+def load_audio(x):
+    """Load audio data from the input dictionary."""
+    if "audio" in x and "sr" in x:
+        return x["audio"], x["sr"]
+    elif "audio_path" in x:
+        return sf_read(x["audio_path"])
+    elif "audio_chunk" in x:
+        return load_chunk_example(x["audio_chunk"])
+    raise ValueError("No audio data found in the input dictionary.")
 
 
 def is_conversational(example: dict[str, Any]) -> bool:

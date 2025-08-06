@@ -16,7 +16,7 @@ import json
 from vllm import LLM, SamplingParams
 from pathlib import Path
 import blobfile as bf
-from trl.data_utils import sf_read, find_chkps, chkp_index
+from trl.data_utils import load_audio, find_chkps, chkp_index
 from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, WandbHelper
 from trl.scripts.audio_metrics import compute_wers
 from trl.trainer.utils import move_model_to_vllm
@@ -140,14 +140,6 @@ def hack_package(package_path, replace=False):
     with open(preprocessor_conf, "wt") as f:
         json.dump(new_data, f, indent=4)
     print(f"Updated config file: {preprocessor_conf}")
-
-
-def load_audio(x):
-    """Load audio data from the input dictionary."""
-    audio, sr = x.get("audio", None), x.get("sr", None)
-    if audio is not None and sr is not None:
-        return (audio, sr)
-    return sf_read(x["audio_path"])
 
 
 def file_size(file_path):

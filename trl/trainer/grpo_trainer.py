@@ -49,7 +49,7 @@ from transformers import (
 from transformers.trainer_utils import seed_worker, EvalLoopOutput, has_length
 from transformers.utils import is_datasets_available, is_flash_attn_2_available, is_peft_available, logging
 
-from ..data_utils import apply_chat_template, is_conversational, sf_read, maybe_apply_chat_template
+from ..data_utils import apply_chat_template, is_conversational, load_audio, maybe_apply_chat_template
 from ..extras.profiling import profiling_context, profiling_decorator
 from ..extras.vllm_client import VLLMClient
 from ..import_utils import is_liger_kernel_available, is_vllm_available
@@ -1148,7 +1148,7 @@ class GRPOTrainer(Trainer):
         prompts = [x["prompt"] for x in inputs]
         prompts_text = [maybe_apply_chat_template(example, self.processing_class.tokenizer)["prompt"] for example in inputs]
 
-        audios = [sf_read(x["audio_path"]) for x in inputs]  # delay the audio read here.
+        audios = [load_audio(x) for x in inputs]  # delay the audio read here.
         prompt_inputs = self.processing_class(text=prompts_text, audios=audios, return_tensors="pt")
         prompt_inputs = super()._prepare_inputs(prompt_inputs)
         prompt_ids = prompt_inputs.pop("input_ids")

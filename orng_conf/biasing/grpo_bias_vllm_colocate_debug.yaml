@@ -16,7 +16,6 @@ output_dir: ~/outputs/debug
 per_device_train_batch_size: 24
 num_generations: 8
 # dataloader_drop_last: True
-fake_response_injection: True # fake response inject when zero reward std is detected
 scale_rewards: False
 temperature: 1.1
 logging_steps: 1
@@ -40,11 +39,20 @@ vllm_gpu_memory_utilization: 0.35
 # vllm_server_port: 26500
 
 train_data:
-    dataset_name: tsv
+    dataset_name: chunk
+    # streaming: True
+    max_chunks: 1
+    chunks_per_source: 2
+    # spec_files: az://orngwus2cresco/data/boren/data/inhouse/data_spec/human_caption_v2.json
+    specs:
+        - manifest_file: az://orngwus2cresco/data/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
+          chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
+
+    # dataset_name: tsv
     # nug_egs: 5000
     # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
-    tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
     # tsv_paths: /root/data/LibriSpeech/debug.tsv
     # filter:
@@ -52,12 +60,14 @@ train_data:
     # wer_range: [0.0, 1.0]
     biasing:
         # bias_prob: 0.8
-        hit_prob: 0.5
+        hit_prob: 1
+        miss_prob: 1
+        context_prob: 0.5
         max_piece_len: 1
-        max_num: 100
+        sample_range: [0, 100]
         log_interval: 1000 # print biasing every 10000 samples
-        new_sampling: True
-        # common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
+        common_word_file: az://orngwus2cresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
+        common_word_num: 3000
         # common_word_num: 1000
 # eval_strategy: steps
 # eval_on_start: True
