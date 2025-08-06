@@ -1,6 +1,6 @@
 train_data:
   dataset_name: chunk
-  max_chunks: 20000 # ~400k samples
+  max_chunks: 2000 # ~400k samples
   chunk_types: [audio, transcription]
   # chunks_per_source: 2
   # spec_files: az://orngwus2cresco/data/boren/data/inhouse/data_spec/human_caption_v2.json

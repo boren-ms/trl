@@ -3,7 +3,7 @@
 
 import io
 import json
-from pathlib import Path
+from tqdm import tqdm
 import numpy as np
 import soundfile as sf
 import blobfile as bf
@@ -33,7 +33,7 @@ def load_examples(chunk, types):
     for chunk_type in types:
         chunk_type_key = type_mapping.get(chunk_type, chunk_type)
         chunk_type_path = chunk.get(chunk_type_key, chunk_path).rstrip("/")
-        print(f"Loading {chunk_type} from {chunk_type_path} for chunk {chunk_name}")
+        # print(f"Loading {chunk_type} from {chunk_type_path} for chunk {chunk_name}")
         chunk_file = f"{chunk_type_path}/{chunk_name}.{chunk_type}"
         assert bf.exists(chunk_file), f"Chunk file {chunk_file} does not exist."
         data = load_data_from_chunk(chunk_file, chunk_type, chunk["count"])
@@ -105,7 +105,7 @@ def load_chunks(specs, chunks_per_source=None):
         specs = load_specs(specs)
     chunks = []
     print(f"Loading chunks from {len(specs)} specs.")
-    for spec in specs:
+    for spec in tqdm(specs, desc="Loading Specs"):
         chunks += load_chunk_info(**spec)[:chunks_per_source]
     print(f"Loaded {len(chunks)} chunks.", f"Max chunks per source: {chunks_per_source}.")
     return chunks
@@ -115,7 +115,7 @@ def generate_examples(specs, chunk_types=None, max_chunks=None, chunks_per_sourc
     """Generate examples from the chunk dataset based on the specification files."""
     chunks = load_chunks(specs, chunks_per_source)
     types = to_list(chunk_types or ["audio", "transcription"])
-    for chunk in chunks[:max_chunks]:
+    for chunk in tqdm(chunks[:max_chunks], desc="Loading Chunks"):
         yield from load_examples(chunk, types)
 
 
