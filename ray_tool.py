@@ -434,6 +434,7 @@ def prepare_data(forced=False):
         "ckp/hf_models/libri_ft_m200_p8_bp6_new_notag_ckp5000",
         "ckp/hf_models/Phi4-7b-ASR-2506-v2",
         "ckp/hf_models/Phi-4-multimodal-instruct",
+        "tools",
         "Evaluation/InhouseASR/EWER/en-US-entity-v3",
         "librispeech_biasing/words",
         "librispeech_biasing/ref",
