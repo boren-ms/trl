@@ -297,8 +297,13 @@ def calc_wers(refs, hyps, tn=None):
         bias_ref_indexs = find_word_indices(tn_ref, bias_words)
         bias_hyp_indexs = find_word_indices(tn_hyp, bias_words)
 
+        ref_words = tn_ref.split()
+        hyp_words = tn_hyp.split()
+        if len(ref_words) == 0 and len(hyp_words) == 0:
+            continue
+
         ed = EditDistance()
-        result = ed.align(tn_ref.split(), tn_hyp.split())
+        result = ed.align(ref_words, hyp_words)
         for code, ref_idx, hyp_idx in zip(result.codes, result.refs, result.hyps):
             if code == Code.match:
                 wer.ref_words += 1
