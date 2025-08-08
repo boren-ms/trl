@@ -100,7 +100,7 @@ class WandbHelper:
         return {
             "entity": run_info.get("entity", "genai"),
             "project": run_info.get("project", project),
-            "name": run_info.get("run_name", run_name),
+            "name": run_name,
             "id": run_info.get("run_id", None),
             "config": run_info.get("config", {}),
         }
