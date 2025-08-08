@@ -27,9 +27,8 @@ def get_run_result(runs, prefix="metric"):
                 new_key = key.split("/", 1)[-1]  # Remove prefix
                 run_dict[new_key] = value
         results.append(run_dict)
-    df = pd.DataFrame(results)
-    df.set_index("name", inplace=True)
-    df = df.T
+    df = pd.DataFrame(results).set_index("name").T
+    df.dropna(axis=1, how="all", inplace=True)  # Drop columns with all NaN values
     if df.empty:
         return None
     df[["dataset", "#bias", "metric"]] = df.index.to_series().str.rsplit("_", n=2, expand=True)
@@ -95,5 +94,7 @@ class WandbChecker:
         print(df)
 
 
+if __name__ == "__main__":
+    fire.Fire(WandbChecker)
 if __name__ == "__main__":
     fire.Fire(WandbChecker)
