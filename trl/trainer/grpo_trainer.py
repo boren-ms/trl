@@ -23,18 +23,16 @@ from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
-from more_itertools import chunked, unique_everseen
 from dataclasses import asdict
 import datasets
 import torch
-import torch.utils.data
 import transformers
 from accelerate.utils import broadcast_object_list, gather, gather_object, is_peft_model, set_seed
-from datasets import Dataset, IterableDataset
+from datasets import Dataset, IterableDataset as HFIterableDataset
 from packaging import version
 from torch import nn
 from torch.distributed.tensor import DTensor
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import DataLoader, Sampler, IterableDataset as TorchIterableDataset
 from transformers import (
     AutoModelForCausalLM,
     AutoModelForSequenceClassification,
@@ -48,6 +46,7 @@ from transformers import (
 )
 from transformers.trainer_utils import seed_worker, EvalLoopOutput, has_length
 from transformers.utils import is_datasets_available, is_flash_attn_2_available, is_peft_available, logging
+from more_itertools import chunked, unique_everseen
 
 from ..data_utils import apply_chat_template, is_conversational, load_audio, maybe_apply_chat_template
 from ..extras.profiling import profiling_context, profiling_decorator
@@ -233,6 +232,46 @@ class RepeatSampler(Sampler):
     def __len__(self) -> int:
         return self.num_samples * self.mini_repeat_count * self.repeat_count
 
+
+# IterableDataset wrapper to repeat each example multiple times
+class RepeatIterableDataset(TorchIterableDataset):
+    """Iterable dataset that repeats each example and the whole dataset.
+
+    Args:
+        dataset (`Iterable`):
+            Underlying iterable dataset.
+        mini_repeat_count (`int`):
+            Number of times to repeat each example consecutively.
+        repeat_count (`int`, *optional*, defaults to `1`):
+            Number of times to iterate over the whole dataset.
+    """
+
+    def __init__(self, dataset, mini_repeat_count: int, repeat_count: int = 1):
+        super().__init__()
+        self.dataset = dataset
+        self.mini_repeat_count = mini_repeat_count
+        self.repeat_count = repeat_count
+
+    def __iter__(self):
+        for _ in range(self.repeat_count):
+            for example in self.dataset:
+                for _ in range(self.mini_repeat_count):
+                    yield example
+
+
+def maybe_repeat_iterable_dataset(dataset, mini_repeat_count: int, repeat_count: int = 1):
+    """Wrap an iterable dataset to repeat samples if needed.
+
+    This function checks whether ``dataset`` is an iterable dataset from either
+    the ``datasets`` library or PyTorch. If so, it returns a
+    :class:`RepeatIterableDataset` that repeats each example ``mini_repeat_count``
+    times and optionally iterates over the whole dataset ``repeat_count`` times.
+    Otherwise, the original dataset is returned unchanged.
+    """
+
+    if isinstance(dataset, (HFIterableDataset, TorchIterableDataset)):
+        return RepeatIterableDataset(dataset, mini_repeat_count=mini_repeat_count, repeat_count=repeat_count)
+    return dataset
 
 # torch.nanstd doesn't exist, so we define it here
 def nanstd(tensor: torch.Tensor) -> torch.Tensor:
@@ -612,13 +651,21 @@ class GRPOTrainer(Trainer):
         # Datasets
         self.shuffle_dataset = args.shuffle_dataset
 
-        if (
-            isinstance(train_dataset, IterableDataset)
-            or isinstance(eval_dataset, IterableDataset)
-            or (isinstance(eval_dataset, dict) and any(isinstance(ds, IterableDataset) for ds in eval_dataset.values()))
-        ):
-            # See https://github.com/huggingface/trl/issues/3213
-            raise NotImplementedError("Iterable datasets are not yet supported in GRPOTrainer. Please use a standard dataset instead.")
+        repeat_count = args.num_iterations * args.steps_per_generation
+
+        train_dataset = maybe_repeat_iterable_dataset(
+            train_dataset, mini_repeat_count=self.num_generations, repeat_count=repeat_count
+        )
+
+        if isinstance(eval_dataset, dict):
+            for key, ds in eval_dataset.items():
+                eval_dataset[key] = maybe_repeat_iterable_dataset(
+                    ds, mini_repeat_count=self.num_eval_generations
+                )
+        else:
+            eval_dataset = maybe_repeat_iterable_dataset(
+                eval_dataset, mini_repeat_count=self.num_eval_generations
+            )
 
         # Multi-step
         self.num_iterations = args.num_iterations  # = 𝜇 in the GRPO paper
@@ -627,7 +674,7 @@ class GRPOTrainer(Trainer):
         # Tracks the number of iterations (forward + backward passes), including those within a grad accum cycle
         self._step = 0
         # Buffer the batch to reuse generated outputs across multiple updates. For more details, see
-        # `_get_train_sampler` and `_prepare_inputs`.
+        # the custom sampler in `get_train_dataloader` and `_prepare_inputs`.
         self._buffered_inputs = None
 
         # The trainer estimates the number of FLOPs (floating-point operations) using the number of elements in the
@@ -834,8 +881,15 @@ class GRPOTrainer(Trainer):
             "persistent_workers": self.args.dataloader_persistent_workers,
         }
 
-        if not isinstance(train_dataset, torch.utils.data.IterableDataset):
-            dataloader_params["sampler"] = self._get_train_sampler()
+        if not isinstance(train_dataset, TorchIterableDataset):
+            dataloader_params["sampler"] = RepeatSampler(
+                data_source=self.train_dataset,
+                mini_repeat_count=self.num_generations,
+                batch_size=self.args.generation_batch_size // self.num_generations,
+                repeat_count=self.num_iterations * self.args.steps_per_generation,
+                shuffle=self.shuffle_dataset,
+                seed=self.args.seed,
+            )
             dataloader_params["drop_last"] = self.args.dataloader_drop_last
             if version.parse(transformers.__version__) >= version.parse("4.52.0"):
                 # from transformers 4.52.0, the `seed_worker` requires the `num_workers` and `rank` arguments
@@ -846,44 +900,8 @@ class GRPOTrainer(Trainer):
 
         return self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
 
-    def _get_train_sampler(self, dataset: Optional[Dataset] = None) -> Sampler:
-        # Returns a sampler that
-        # 1. ensures each prompt is repeated across multiple processes. This guarantees that identical prompts are
-        #    distributed to different GPUs, allowing rewards to be computed and normalized correctly within each prompt
-        #    group. Using the same seed across processes ensures consistent prompt assignment, preventing discrepancies
-        #    in group formation.
-        # 2. repeats the batch multiple times to allow reusing generations across multiple updates. Refer to
-        #    _prepare_inputs to see how the generations are stored and reused.
-
-        # In the following figure, the values are the prompt indices. The first row shows the first sampled batch, the
-        # second row shows the second sampled batch, and so on.
-        #
-        #                                      |   GPU 0  |   GPU 1  |
-        #
-        #                 global_step   step    <-───>  num_generations=2
-        #                                       <-───────> per_device_train_batch_size=3
-        #  grad_accum    ▲  ▲  0          0     0   0   1   1   2   2   <- Generate for the first `steps_per_generation` (prompts 0 to 11); store the completions; use the first slice to compute the loss
-        #     =2         ▼  |  0          1     3   3   4   4   5   5   <- Take the stored generations and use the second slice to compute the loss
-        #                   |
-        #                   |  1          2     6   6   7   7   8   8   <- Take the stored generations and use the third slice to compute the loss
-        #  steps_per_gen=4  ▼  1          3     9   9  10  10  11  11   <- Take the stored generations and use the fourth slice to compute the loss
-        #
-        #                      2          4    12  12  13  13  14  14   <- Generate for the second `steps_per_generation` (prompts 12 to 23); store the completions; use the first slice to compute the loss
-        #                      2          5    15  15  16  16  17  17   <- Take the stored generations and use the second slice to compute the loss
-        #                                          ...
-        if dataset is None:
-            dataset = self.train_dataset
-        return RepeatSampler(
-            data_source=dataset,
-            mini_repeat_count=self.num_generations,
-            batch_size=self.args.generation_batch_size // self.num_generations,
-            repeat_count=self.num_iterations * self.args.steps_per_generation,
-            shuffle=self.shuffle_dataset,
-            seed=self.args.seed,
-        )
-
     def _get_eval_sampler(self, eval_dataset) -> Sampler:
-        # See _get_train_sampler for an explanation of the sampler.
+        # Mirrors the custom sampler defined in `get_train_dataloader`.
         return RepeatSampler(
             data_source=eval_dataset,
             mini_repeat_count=self.num_eval_generations,
@@ -1595,8 +1613,12 @@ class GRPOTrainer(Trainer):
         """
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
         rank_print(f"\n***** Running {description} *****")
-        rank_print(f"Dataloader example size = {self.num_examples(dataloader)}")
+        try:
+            rank_print(f"Dataloader example size = {self.num_examples(dataloader)}")
+        except TypeError:
+            rank_print("Dataloader example size = unknown")
         eval_dataset = getattr(dataloader, "dataset", None)
+        num_samples = None
         if has_length(eval_dataset):
             num_samples = len(eval_dataset)
             rank_print(f"Dataset example size = {num_samples}")
@@ -1607,9 +1629,12 @@ class GRPOTrainer(Trainer):
         # Initialize containers
         results = []
         metrics = {}
-        n_batch = len(dataloader)
+        n_batch = len(dataloader) if has_length(dataloader) else None
         for idx, inputs in enumerate(dataloader):
-            rank_print(f"Processing batch {idx + 1}/{n_batch}, batch size = {len(inputs)}")
+            if n_batch is not None:
+                rank_print(f"Processing batch {idx + 1}/{n_batch}, batch size = {len(inputs)}")
+            else:
+                rank_print(f"Processing batch {idx + 1}, batch size = {len(inputs)}")
             outputs = self._prepare_inputs(inputs)
             results += [{**input_dict, "completions": output} for input_dict, output in zip(inputs, outputs["completions"])]
 
@@ -1626,6 +1651,9 @@ class GRPOTrainer(Trainer):
         for key in list(metrics.keys()):
             if not key.startswith(f"{metric_key_prefix}_"):
                 metrics[f"{metric_key_prefix}_{key}"] = metrics.pop(key)
+
+        if num_samples is None:
+            num_samples = len(uniq_results)
 
         return EvalLoopOutput(predictions=None, label_ids=None, metrics=metrics, num_samples=num_samples)
 
