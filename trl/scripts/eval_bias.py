@@ -352,9 +352,9 @@ class Evaluation:
     def log_metrics_results(self, metrics, results, name=None):
         if not self.is_main:
             return
-        pfx = "metric_{}/".format("vllm" if self.use_vllm else "hf")
-        if name:
-            pfx += f"{name}_"
+        runtime = "vllm" if self.use_vllm else "hf"
+        name = f"{name}_" if name else ""
+        pfx = f"metric_{runtime}/{name}"
 
         metrics = {k if "/" in k else f"{pfx}{k}": v for k, v in metrics.items()}  # skip prefix for keys with slashes
         self.rank_log("Logging metrics:")
@@ -368,9 +368,9 @@ class Evaluation:
         file_stem = f"{'vllm' if self.use_vllm else 'hf'}_{name}"
         result_file = output_dir / f"{file_stem}_results.json"
         metrics_file = output_dir / f"{file_stem}_metrics.json"
-        with open(result_file, "w") as f:
+        with open(result_file, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=4)
-        with open(metrics_file, "w") as f:
+        with open(metrics_file, "w", encoding="utf-8") as f:
             json.dump(metrics, f, indent=4)
         self.rank_log(f"Metrics saved to {metrics_file}")
         self.rank_log(f"Results saved to {result_file}")
