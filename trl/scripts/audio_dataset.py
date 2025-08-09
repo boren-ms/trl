@@ -96,7 +96,7 @@ def chunk_dataset(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, 
     return ds
 
 
-def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=None, tag="*", data_dir=None, **kwargs):
+def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=None, tag="*", src_dir=None, data_dir=None, **kwargs):
     ds = jsonl_dataset(jsonl_path, **kwargs)
     distractors = read_words(distractor_file)
     shared_entities = read_words(entity_file)
@@ -104,7 +104,8 @@ def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=Non
     def load_sample(example):
         """Load audio from a file."""
         trans = example.get("Transcription", "").strip()
-        audio_path = update_dir(example["WavPath"], src_dir="/datablob1/users/ruchaofan/", dst_dir=data_dir)
+        src_dir = src_dir or "/datablob1/users/ruchaofan"
+        audio_path = update_dir(example["WavPath"], src_dir=src_dir, dst_dir=data_dir)
         bs = BeautifulSoup(trans, "html.parser")
 
         entities = [tag.get_text().strip() for tag in bs.find_all() if tag.name.startswith("ne")]
