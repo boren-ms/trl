@@ -21,7 +21,7 @@ eval_data:
   #   num_egs: 2
   #   dataset_name: inhouse_entity
   #   jsonl_path: /datablob1/users/ruchaofan/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DeliciousHealthy_Entity_FY24Q1_en-US_DTEST/test.jsonl
-  #   bias_file: /home/boren/data/librispeech_biasing/words/all_rare_words.txt
+  #   distractor_file: /home/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 100
 
   - nickname: entity_Conversation_Gaming_0
@@ -29,7 +29,7 @@ eval_data:
     data_dir: /home/boren/data/
     src_dir: /home/boren/data/
     jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-    bias_file: /home/boren/data/librispeech_biasing/words/all_rare_words.txt
+    distractor_file: /home/boren/data/librispeech_biasing/words/all_rare_words.txt
     max_bias: 0
   # jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DeliciousHealthy_Entity_FY24Q1_en-US_DTEST/test.jsonl
   # data_dir: /root/data/
