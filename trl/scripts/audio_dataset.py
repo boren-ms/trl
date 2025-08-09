@@ -29,9 +29,22 @@ def extract_entities(text):
 
 
 def jsonl_dataset(jsonl_paths, **kwargs):
+    """Load a JSONL dataset from the specified paths."""
+
     data_files = [jsonl_paths] if isinstance(jsonl_paths, str) else jsonl_paths
     data_files = [str(file_path) for file_path in data_files]
-    ds = load_dataset("json", data_files=data_files, split="train")
+    options = {}
+    url = urllib.parse.urlparse(data_files[0])
+    if url.scheme == "az":  # blobfile
+        account_name = url.netloc
+        options = {
+            "account_name": account_name,
+            "tenant_id": os.environ.get("AZURE_TENANT_ID"),
+            "client_id": os.environ.get("AZURE_CLIENT_ID"),
+            "client_secret": os.environ.get("AZURE_CLIENT_SECRET"),
+        }
+        data_files = [file.replace(f"{account_name}/", "") for file in data_files]
+    ds = load_dataset("json", data_files=data_files, split="train", storage_options=options)
     ds = stream_shuffle(ds, **kwargs)
     return ds
 
