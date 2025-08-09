@@ -103,6 +103,8 @@ def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=Non
 
     def load_sample(example):
         """Load audio from a file."""
+        nonlocal src_dir  # not a local variable
+
         trans = example.get("Transcription", "").strip()
         src_dir = src_dir or "/datablob1/users/ruchaofan"
         audio_path = update_dir(example["WavPath"], src_dir=src_dir, dst_dir=data_dir)
