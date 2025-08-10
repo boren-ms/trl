@@ -272,7 +272,7 @@ class Evaluation:
     def _chunk_batch(self, examples):
         """Chunk a batch of examples into segments."""
         batches = []
-        for example in tqdm(examples, desc="Chunking examples", disable=not self.is_main):
+        for example in examples:
             sub_examples = []
             data, sr = load_audio(example)
             for i, (s, e) in enumerate(self._chunk_audio(data, sr)):
@@ -320,7 +320,7 @@ class Evaluation:
             dataloader = self.accelerator.prepare(DataLoader(dataset, **dl_kwargs))
             results = []
             keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER", "keywords", "Transcription"]
-            for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
+            for inputs in dataloader:
                 outputs = self.generate(inputs)
                 for x, hyp in zip(inputs, outputs):
                     x["hyp"] = hyp
