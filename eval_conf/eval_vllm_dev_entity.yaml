@@ -12,36 +12,6 @@ max_chunk_len: 30
 model_path: /root/data/ckp/hf_models/phi4_mm_bias
 # model_path: az://orngscuscresco/data/boren/data/ckp/hf_models/phi4_mm_bias
 eval_data:
-  - nickname: ls_clean_no
-    dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-  - nickname: ls_other_no
-    dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-  - nickname: ls_clean_100
-    dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    bias_key: distractors
-  - nickname: ls_other_100
-    dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    bias_key: distractors
-  - nickname: ls_clean_500
-    dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
-    bias_key: distractors
-  - nickname: ls_other_500
-    dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
-    bias_key: distractors
-  - nickname: ls_clean_1000
-    dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
-    bias_key: distractors
-  - nickname: ls_other_1000
-    dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
-    bias_key: distractors
   - nickname: entity_Gaming_0
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
