@@ -365,7 +365,7 @@ class Evaluation:
 
         output_dir = Path(self.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        file_stem = f"{'vllm' if self.use_vllm else 'hf'}_{name}"
+        file_stem = pfx.replace("/", "_")
         result_file = output_dir / f"{file_stem}_results.json"
         metrics_file = output_dir / f"{file_stem}_metrics.json"
         with open(result_file, "w", encoding="utf-8") as f:
