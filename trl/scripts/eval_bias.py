@@ -197,6 +197,11 @@ class Evaluation:
         return self.accelerator.process_index
 
     @property
+    def rank_size(self):
+        """Get the size of the current rank."""
+        return self.accelerator.num_processes
+
+    @property
     def is_main(self):
         """Check if the current process is the main process."""
         return self.accelerator.is_main_process
@@ -319,6 +324,7 @@ class Evaluation:
             # batch_sampler = LengthBatchSampler(dataset, batch_size)
             # dataloader = self.accelerator.prepare(DataLoader(dataset, batch_sampler=batch_sampler, **dl_kwargs))
             dataloader = self.accelerator.prepare(DataLoader(dataset, **dl_kwargs))
+            self.rank_log(f"Evaluating {len(dataset)} example with {self.rank_size} GPUs")
             results = []
             keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER", "keywords", "Transcription"]
             for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
