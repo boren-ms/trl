@@ -325,6 +325,7 @@ def shuffle_sequence_dict(seq_dict, permutation=None):
     if permutation is None:
         batch_size = len(next(v for v in seq_dict.values() if v is not None))
         permutation = torch.randperm(batch_size)
+        seq_dict["permutation"] = list(range(batch_size))  # Store the original order for reference
 
     def permute(v):
         if v is None:
@@ -1256,7 +1257,8 @@ class GRPOTrainer(Trainer):
             # Pad the completions, and concatenate them with the prompts
             completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
             completion_ids = pad(completion_ids, padding_value=self.processing_class.tokenizer.pad_token_id)
-            completion_ids = self._post_process_completions(completion_ids, inputs)
+            if mode == "train":
+                completion_ids = self._post_process_completions(completion_ids, inputs)
             prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
 
         elif self.use_transformers_paged:
@@ -1516,6 +1518,10 @@ class GRPOTrainer(Trainer):
             # compute the entropy threshold across all tokens in the batch
 
             entropy_mask = get_high_entropy_mask(entropies, completion_mask, self.token_entropy_percentile_threshold)
+            masked_completions = self.processing_class.tokenizer.batch_decode(completion_ids * entropy_mask, skip_special_tokens=True)
+            if "permutation" in inputs:
+                masked_completions = list(zip(*sorted(zip(inputs["permutation"], masked_completions))))[1]
+            self._textual_logs["masked"].extend(masked_completions)
         else:
             per_token_logps = self._get_per_token_logps_and_entropies(model, input_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
             entropy_mask = None
