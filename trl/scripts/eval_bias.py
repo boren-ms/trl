@@ -295,7 +295,8 @@ class Evaluation:
             chunks = [chunks[x : x + self.batch_size] for x in range(0, len(chunks), self.batch_size)]
 
         output_dict = defaultdict(list)
-        for chk_inputs in tqdm(chunks, desc="Evaluating chunks", disable=not self.is_main):
+        disable_tqdm = not self.is_main or len(chunks) <= 1
+        for chk_inputs in tqdm(chunks, desc="Evaluating chunks", disable=disable_tqdm):
             chk_inputs = [{**x, "history": output_dict[x[IDX_KEY]]} for x in chk_inputs if x is not None]
             chk_outputs = self._generate_single(chk_inputs)
             for inp, oup in zip(chk_inputs, chk_outputs):
@@ -320,7 +321,7 @@ class Evaluation:
             dataloader = self.accelerator.prepare(DataLoader(dataset, **dl_kwargs))
             results = []
             keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER", "keywords", "Transcription"]
-            for inputs in dataloader:
+            for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
                 outputs = self.generate(inputs)
                 for x, hyp in zip(inputs, outputs):
                     x["hyp"] = hyp
