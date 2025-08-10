@@ -309,7 +309,7 @@ class Evaluation:
 
         @find_executable_batch_size(starting_batch_size=self.batch_size)
         def auto_eval(batch_size):
-            self.rank_log("Evaluating batch size:", batch_size, all=True)
+            self.rank_log("Evaluating batch size:", batch_size)
             dl_kwargs = {
                 "collate_fn": lambda x: x,
                 "batch_size": batch_size,
