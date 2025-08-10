@@ -18,13 +18,24 @@ def get_run(path):
         return None
 
 
-def get_run_result(runs, prefix="metric"):
+def to_list(x):
+    if x is None:
+        return []
+    elif isinstance(x, (list, tuple)):
+        return list(x)
+    return [x]
+
+
+def get_run_result(runs, prefix="metric", name=None):
     results = []
+    name_pfx = to_list(name)
     for run in runs:
         run_dict = {"name": run.name}
         for key, value in run.summary.items():
             if key and key.startswith(prefix):
                 new_key = key.split("/", 1)[-1]  # Remove prefix
+                if name_pfx and not any(new_key.startswith(pfx) for pfx in name_pfx):
+                    continue
                 run_dict[new_key] = value
         results.append(run_dict)
     df = pd.DataFrame(results).set_index("name").T
@@ -40,7 +51,7 @@ def get_run_result(runs, prefix="metric"):
 
 
 class WandbChecker:
-    def __init__(self, entity=None, project=None, metric="metric", excel_dir=None):
+    def __init__(self, entity=None, project=None, metric="metric", dataset=None, excel_dir=None):
         self.host = os.environ.get("WANDB_ORGANIZATION", "https://msaip.wandb.io")
         self.entity = entity or os.environ.get("WANDB_ENTITY", "genai")
         self.project = project or os.environ.get("WANDB_PROJECT", "biasing")
@@ -49,6 +60,7 @@ class WandbChecker:
         wandb.login(host=self.host, key=key, relogin=True)
 
         self.metric = metric
+        self.dataset = dataset.split(",") if isinstance(dataset, str) else dataset
         self.excel_dir = Path(excel_dir) if excel_dir else Path.home() / "wandb_results"
 
     def check(self, run_url, key=None, nrows=10):
@@ -56,7 +68,7 @@ class WandbChecker:
         if run is None:
             print(f"Run not found: {run_url}")
             return None
-        df = get_run_result([run], prefix=self.metric)
+        df = get_run_result([run], prefix=self.metric, name=self.dataset)
         if df is None:
             print(f"No results [{self.metric}] found for run: {run_url}")
             return None
@@ -83,7 +95,7 @@ class WandbChecker:
             print(f"No runs found matching '{run_name}'")
             return
         print(f"Found {len(runs)} runs matching '{run_name}'")
-        df = get_run_result(runs, prefix=self.metric)
+        df = get_run_result(runs, prefix=self.metric, name=self.dataset)
         if df is None:
             print(f"No results [{self.metric}] found for runs matching '{run_name}'")
             return None
