@@ -5,7 +5,7 @@ generation_config:
   max_new_tokens: 1024
   do_sample: false
 
-max_chunk_len: 30
+# max_chunk_len: 30
 # model_path: /root/data/ckp/hf_models/phi4_mm_bias
 #
 # model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct

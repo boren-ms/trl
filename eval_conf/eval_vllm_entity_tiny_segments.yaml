@@ -5,7 +5,7 @@ generation_config:
   max_new_tokens: 1024
   do_sample: false
 
-max_chunk_len: 30
+# max_chunk_len: 30
 # with_history: True
 # model_path:  az://${DATA_STORAGE}/data/boren/data/ckp/hf_models/phi4_mm_bias
 #
