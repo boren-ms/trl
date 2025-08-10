@@ -17,5 +17,6 @@
 # python ./wandb_result.py --metric metric_vllm search Phi4-7b-ASR-2506-v2
 # python ./wandb_result.py --metric eval search 'grpo_ls_m1000_seed_e3_simple_err_ga8_t15_n10x2_sc3k_ctx9_G1x8|grpo_ls_m1000_zero_e1_simple_err_ga8_t12_n10_sc3k_ctx8_G4x8'
 # python ./wandb_result.py --metric eval search 'grpo_ls_m1000_p9_n10_zero_e2_t12_notag|grpo_ls_m1000_zero_e1_simple_err_ga8_t12_n10_sc3k_ctx8_G4x8'
+# python ./wandb_result.py --metric eval search 'grpo_ls_m1000_p9_n10_seed_e2'
 # python ./wandb_result.py --metric eval search 'grpo_ls_m1000_seed'
-python ./wandb_result.py --metric eval search 'grpo_ls_m1000_p9_n10_seed_e2'
+# python ./wandb_result.py --metric metric_vllm search 'Phi-4-multimodal-instruct|5000_hf|phi-libri_ft_m1000_p8_new-QpH|grpo_ls_m1000_p9_n10_zero_e2_t12_notag_simple_err_lora|grpo_ls_m1000_p9_n10_zero_e2_t12_notag'

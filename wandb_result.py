@@ -96,5 +96,3 @@ class WandbChecker:
 
 if __name__ == "__main__":
     fire.Fire(WandbChecker)
-if __name__ == "__main__":
-    fire.Fire(WandbChecker)
