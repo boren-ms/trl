@@ -1096,11 +1096,11 @@ class GRPOTrainer(Trainer):
 
     def _post_process_completions(self, completion_ids, inputs):
         """Post-processes the generated completions by grouping them into batches and handling bad cases."""
-        if not self.args.inject_rejection_completion:
+        if not self.args.inject_reference:
             return completion_ids
 
-        if inputs[0].get("rejected", None) is None:
-            rank_print("No 'rejected' key found in inputs, skipping post-processing of completions.")
+        if inputs[0].get("text", None) is None:
+            rank_print("No 'text' key found in inputs, skipping post-processing of completions.")
             return completion_ids
 
         completions = self.processing_class.tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
@@ -1110,18 +1110,18 @@ class GRPOTrainer(Trainer):
         for i in range(len(inputs) // n_gen):
             x = inputs[i * n_gen]
             x_completions = completions[i * n_gen : (i + 1) * n_gen]
-            rejections = x.get("rejected", [])
+            reference = [x["text"]]
             seen_completions = []
             for j, completion in enumerate(x_completions):
                 if completion not in seen_completions:
                     seen_completions.append(completion)
                     continue
-                if not rejections:
+                if not reference:
                     break
-                rejected_ids = self.processing_class.tokenizer(rejections.pop() + "<|end|>", add_special_tokens=True, return_tensors="pt").input_ids[0]
-                rejected_ids = rejected_ids[:max_seq]  # Ensure the rejected_ids fit into the max_seq length
-                n = len(rejected_ids)
-                completion_ids[i * n_gen + j, :n] = rejected_ids
+                ref_ids = self.processing_class.tokenizer(reference.pop() + "<|end|>", add_special_tokens=True, return_tensors="pt").input_ids[0]
+                ref_ids = ref_ids[:max_seq]  # Ensure the ref_ids fit into the max_seq length
+                n = len(ref_ids)
+                completion_ids[i * n_gen + j, :n] = ref_ids
                 completion_ids[i * n_gen + j, n:] = self.processing_class.tokenizer.pad_token_id
 
         return completion_ids

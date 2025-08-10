@@ -278,7 +278,7 @@ class GRPOConfig(TrainingArguments):
         default=256,
         metadata={"help": "Maximum length of the generated completion."},
     )
-    inject_rejection_completion: bool = field(
+    inject_reference: bool = field(
         default=False,
         metadata={"help": "Whether to inject rejection completions during training."},  # This does not work, do not set True.
     )
