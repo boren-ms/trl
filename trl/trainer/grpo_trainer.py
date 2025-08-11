@@ -1340,13 +1340,15 @@ class GRPOTrainer(Trainer):
 
         logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
         batch_size = self.args.per_device_train_batch_size if mode == "train" else self.args.per_device_eval_batch_size
+        # remove empty tensors from prompt_inputs
+        prompt_inputs = {k: v for k, v in prompt_inputs.items() if not (isinstance(v, torch.Tensor) and v.numel() == 0)}
 
         with torch.no_grad():
             # When using num_iterations == 1 and steps_per_generation <= gradient_accumulation_steps
             # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
             # per_token_logps.detach() instead.
             if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps or rollout_per_token_logps is not None:
-                old_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size, **prompt_inputs)["logps"]
+                old_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size=batch_size, **prompt_inputs)["logps"]
             else:
                 old_per_token_logps = None
 
@@ -1451,8 +1453,6 @@ class GRPOTrainer(Trainer):
         logps_diff = torch.abs(old_per_token_logps - rollout_per_token_logps)
         self._metrics[mode]["Token Probability Difference/max"].append(logps_diff.max().exp().item())
         self._metrics[mode]["Token Probability Difference/mean"].append(logps_diff.mean().exp().item())
-        # remove empty tensors from prompt_inputs
-        prompt_inputs = {k: v for k, v in prompt_inputs.items() if not (isinstance(v, torch.Tensor) and v.numel() == 0)}
 
         return {
             "prompt_ids": prompt_ids,
