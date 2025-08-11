@@ -1520,7 +1520,7 @@ class GRPOTrainer(Trainer):
             entropy_mask = get_high_entropy_mask(entropies, completion_mask, self.token_entropy_percentile_threshold)
             masked_completions = self.processing_class.tokenizer.batch_decode(completion_ids * entropy_mask, skip_special_tokens=True)
             if "permutation" in inputs:
-                masked_completions = list(zip(*sorted(zip(inputs["permutation"], masked_completions))))[1]
+                self._textual_logs["permutation"].extend(inputs["permutation"])
             self._textual_logs["masked"].extend(masked_completions)
         else:
             per_token_logps = self._get_per_token_logps_and_entropies(model, input_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
@@ -1657,6 +1657,11 @@ class GRPOTrainer(Trainer):
         self._metrics[mode].clear()
 
         if self.accelerator.is_main_process and self.log_completions:
+            if "permutation" in self._textual_logs and "masked" in self._textual_logs:
+                permutation, masked = list(zip(*sorted(zip(self._textual_logs["permutation"], self._textual_logs["masked"]))))
+                self._textual_logs["masked"] = masked
+                self._textual_logs["permutation"] = permutation
+
             df = pd.DataFrame(self._textual_logs)
             if self.args.num_completions_to_print:
                 df = df.head(self.args.num_completions_to_print)
