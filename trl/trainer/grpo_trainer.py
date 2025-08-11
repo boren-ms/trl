@@ -1264,9 +1264,12 @@ class GRPOTrainer(Trainer):
             completion_ids = pad(completion_ids, padding_value=self.processing_class.tokenizer.pad_token_id).to(device)
             if rollout_per_token_logps is not None:
                 rollout_per_token_logps = pad(rollout_per_token_logps).to(device)
-
             if mode == "train":
                 completion_ids = self._post_process_completions(completion_ids, inputs)
+
+            # mask out _AUDIO_SPECIAL_TOKEN_ID if it is present in the completion_ids
+            _AUDIO_SPECIAL_TOKEN_ID = 200011  # '<endoftext11>'
+            completion_ids = mask_tokens(completion_ids, _AUDIO_SPECIAL_TOKEN_ID, self.processing_class.tokenizer.pad_token_id)
             prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
 
         elif self.use_transformers_paged:
@@ -1312,9 +1315,6 @@ class GRPOTrainer(Trainer):
             prompt_ids = prompt_completion_ids[:, :prompt_length]
             completion_ids = prompt_completion_ids[:, prompt_length:]
 
-        # mask out _AUDIO_SPECIAL_TOKEN_ID if it is present in the completion_ids
-        _AUDIO_SPECIAL_TOKEN_ID = 200011  # '<endoftext11>'
-        completion_ids = mask_tokens(completion_ids, _AUDIO_SPECIAL_TOKEN_ID, self.processing_class.tokenizer.pad_token_id)
         # Mask everything after the first EOS token
         # is_eos = completion_ids == self.processing_class.tokenizer.eos_token_id
         is_eos = torch.isin(completion_ids, self.stop_tokens_ids.to(device))
