@@ -1518,7 +1518,8 @@ class GRPOTrainer(Trainer):
             # compute the entropy threshold across all tokens in the batch
 
             entropy_mask = get_high_entropy_mask(entropies, completion_mask, self.token_entropy_percentile_threshold)
-            masked_completions = self.processing_class.tokenizer.batch_decode(completion_ids * entropy_mask, skip_special_tokens=True)
+            masked_completion_ids = completion_ids.masked_fill(entropy_mask.logical_not(), self.processing_class.tokenizer.pad_token_id)
+            masked_completions = self.processing_class.tokenizer.batch_decode(masked_completion_ids, skip_special_tokens=True)
             if "permutation" in inputs:
                 self._textual_logs["permutation"].extend(inputs["permutation"])
             self._textual_logs["masked"].extend(masked_completions)
