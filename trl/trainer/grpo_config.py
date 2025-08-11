@@ -365,6 +365,10 @@ class GRPOConfig(TrainingArguments):
             "generation instead of the default model.generate(). Requires `vllm` to be installed."
         },
     )
+    vllm_imp_ratio_cap: Optional[int] = field(
+        default=None,
+        metadata={"help": "the importance ratio clamp for vllm rollout."},
+    )
     vllm_server_base_url: Optional[str] = field(
         default=None,
         metadata={"help": "Base URL for the vLLM server (e.g., 'http://localhost:8000'). If provided, `vllm_server_host` " "and `vllm_server_port` are ignored."},

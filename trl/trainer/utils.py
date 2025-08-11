@@ -402,7 +402,7 @@ class RewardDataCollatorWithPadding:
 
 
 def pad(
-    tensors: list[torch.Tensor],
+    tensors: list[torch.Tensor | list],
     padding_value: int = 0,
     padding_side: str = "right",
     pad_to_multiple_of: Optional[int] = None,
@@ -439,6 +439,8 @@ def pad(
             [0, 0]]])
     ```
     """
+    if not isinstance(tensors[0], torch.Tensor):
+        tensors = [torch.tensor(t) for t in tensors]
     # Determine the maximum shape for each dimension
     output_shape = np.max([t.shape for t in tensors], 0).tolist()
 
