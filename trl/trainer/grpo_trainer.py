@@ -1451,7 +1451,7 @@ class GRPOTrainer(Trainer):
         self._textual_logs["advantages"].extend(advantages.tolist())
 
         if rollout_per_token_logps is not None and old_per_token_logps is not None:
-            logps_diff = torch.abs(old_per_token_logps.exp() - rollout_per_token_logps.exp()) * completion_mask.int()
+            logps_diff = torch.abs(old_per_token_logps - rollout_per_token_logps).exp() * completion_mask
             self._metrics[mode]["Token Probability Difference/max"].append(logps_diff.max().item())
             self._metrics[mode]["Token Probability Difference/mean"].append(logps_diff.mean().item())
 

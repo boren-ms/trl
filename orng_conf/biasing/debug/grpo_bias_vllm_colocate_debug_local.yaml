@@ -24,8 +24,8 @@ temperature: 1.1
 logging_steps: 1
 bf16: True
 gradient_checkpointing: True
-# gradient_accumulation_steps: 2
-steps_per_generation: 2
+gradient_accumulation_steps: 2
+# steps_per_generation: 2
 log_completions: True
 max_prompt_length: 6000
 max_completion_length: 512
