@@ -1587,7 +1587,7 @@ class GRPOTrainer(Trainer):
             mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
             self._metrics[mode]["kl"].append(self.accelerator.gather(mean_kl).nanmean().item())
 
-        if "rollout_per_token_logps" in inputs:
+        if inputs["rollout_per_token_logps"] is not None:
             logps_diff = torch.abs(old_per_token_logps - inputs["rollout_per_token_logps"]).exp() * completion_mask
             self._metrics[mode]["logps_diff/max"].append(logps_diff.max().item())
             self._metrics[mode]["logps_diff/mean"].append(logps_diff.mean().item())
