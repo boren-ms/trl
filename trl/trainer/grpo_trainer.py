@@ -1165,6 +1165,7 @@ class GRPOTrainer(Trainer):
             # prompts_text = self.processing_class.batch_decode(prompt_ids, skip_special_tokens=False, clean_up_tokenization_spaces=False)
         # remove empty tensors from prompt_inputs
         prompt_inputs = {k: v for k, v in prompt_inputs.items() if not (isinstance(v, torch.Tensor) and v.numel() == 0)}
+        rollout_per_token_logps = None
 
         # Generate completions using either vLLM or regular generation
         if self.use_vllm:
@@ -1251,7 +1252,6 @@ class GRPOTrainer(Trainer):
                 with profiling_context(self, "vLLM.generate"):
                     all_outputs = self.llm.generate(vllm_inputs, sampling_params=sampling_params, use_tqdm=False)
                 completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
-                rollout_per_token_logps = None
                 if sampling_params.logprobs:
                     rollout_per_token_logps = [vllm_logprobs(output.token_ids, output.logprobs) for outputs in all_outputs for output in outputs.outputs]
 
