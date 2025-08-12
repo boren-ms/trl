@@ -742,7 +742,7 @@ class GRPOTrainer(Trainer):
                     # Feed identical seed for tp groups to ensure sampling results are the same across workers
                     seed=self.accelerator.process_index // self.vllm_tensor_parallel_size,
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
-                    max_num_batched_tokens=max_all_tokens * self.args.steps_per_generation,
+                    max_num_batched_tokens=max_all_tokens * 2,
                     trust_remote_code=True,
                     enable_lora=self.use_vllm_lora_update,
                     max_lora_rank=320,
