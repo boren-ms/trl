@@ -1573,7 +1573,7 @@ class GRPOTrainer(Trainer):
             per_token_loss = per_token_loss + self.beta * per_token_kl
 
         if self.args.vllm_imp_ratio_cap is not None:
-            vllm_per_token_kl = torch.exp(inputs["old_per_token_logps"] - inputs["rollout_per_token_logps"]).clamp(max=self.args.vllm_imp_ratio_cap).detach()
+            vllm_per_token_kl = torch.exp(old_per_token_logps - inputs["rollout_per_token_logps"]).clamp(max=self.args.vllm_imp_ratio_cap).detach()
             per_token_loss = vllm_per_token_kl * per_token_loss
 
         if self.loss_type == "grpo":
