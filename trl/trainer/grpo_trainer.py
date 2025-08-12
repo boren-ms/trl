@@ -1250,6 +1250,7 @@ class GRPOTrainer(Trainer):
 
                 vllm_inputs = prepare_vllm_inputs(all_prompts, audios)
                 with profiling_context(self, "vLLM.generate"):
+                    rank_print(f"Generating {len(vllm_inputs)} completions with vLLM...")
                     all_outputs = self.llm.generate(vllm_inputs, sampling_params=sampling_params, use_tqdm=False)
                 completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
                 if sampling_params.logprobs:
