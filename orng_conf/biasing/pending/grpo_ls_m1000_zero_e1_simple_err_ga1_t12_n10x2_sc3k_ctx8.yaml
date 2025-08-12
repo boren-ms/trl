@@ -38,7 +38,7 @@ per_device_train_batch_samples: 2
 num_generations: 10
 generation_scale: 2
 # gradient_accumulation_steps: 1
-steps_per_generation: 8 # generate 8 batches
+steps_per_generation: 4 # generate 4 batches
 logging_steps: 10
 bf16: True
 gradient_checkpointing: True
