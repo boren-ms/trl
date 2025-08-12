@@ -1338,31 +1338,6 @@ class GRPOTrainer(Trainer):
             truncated_completions = ~is_eos.any(dim=1)
             completion_mask = completion_mask * (~truncated_completions).unsqueeze(1).int()
 
-        # Concatenate prompt_mask with completion_mask for logit computation
-        attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B, P+C)
-
-        logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
-        batch_size = self.args.per_device_train_batch_size if mode == "train" else self.args.per_device_eval_batch_size
-
-        with torch.no_grad():
-            # When using num_iterations == 1 and steps_per_generation <= gradient_accumulation_steps
-            # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
-            # per_token_logps.detach() instead.
-            if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps or rollout_per_token_logps is not None:
-                old_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size=batch_size, **prompt_inputs)["logps"]
-            else:
-                old_per_token_logps = None
-
-            # Compute the per-token log probabilities for the reference model
-            if self.beta != 0.0:
-                if self.ref_model is not None:
-                    ref_per_token_logps = self._get_per_token_logps_and_entropies(self.ref_model, prompt_completion_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
-                else:
-                    with self.accelerator.unwrap_model(self.model).disable_adapter():
-                        ref_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
-            else:
-                ref_per_token_logps = None
-
         # Decode the generated completions
         completion_masked_ids = completion_ids.masked_fill(completion_mask == 0, self.processing_class.tokenizer.pad_token_id)
         completions_text = self.processing_class.tokenizer.batch_decode(completion_masked_ids, skip_special_tokens=True)
@@ -1398,11 +1373,37 @@ class GRPOTrainer(Trainer):
             prompt_mask = prompt_mask[indexs]
             prompts_text = [prompts_text[i] for i in indexs]
             prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
-            attention_mask = attention_mask[indexs]
-            ref_per_token_logps = ref_per_token_logps[indexs] if ref_per_token_logps is not None else None
-            rollout_per_token_logps = rollout_per_token_logps[indexs] if rollout_per_token_logps is not None else None
-            old_per_token_logps = old_per_token_logps[indexs] if old_per_token_logps is not None else None
+            prompt_completion_ids = prompt_completion_ids[indexs]
 
+        # Concatenate prompt_mask with completion_mask for logit computation
+        attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B, P+C)
+        logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
+
+        with torch.no_grad():
+            # When using num_iterations == 1 and steps_per_generation <= gradient_accumulation_steps
+            # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
+            # per_token_logps.detach() instead.
+            if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps or rollout_per_token_logps is not None:
+                old_per_token_logps = self._get_per_token_logps_and_entropies(
+                    self.model,
+                    prompt_completion_ids,
+                    attention_mask,
+                    logits_to_keep,
+                    batch_size=self.args.per_device_train_batch_size,  # OOM
+                    **prompt_inputs,
+                )["logps"]
+            else:
+                old_per_token_logps = None
+
+            # Compute the per-token log probabilities for the reference model
+            if self.beta != 0.0:
+                if self.ref_model is not None:
+                    ref_per_token_logps = self._get_per_token_logps_and_entropies(self.ref_model, prompt_completion_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
+                else:
+                    with self.accelerator.unwrap_model(self.model).disable_adapter():
+                        ref_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
+            else:
+                ref_per_token_logps = None
         # Compute grouped-wise rewards
         mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
         std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
