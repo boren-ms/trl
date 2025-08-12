@@ -1383,7 +1383,7 @@ class GRPOTrainer(Trainer):
             # When using num_iterations == 1 and steps_per_generation <= gradient_accumulation_steps
             # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
             # per_token_logps.detach() instead.
-            if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps or rollout_per_token_logps is not None:
+            if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps:
                 old_per_token_logps = self._get_per_token_logps_and_entropies(
                     self.model,
                     prompt_completion_ids,
@@ -1454,11 +1454,6 @@ class GRPOTrainer(Trainer):
         for i, name in enumerate(self.reward_func_names):
             self._textual_logs[name].extend(rewards_per_func[:, i].tolist())
         self._textual_logs["advantages"].extend(advantages.tolist())
-
-        if rollout_per_token_logps is not None and old_per_token_logps is not None:
-            logps_diff = torch.abs(old_per_token_logps - rollout_per_token_logps).exp() * completion_mask
-            self._metrics[mode]["Token Probability Difference/max"].append(logps_diff.max().item())
-            self._metrics[mode]["Token Probability Difference/mean"].append(logps_diff.mean().item())
 
         return {
             "prompt_ids": prompt_ids,
@@ -1592,6 +1587,10 @@ class GRPOTrainer(Trainer):
             mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
             self._metrics[mode]["kl"].append(self.accelerator.gather(mean_kl).nanmean().item())
 
+        if "rollout_per_token_logps" in inputs:
+            logps_diff = torch.abs(old_per_token_logps - inputs["rollout_per_token_logps"]).exp() * completion_mask
+            self._metrics[mode]["logps_diff/max"].append(logps_diff.max().item())
+            self._metrics[mode]["logps_diff/mean"].append(logps_diff.mean().item())
         # Compute the clipped probability ratios
         is_low_clipped = (coef_1 < 1 - self.epsilon_low) & (advantages.unsqueeze(1) < 0)
         is_high_clipped = (coef_1 > 1 + self.epsilon_high) & (advantages.unsqueeze(1) > 0)
