@@ -23,8 +23,8 @@ reward_func_kwargs:
 # reward_weights: [1, 2]
 # scale_rewards: True
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
-# model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
+# model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 # job_name: phi4_mm_bias_grpo
 report_to: [wandb]
@@ -37,9 +37,8 @@ output_dir: ./output
 per_device_train_batch_samples: 2
 num_generations: 10
 # generation_scale: 2
-# steps_per_generation: 4 # generate 4 batches
+steps_per_generation: 2 # generate 4 batches
 # gradient_accumulation_steps: 8
-
 logging_steps: 10
 bf16: True
 gradient_checkpointing: True
