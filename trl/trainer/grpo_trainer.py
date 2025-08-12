@@ -1398,6 +1398,9 @@ class GRPOTrainer(Trainer):
             prompts_text = [prompts_text[i] for i in indexs]
             prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
             attention_mask = attention_mask[indexs]
+            ref_per_token_logps = ref_per_token_logps[indexs] if ref_per_token_logps is not None else None
+            rollout_per_token_logps = rollout_per_token_logps[indexs] if rollout_per_token_logps is not None else None
+            old_per_token_logps = old_per_token_logps[indexs] if old_per_token_logps is not None else None
 
         # Compute grouped-wise rewards
         mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)

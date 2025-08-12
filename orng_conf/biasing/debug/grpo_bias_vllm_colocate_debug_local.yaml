@@ -15,7 +15,7 @@ save_on_each_node: True
 output_dir: ~/outputs/debug
 per_device_train_batch_samples: 2
 num_generations: 5
-# generation_scale: 3
+generation_scale: 2
 token_entropy_percentile_threshold: 0.8
 # dataloader_drop_last: True
 
