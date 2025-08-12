@@ -1228,7 +1228,7 @@ class GRPOTrainer(Trainer):
                     "max_tokens": self.max_completion_length,
                     "stop_token_ids": self.stop_tokens_ids.flatten().tolist(),
                     "guided_decoding": guided_decoding,
-                    "logprobs": 1 if self.args.vllm_imp_ratio_cap is not None else None,
+                    "logprobs": 1 if self.args.vllm_imp_ratio_cap is not None and mode == "train" else None,
                 }
                 if self.args.generation_kwargs is not None:
                     generation_kwargs.update(self.args.generation_kwargs)
