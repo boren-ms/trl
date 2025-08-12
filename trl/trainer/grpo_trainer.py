@@ -736,13 +736,13 @@ class GRPOTrainer(Trainer):
                     model=model.name_or_path,
                     tensor_parallel_size=args.vllm_tensor_parallel_size,
                     gpu_memory_utilization=self.vllm_gpu_memory_utilization,
-                    max_num_seqs=self.vllm_tensor_parallel_size * self.args.gradient_accumulation_steps,
+                    max_num_seqs=self.vllm_tensor_parallel_size * self.args.steps_per_generation,
                     max_model_len=max_all_tokens,
                     distributed_executor_backend="external_launcher",
                     # Feed identical seed for tp groups to ensure sampling results are the same across workers
                     seed=self.accelerator.process_index // self.vllm_tensor_parallel_size,
                     # Latest vLLM v1 memory profiler is misled by the high default value (i.e., 32768) - thinking there's not enough memory
-                    max_num_batched_tokens=max_all_tokens,
+                    max_num_batched_tokens=max_all_tokens * self.args.steps_per_generation,
                     trust_remote_code=True,
                     enable_lora=self.use_vllm_lora_update,
                     max_lora_rank=320,
