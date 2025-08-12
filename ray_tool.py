@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import subprocess
-from httpx import head
 import ray
 import os
 from pathlib import Path
@@ -9,14 +8,6 @@ import fire
 import time
 import blobfile as bf
 import importlib.metadata
-
-
-def get_node_count(nodes=None):
-    """Get the number of nodes in the Ray cluster."""
-    if nodes is None:
-        return int(os.environ.get("RCALL_INSTANCE_COUNT", "1"))
-    else:
-        return len(nodes)
 
 
 def sorted_nodes(nodes):
@@ -168,13 +159,15 @@ class OutputWatcher:
         print("Watcher stopped.")
 
 
-def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=False, nodes=None):
+def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=False, head_label=None):
     """Start the output watcher to sync outputs periodically."""
-    head_label = node_label(head_node(nodes))
+    resources = {}
+    if head_label is not None:
+        resources = {head_label: 0.01}
     print(f"Watching  @ {head_label} every {interval/60} minutes")
     print(f"Local directory: {local_dir}")
     print(f"Remote directory: {remote_dir}")
-    watcher = OutputWatcher.options(resources={head_label: 0.01}).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all)
+    watcher = OutputWatcher.options(resources=resources).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all)
     watcher.start.remote()
     return watcher
 
@@ -322,7 +315,7 @@ def get_remote_path(file_path):
 
 
 @ray.remote
-def prepare_local_output(local_dir, remote_dir):
+def prepare_local_checkpoint(local_dir, remote_dir):
     """Prepare output on each node by syncing from the remote storage."""
     hostname = os.uname().nodename
     print(f"Sync remote output on node: {hostname}")
@@ -487,66 +480,9 @@ def run_cmd(cmd, check=True):
     return ret
 
 
-def head_node(nodes=None):
-    """Get the head node index from the list of nodes."""
-    return 0 if nodes is None else nodes[0]
-
-
-def head_hostname(nodes=None):
-    """Get the head node hostname from environment variables."""
-    job_name = os.environ.get("RCALL_JOB_NAME", None)
-    assert job_name is not None, "RCALL_JOB_NAME must be set"
-    head = head_node(nodes)
-    return f"{job_name}-{head}"  # head node IP
-
-
-def node_label(index=0):
-    """Get the node IP address from environment variables."""
-    nodes = ray.nodes()
-    node_ip = nodes[index]["NodeManagerAddress"]
-    return f"node:{node_ip}"
-
-
-def run_nodes(fun, *args, waiting=True, indexs=None, **kwargs):
-    nodes = ray.nodes()
-    # Launch one task per node, each pinned to a specific node
-    results = []
-    nodes = [node for node in nodes if node["Alive"]]
-    if indexs is not None:
-        nodes = [nodes[i] for i in indexs if i < len(nodes)]
-
-    for node in nodes:
-        node_ip = node["NodeManagerAddress"]
-        # Use custom resource label to ensure the function runs on this node
-        # Each node has a resource label 'node:<ip>'
-        node_label = f"node:{node_ip}"
-        result = fun.options(resources={node_label: 0.01}).remote(*args, **kwargs)
-        results.append(result)
-    if waiting:
-        results = ray.get(results)
-    return results
-
-
-def list_nodes():
-    """List all nodes in the Ray cluster."""
-    nodes = ray.nodes()
-    print(f"Found {len(nodes)} nodes in the cluster:")
-    for node in nodes:
-        print(f" - {node['NodeName']}[{node['NodeManagerAddress']}] (Alive: {node['Alive']})")
-    return nodes
-
-
-def init_ray():
-    """Check the connection to a Ray cluster and print the status of nodes."""
-    print("Connecting to Ray cluster...")
-    ray.init(address="auto")  # Connect to the running cluster
-    print("Connected to Ray cluster.")
-
-
 @ray.remote
-def sync_local_dir(folder, nodes=None):
+def broadcast_local_dir(folder, head_node):
     """Sync the Folder from the remote storage."""
-    head_node = head_hostname(nodes)
     cur_node = os.uname().nodename
     # Ensure the Folder exists for each node
     Path(folder).mkdir(parents=True, exist_ok=True)
@@ -625,81 +561,125 @@ def job_log(cmd="tail", key=None, n=100, log_dir=None):
     run_cmd(cmd)
 
 
-class RayTool:
-    """A command-line tool for managing Ray clusters and nodes."""
+class RayNode:
 
-    def __init__(self, node=None):
-        """Initialize the RayTool class."""
-        init_ray()
-        self.node = node
-        print("Ray cluster initialized.")
+    def __init__(self, indexs=None):
+        """Initialize the RayHelper with the specified nodes."""
+        print("Connecting to Ray cluster...")
+        ray.init(address="auto")  # Connect to the running cluster
+        print("Connected to Ray cluster.")
+        nodes = [node for node in ray.nodes() if node["Alive"]]
+        self.indexs = indexs or list(range(len(nodes)))
+        self.nodes = [nodes[i] for i in self.indexs]
+        print(f"Initialized RayHelper with {len(self.nodes)} nodes: {[node['NodeName'] for node in self.nodes]}")
 
-    def _run_nodes(self, fun, *args, **kwargs):
-        """Run a function on all Ray nodes."""
-        return run_nodes(fun, *args, indexs=self.node, **kwargs)
+    @property
+    def num_nodes(self):
+        return len(self.nodes)
 
-    def list_gpus(self):
-        """List available GPUs on the current node."""
-        return self._run_nodes(list_gpus)
+    def label(self, i=0):
+        """Get the node IP address from environment variables."""
+        node_ip = self.nodes[i]["NodeManagerAddress"]
+        return f"node:{node_ip}"
 
-    def release_gpus(self):
-        """Release GPUs on all Ray nodes."""
-        self._run_nodes(release_gpus)
+    def hostname(self, i=0):
+        """Get the node hostname from the list of nodes."""
+        job_name = os.environ.get("RCALL_JOB_NAME", None)
+        assert job_name is not None, "RCALL_JOB_NAME must be set"
+        # node_hostname = self.nodes[index]["NodeManagerHostname"]
+        idx = self.indexs[i]
+        return f"{job_name}-{idx}"  # head node IP
 
-    def sync_folder(self, folder=None):
-        """Sync output directories across all Ray nodes."""
-        folder = str(folder or local_home() / "outputs")
-        self._run_nodes(sync_local_dir, folder)
+    def run(self, func, *args, waiting=True, **kwargs):
+        # Launch one task per node, each pinned to a specific node
+        results = []
+        for node in self.nodes:
+            node_ip = node["NodeManagerAddress"]
+            # Use custom resource label to ensure the function runs on this node
+            # Each node has a resource label 'node:<ip>'
+            node_label = f"node:{node_ip}"
+            result = func.options(resources={node_label: 0.01}).remote(*args, **kwargs)
+            results.append(result)
+        if waiting:
+            results = ray.get(results)
+        return results
+
+    def async_run(self, func, *args, **kwargs):
+        """Run a function asynchronously on all nodes."""
+        # Launch one task per node, each pinned to a specific node
+        return self.run(func, *args, waiting=False, **kwargs)
 
     def list_nodes(self):
         """List all nodes in the Ray cluster."""
-        return self._run_nodes(list_nodes)
+        print(f"Found {len(self.nodes)} nodes in the cluster:")
+        for node in self.nodes:
+            print(f" - {node['NodeName']}[{node['NodeManagerAddress']}] (Alive: {node['Alive']})")
+        return self.nodes
+
+    def release_gpus(self):
+        """Release GPUs on all Ray nodes."""
+        self.run(release_gpus)
+
+    def broadcast_local_dir(self, folder=None):
+        """Sync output directories across all Ray nodes."""
+        folder = str(folder or local_home() / "outputs")
+        head_node = self.hostname(0)
+        self.run(broadcast_local_dir, folder, head_node=head_node)
 
     def log(self, cmd="tail", key=None, n=100, log_dir=None):
         """Tail logs from all Ray nodes."""
-        return self._run_nodes(job_log, cmd, key, n, log_dir)
+        return self.run(job_log, cmd, key, n, log_dir)
 
-    def run(self, *args, **kwargs):
+    def run_cmd(self, *args, **kwargs):
         """Run a command on all Ray nodes."""
         cmd = " ".join(args)
         for k, v in kwargs.items():
             cmd += f" --{k} {v}"
         print(f"Running: {cmd}")
-        self._run_nodes(ray.remote(run_cmd), cmd)
+        self.run(ray.remote(run_cmd), cmd)
 
     def prepare_env(self, forced=False):
         """Prepare the environment on all Ray nodes by installing necessary packages."""
         print("Preparing environment on all nodes...")
-        self._run_nodes(prepare_env, forced=forced)
+        self.run(prepare_env, forced=forced)
 
     def prepare_data(self, forced=False):
         """Prepare data on all Ray nodes by syncing from the remote storage."""
         print("Preparing data on all nodes...")
-        self._run_nodes(prepare_data, forced=forced)
+        self.run(prepare_data, forced=forced)
 
-    def prepare_local_output(self, rel_path=None):
+    def prepare_local_checkpoint(self, local_dir=None, remote_dir=None):
         """Prepare output on all Ray nodes by syncing from the remote storage."""
-        local_dir, remote_dir = get_output_dirs(rel_path)
-        print(f"Preparing local output on all nodes: {local_dir} from {remote_dir}")
-        self._run_nodes(prepare_local_output, local_dir, remote_dir)
-        self._run_nodes(sync_local_dir, local_dir)
+        if local_dir is None or remote_dir is None:
+            local_dir, remote_dir = get_output_dirs()
+        print(f"Preparing local checkpoint on all nodes: {local_dir} from {remote_dir}")
+        self.run(prepare_local_checkpoint, local_dir, remote_dir)
+        self.broadcast_local_dir(local_dir)  # ensure all nodes have the latest output
 
-    def prepare_all(self, rel_path=None, forced=False):
+    def prepare_all(self, local_dir=None, remote_dir=None, forced=False):
         """Prepare the environment, data, and output on all Ray nodes."""
         results = []
-        results += self._run_nodes(prepare_env, forced=forced, waiting=False)
-        results += self._run_nodes(prepare_data, forced=forced, waiting=False)
-        local_dir, remote_dir = get_output_dirs(rel_path)
-        print(f"Preparing local output on all nodes: {local_dir} from {remote_dir}")
-        results += self._run_nodes(prepare_local_output, local_dir, remote_dir, waiting=False)
+        print("Preparing all nodes...")
+        print("Releasing GPUs...")
+        results += self.async_run(release_gpus)
+        print("Preparing environment...")
+        results += self.async_run(prepare_env, forced=forced)
+        print("Preparing data...")
+        results += self.async_run(prepare_data, forced=forced)
+        if local_dir is None or remote_dir is None:
+            local_dir, remote_dir = get_output_dirs()
+        print(f"Preparing local output: {local_dir} from {remote_dir}")
+        results += self.async_run(prepare_local_checkpoint, local_dir, remote_dir)
         results = ray.get(results)
-        self.sync_folder(local_dir)
+        self.broadcast_local_dir(local_dir)
 
-    def run_output_watcher(self, rel_path=None, interval=600):
+    def run_output_watcher(self, local_dir=None, remote_dir=None, interval=600, sync_all=False):
         """Run the output watcher on head."""
-        local_dir, remote_dir = get_output_dirs(rel_path)
+        if local_dir is None or remote_dir is None:
+            local_dir, remote_dir = get_output_dirs()
         print(f"Running output watcher on head: {local_dir} from {remote_dir} every {interval/60} minutes")
-        return run_output_watcher(local_dir, remote_dir, interval)
+        head_label = self.label(0)
+        return run_output_watcher(local_dir, remote_dir, interval, sync_all, head_label=head_label)
 
     def show_remote_dirs(self, rel_path=None):
         """Show remote directories."""
@@ -710,7 +690,7 @@ class RayTool:
 
     def sync_remote_dir(self, dir_path, push=None):
         """Sync a remote directory to the local directory."""
-        self._run_nodes(sync_remote_dir, dir_path, push=push)
+        self.run(sync_remote_dir, dir_path, push=push)
 
     def search_models(self, model_path=None):
         """Search for models in the remote storage."""
@@ -725,7 +705,7 @@ class RayTool:
 
 
 if __name__ == "__main__":
-    """Main entry point for the RayTool."""
-    fire.Fire(RayTool)
+    """Main entry point for the RayNode."""
+    fire.Fire(RayNode)
     # Example usage: python ray_tool.py run_nodes --fun=some_function --args=arg1,arg2
     # This will initialize Ray and run the specified function on all nodes.
