@@ -1450,9 +1450,10 @@ class GRPOTrainer(Trainer):
             self._textual_logs[name].extend(rewards_per_func[:, i].tolist())
         self._textual_logs["advantages"].extend(advantages.tolist())
 
-        logps_diff = torch.abs(old_per_token_logps - rollout_per_token_logps)
-        self._metrics[mode]["Token Probability Difference/max"].append(logps_diff.max().exp().item())
-        self._metrics[mode]["Token Probability Difference/mean"].append(logps_diff.mean().exp().item())
+        if rollout_per_token_logps is not None and old_per_token_logps is not None:
+            logps_diff = torch.abs(old_per_token_logps - rollout_per_token_logps)
+            self._metrics[mode]["Token Probability Difference/max"].append(logps_diff.max().exp().item())
+            self._metrics[mode]["Token Probability Difference/mean"].append(logps_diff.mean().exp().item())
 
         return {
             "prompt_ids": prompt_ids,
