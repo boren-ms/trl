@@ -31,7 +31,7 @@ num_train_epochs: 1
 learning_rate: 1e-5
 # new_lora: True
 lr_scheduler_type: cosine #cosine
-temperature: 1.2
+temperature: 1.5
 output_dir: ./output
 per_device_train_batch_samples: 2
 num_generations: 10
