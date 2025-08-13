@@ -415,13 +415,13 @@ def eval_biasing_metrics(groups):
     }
 
 
-def compute_reward_wers(completions, tn=None, **kwargs):
+def compute_reward_wers(completions, tn=None, unit=None, **kwargs):
     """Compute rewards for a list of completions."""
     references = kwargs["text"]
     keyword_lists = kwargs["keywords"]
     rewards = []
     for i, (hyp, ref, keywords) in enumerate(zip(completions, references, keyword_lists)):
-        rewards.append(compute_wers([{"id": i, "ref": ref, "keywords": keywords, "hyp": hyp}], tn=tn))
+        rewards.append(compute_wers([{"id": i, "ref": ref, "keywords": keywords, "hyp": hyp}], tn=tn, unit=unit))
     return rewards
 
 
