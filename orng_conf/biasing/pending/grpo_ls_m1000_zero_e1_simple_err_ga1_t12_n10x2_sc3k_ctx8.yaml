@@ -34,10 +34,11 @@ learning_rate: 1e-5
 lr_scheduler_type: cosine #cosine
 temperature: 1.2
 output_dir: ./output
-per_device_train_batch_samples: 1
+per_device_train_batch_samples: 2
 num_generations: 10
-# generation_scale: 2
-gradient_accumulation_steps: 8
+generation_scale: 2
+# gradient_accumulation_steps: 1
+# steps_per_generation: 4 # generate 4 batches
 logging_steps: 10
 bf16: True
 gradient_checkpointing: True
@@ -51,10 +52,11 @@ save_only_model: True
 save_total_limit: 5
 save_on_each_node: True
 save_steps: 100
-# use_vllm: True
-# vllm_mode: colocate
-# vllm_tensor_parallel_size: 1
-# vllm_gpu_memory_utilization: 0.3
+use_vllm: True
+vllm_mode: colocate
+vllm_tensor_parallel_size: 1
+vllm_gpu_memory_utilization: 0.4
+# vllm_imp_ratio_cap: 5
 # vllm_server_host: ${VLLM_SERVER_HOST} # dev-n1-wus2-0
 # vllm_server_port: 26500
 

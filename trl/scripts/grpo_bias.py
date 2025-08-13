@@ -67,10 +67,11 @@ def reward_functions(names=None, **kwargs):
 
 def main(script_args, training_args):
     """Train the model with GRPO."""
-    WandbHelper(
-        work_dir=training_args.output_dir,
-        new_run=script_args.new_run,
-    ).init(main_only=True)
+    if training_args.report_to and "wandb" in training_args.report_to:
+        WandbHelper(
+            work_dir=training_args.output_dir,
+            new_run=script_args.new_run,
+        ).init(main_only=True)
 
     lora_name = "speech" if script_args.new_lora else None
     model, processor = init_model(script_args.model_name_or_path, update_encoder=script_args.update_encoder, new_lora=lora_name)

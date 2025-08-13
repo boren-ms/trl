@@ -5,7 +5,7 @@ new_run: True
 reward_funcs: [reward_word_error, reward_bias_error]
 reward_func_kwargs:
     tn: simple
-report_to: [wandb]
+report_to: [] # no wandb
 learning_rate: 1e-5
 save_only_model: True
 save_total_limit: 5
@@ -15,7 +15,7 @@ save_on_each_node: True
 output_dir: ~/outputs/debug
 per_device_train_batch_samples: 2
 num_generations: 5
-generation_scale: 3
+generation_scale: 2
 token_entropy_percentile_threshold: 0.8
 # dataloader_drop_last: True
 
@@ -25,6 +25,7 @@ logging_steps: 1
 bf16: True
 gradient_checkpointing: True
 gradient_accumulation_steps: 2
+# steps_per_generation: 2
 log_completions: True
 max_prompt_length: 6000
 max_completion_length: 512
@@ -37,6 +38,7 @@ use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
 vllm_gpu_memory_utilization: 0.35
+vllm_imp_ratio_cap: 5
 # use_vllm_lora_update: True # not work yet
 # vllm_server_host: ${VLLM_SERVER_HOST}
 # vllm_server_host: 10.133.219.39
@@ -73,15 +75,15 @@ train_data:
         log_interval: 1000 # print biasing every 10000 samples
         common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 1000
-# eval_strategy: steps
-# eval_on_start: True
-# eval_steps: 10
-# per_device_eval_batch_size: 200
-# num_eval_generations: 2
-# eval_data:
-#     - nickname: clean_no
-#       dataset_name: ls_bias
-#       jsonl_path: /home/boren/data/LibriSpeech_biasing/ref/test-clean.biasing_100.jsonl
+eval_strategy: steps
+eval_on_start: True
+eval_steps: 10
+per_device_eval_batch_size: 20
+num_eval_generations: 2
+eval_data:
+    - nickname: clean_no
+      dataset_name: ls_bias
+      jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
 #       data_dir: az://orngscuscresco/data/boren/data
 #   bias_key: null # null
 # data_dir: az://${DATA_STORAGE}/data/boren/data

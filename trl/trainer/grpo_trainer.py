@@ -100,6 +100,11 @@ def prepare_vllm_inputs(texts, audios=None):
     return [{"prompt": text, "multi_modal_data": {"audio": audio}} for text, audio in zip(texts, audios)]
 
 
+def vllm_logprobs(token_ids, logprobs):
+    """Extract tokens and log probs from vllm output"""
+    return [logprobs[t].logprob for t, logprobs in zip(token_ids, logprobs)]
+
+
 def get_high_entropy_mask(entropies: torch.Tensor, mask: torch.Tensor, threshold: float) -> torch.Tensor:
     """
     Returns a binary mask identifying tokens whose entropy exceeds a given quantile threshold.
@@ -731,7 +736,7 @@ class GRPOTrainer(Trainer):
                     model=model.name_or_path,
                     tensor_parallel_size=args.vllm_tensor_parallel_size,
                     gpu_memory_utilization=self.vllm_gpu_memory_utilization,
-                    max_num_seqs=self.vllm_tensor_parallel_size * self.args.gradient_accumulation_steps,
+                    max_num_seqs=self.vllm_tensor_parallel_size * self.args.steps_per_generation,
                     max_model_len=max_all_tokens,
                     distributed_executor_backend="external_launcher",
                     # Feed identical seed for tp groups to ensure sampling results are the same across workers
@@ -928,22 +933,20 @@ class GRPOTrainer(Trainer):
         all_logps = []
         all_entropies = []
         for start in range(0, input_ids.size(0), batch_size):
-            input_ids_batch = input_ids[start : start + batch_size]
-            attention_mask_batch = attention_mask[start : start + batch_size]
-
+            indexs = list(range(start, start + batch_size))
             # We add 1 to `logits_to_keep` because the last logits of the sequence is later excluded
             logits = model(
-                input_ids=input_ids_batch,
-                attention_mask=attention_mask_batch,
+                input_ids=input_ids[indexs],
+                attention_mask=attention_mask[indexs],
                 logits_to_keep=logits_to_keep + 1,
-                **kwargs,
+                **slice_sequence_dict(kwargs, indexs),
             ).logits
             logits = logits[:, :-1, :]  # (B, L-1, V), exclude the last logit: it corresponds to the next token pred
             # Divide logits by sampling temperature.
             # See https://huggingface.co/blog/the_n_implementation_details_of_rlhf_with_ppo#policy-training-implementation-details
             logits = logits / self.temperature
 
-            completion_ids = input_ids_batch[:, -logits_to_keep:]
+            completion_ids = input_ids[indexs, -logits_to_keep:]
             logps = selective_log_softmax(logits, completion_ids)  # compute logprobs
             all_logps.append(logps)
 
@@ -1160,6 +1163,9 @@ class GRPOTrainer(Trainer):
             prompt_mask = prompt_mask[:, -self.max_prompt_length :]
             # disable this for vllm
             # prompts_text = self.processing_class.batch_decode(prompt_ids, skip_special_tokens=False, clean_up_tokenization_spaces=False)
+        # remove empty tensors from prompt_inputs
+        prompt_inputs = {k: v for k, v in prompt_inputs.items() if not (isinstance(v, torch.Tensor) and v.numel() == 0)}
+        rollout_per_token_logps = None
 
         # Generate completions using either vLLM or regular generation
         if self.use_vllm:
@@ -1222,6 +1228,7 @@ class GRPOTrainer(Trainer):
                     "max_tokens": self.max_completion_length,
                     "stop_token_ids": self.stop_tokens_ids.flatten().tolist(),
                     "guided_decoding": guided_decoding,
+                    "logprobs": 1 if self.args.vllm_imp_ratio_cap is not None and mode == "train" else None,
                 }
                 if self.args.generation_kwargs is not None:
                     generation_kwargs.update(self.args.generation_kwargs)
@@ -1243,9 +1250,11 @@ class GRPOTrainer(Trainer):
 
                 vllm_inputs = prepare_vllm_inputs(all_prompts, audios)
                 with profiling_context(self, "vLLM.generate"):
+                    rank_print(f"Generating {len(vllm_inputs)} completions with vLLM...")
                     all_outputs = self.llm.generate(vllm_inputs, sampling_params=sampling_params, use_tqdm=False)
-
                 completion_ids = [output.token_ids for outputs in all_outputs for output in outputs.outputs]
+                if sampling_params.logprobs:
+                    rollout_per_token_logps = [vllm_logprobs(output.token_ids, output.logprobs) for outputs in all_outputs for output in outputs.outputs]
 
                 if self.vllm_tensor_parallel_size > 1:
                     # Slice completions for this rank within its TP group.
@@ -1255,10 +1264,15 @@ class GRPOTrainer(Trainer):
                     completion_ids = completion_ids[tp_slice]
 
             # Pad the completions, and concatenate them with the prompts
-            completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
-            completion_ids = pad(completion_ids, padding_value=self.processing_class.tokenizer.pad_token_id)
+            completion_ids = pad(completion_ids, padding_value=self.processing_class.tokenizer.pad_token_id).to(device)
+            if rollout_per_token_logps is not None:
+                rollout_per_token_logps = pad(rollout_per_token_logps).to(device)
             if mode == "train":
                 completion_ids = self._post_process_completions(completion_ids, inputs)
+
+            # mask out _AUDIO_SPECIAL_TOKEN_ID if it is present in the completion_ids
+            _AUDIO_SPECIAL_TOKEN_ID = 200011  # '<endoftext11>'
+            completion_ids = mask_tokens(completion_ids, _AUDIO_SPECIAL_TOKEN_ID, self.processing_class.tokenizer.pad_token_id)
             prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
 
         elif self.use_transformers_paged:
@@ -1304,9 +1318,6 @@ class GRPOTrainer(Trainer):
             prompt_ids = prompt_completion_ids[:, :prompt_length]
             completion_ids = prompt_completion_ids[:, prompt_length:]
 
-        # mask out _AUDIO_SPECIAL_TOKEN_ID if it is present in the completion_ids
-        _AUDIO_SPECIAL_TOKEN_ID = 200011  # '<endoftext11>'
-        completion_ids = mask_tokens(completion_ids, _AUDIO_SPECIAL_TOKEN_ID, self.processing_class.tokenizer.pad_token_id)
         # Mask everything after the first EOS token
         # is_eos = completion_ids == self.processing_class.tokenizer.eos_token_id
         is_eos = torch.isin(completion_ids, self.stop_tokens_ids.to(device))
@@ -1326,31 +1337,6 @@ class GRPOTrainer(Trainer):
         if self.mask_truncated_completions:
             truncated_completions = ~is_eos.any(dim=1)
             completion_mask = completion_mask * (~truncated_completions).unsqueeze(1).int()
-
-        # Concatenate prompt_mask with completion_mask for logit computation
-        attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B, P+C)
-
-        logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
-        batch_size = self.args.per_device_train_batch_size if mode == "train" else self.args.per_device_eval_batch_size
-
-        with torch.no_grad():
-            # When using num_iterations == 1 and steps_per_generation <= gradient_accumulation_steps
-            # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
-            # per_token_logps.detach() instead.
-            if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps:
-                old_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, batch_size)["logps"]
-            else:
-                old_per_token_logps = None
-
-            # Compute the per-token log probabilities for the reference model
-            if self.beta != 0.0:
-                if self.ref_model is not None:
-                    ref_per_token_logps = self._get_per_token_logps_and_entropies(self.ref_model, prompt_completion_ids, attention_mask, logits_to_keep)["logps"]
-                else:
-                    with self.accelerator.unwrap_model(self.model).disable_adapter():
-                        ref_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep)["logps"]
-            else:
-                ref_per_token_logps = None
 
         # Decode the generated completions
         completion_masked_ids = completion_ids.masked_fill(completion_mask == 0, self.processing_class.tokenizer.pad_token_id)
@@ -1387,8 +1373,37 @@ class GRPOTrainer(Trainer):
             prompt_mask = prompt_mask[indexs]
             prompts_text = [prompts_text[i] for i in indexs]
             prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
-            attention_mask = attention_mask[indexs]
+            prompt_completion_ids = prompt_completion_ids[indexs]
 
+        # Concatenate prompt_mask with completion_mask for logit computation
+        attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B, P+C)
+        logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
+
+        with torch.no_grad():
+            # When using num_iterations == 1 and steps_per_generation <= gradient_accumulation_steps
+            # old_per_token_logps == per_token_logps, so we can skip it's computation here, and use
+            # per_token_logps.detach() instead.
+            if self.num_iterations > 1 or self.args.steps_per_generation > self.args.gradient_accumulation_steps:
+                old_per_token_logps = self._get_per_token_logps_and_entropies(
+                    self.model,
+                    prompt_completion_ids,
+                    attention_mask,
+                    logits_to_keep,
+                    batch_size=self.args.per_device_train_batch_size,  # OOM
+                    **prompt_inputs,
+                )["logps"]
+            else:
+                old_per_token_logps = None
+
+            # Compute the per-token log probabilities for the reference model
+            if self.beta != 0.0:
+                if self.ref_model is not None:
+                    ref_per_token_logps = self._get_per_token_logps_and_entropies(self.ref_model, prompt_completion_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
+                else:
+                    with self.accelerator.unwrap_model(self.model).disable_adapter():
+                        ref_per_token_logps = self._get_per_token_logps_and_entropies(self.model, prompt_completion_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
+            else:
+                ref_per_token_logps = None
         # Compute grouped-wise rewards
         mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
         std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
@@ -1440,9 +1455,6 @@ class GRPOTrainer(Trainer):
             self._textual_logs[name].extend(rewards_per_func[:, i].tolist())
         self._textual_logs["advantages"].extend(advantages.tolist())
 
-        # remove empty tensors from prompt_inputs
-        prompt_inputs = {k: v for k, v in prompt_inputs.items() if not (isinstance(v, torch.Tensor) and v.numel() == 0)}
-
         return {
             "prompt_ids": prompt_ids,
             "prompt_mask": prompt_mask,
@@ -1452,6 +1464,7 @@ class GRPOTrainer(Trainer):
             "completion_mask": completion_mask,
             "old_per_token_logps": old_per_token_logps,
             "ref_per_token_logps": ref_per_token_logps,
+            "rollout_per_token_logps": rollout_per_token_logps,
             "advantages": advantages,
         }
 
@@ -1519,11 +1532,11 @@ class GRPOTrainer(Trainer):
 
             entropy_mask = get_high_entropy_mask(entropies, completion_mask, self.token_entropy_percentile_threshold)
 
-            masked_completion_ids = completion_ids.masked_fill((completion_mask - entropy_mask.int()).bool(), 0)
-            masked_completions = self.processing_class.tokenizer.batch_decode(masked_completion_ids, skip_special_tokens=True)
-            if "permutation" in inputs:
-                self._textual_logs["permutation"].extend(inputs["permutation"])
-            self._textual_logs["masked"].extend(masked_completions)
+            # masked_completion_ids = completion_ids.masked_fill((completion_mask - entropy_mask.int()).bool(), 0)
+            # masked_completions = self.processing_class.tokenizer.batch_decode(masked_completion_ids, skip_special_tokens=True)
+            # if "permutation" in inputs: #disable logging, does not work correctly
+            #     self._textual_logs["permutation"].extend(inputs["permutation"])
+            # self._textual_logs["masked"].extend(masked_completions)
         else:
             per_token_logps = self._get_per_token_logps_and_entropies(model, input_ids, attention_mask, logits_to_keep, **prompt_inputs)["logps"]
             entropy_mask = None
@@ -1554,6 +1567,10 @@ class GRPOTrainer(Trainer):
         if self.beta != 0.0:
             per_token_loss = per_token_loss + self.beta * per_token_kl
 
+        if self.args.vllm_imp_ratio_cap is not None:
+            vllm_per_token_kl = torch.exp(old_per_token_logps - inputs["rollout_per_token_logps"]).clamp(max=self.args.vllm_imp_ratio_cap).detach()
+            per_token_loss = vllm_per_token_kl * per_token_loss
+
         if self.loss_type == "grpo":
             loss = ((per_token_loss * completion_mask).sum(-1) / completion_mask.sum(-1).clamp(min=1.0)).mean()
         elif self.loss_type == "bnpo":
@@ -1570,6 +1587,10 @@ class GRPOTrainer(Trainer):
             mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
             self._metrics[mode]["kl"].append(self.accelerator.gather(mean_kl).nanmean().item())
 
+        if inputs["rollout_per_token_logps"] is not None:
+            logps_diff = torch.abs(old_per_token_logps - inputs["rollout_per_token_logps"]).exp() * completion_mask
+            self._metrics[mode]["logps_diff/max"].append(logps_diff.max().item())
+            self._metrics[mode]["logps_diff/mean"].append(logps_diff.mean().item())
         # Compute the clipped probability ratios
         is_low_clipped = (coef_1 < 1 - self.epsilon_low) & (advantages.unsqueeze(1) < 0)
         is_high_clipped = (coef_1 > 1 + self.epsilon_high) & (advantages.unsqueeze(1) > 0)
@@ -1659,10 +1680,11 @@ class GRPOTrainer(Trainer):
         self._metrics[mode].clear()
 
         if self.accelerator.is_main_process and self.log_completions:
-            if "permutation" in self._textual_logs and "masked" in self._textual_logs:
-                permutation, masked = list(zip(*sorted(zip(self._textual_logs["permutation"], self._textual_logs["masked"]))))
-                self._textual_logs["masked"] = masked
-                self._textual_logs["permutation"] = permutation
+            # not work yet.
+            # if "permutation" in self._textual_logs and "masked" in self._textual_logs:
+            #     permutation, masked = list(zip(*sorted(zip(self._textual_logs["permutation"], self._textual_logs["masked"]))))
+            #     self._textual_logs["masked"] = masked
+            #     self._textual_logs["permutation"] = permutation
 
             df = pd.DataFrame(self._textual_logs)
             if self.args.num_completions_to_print:
