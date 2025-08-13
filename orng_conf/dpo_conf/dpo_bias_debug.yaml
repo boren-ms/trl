@@ -1,7 +1,7 @@
 # model_name_or_path: az://orngscuscresco/data/boren/data/ckp/phi4_mm_bias
 model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-reward_funcs: [reward_word_error, reward_bias_error]
+reward_funcs: [reward_full_error, reward_bias_error]
 reward_weights: [1, 10]
 report_to: [wandb]
 learning_rate: 5e-6
@@ -25,7 +25,7 @@ use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
 vllm_gpu_memory_utilization: 0.4
-  
+
 # vllm_server_host: ${VLLM_SERVER_HOST}
 # vllm_server_host: 10.133.219.39
 # vllm_server_port: 26500
@@ -46,10 +46,9 @@ train_data:
         new_sampling: True
         common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 1000
-
 # eval_strategy: steps
 # eval_on_start: True
-# eval_steps: 10 
+# eval_steps: 10
 # per_device_eval_batch_size: 200
 # num_eval_generations: 2
 # eval_data:

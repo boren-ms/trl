@@ -14,7 +14,7 @@ train_data:
     tag: ""
     # common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     # common_word_num: 1000
-reward_funcs: [reward_word_error, reward_bias_error]
+reward_funcs: [reward_full_error, reward_bias_error]
 reward_weights: [1.0, 3.0]
 reward_func_kwargs:
   tn: simple

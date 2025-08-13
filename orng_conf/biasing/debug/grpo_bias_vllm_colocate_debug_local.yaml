@@ -2,7 +2,7 @@
 model_name_or_path: /home/boren/data/ckp/hf_models/phi4_mm_bias
 # model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 new_run: True
-reward_funcs: [reward_word_error, reward_bias_error]
+reward_funcs: [reward_full_error, reward_bias_error]
 reward_func_kwargs:
     tn: simple
 report_to: [] # no wandb

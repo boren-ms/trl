@@ -24,7 +24,7 @@ train_data:
     common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     common_word_num: 3000
 
-reward_funcs: [reward_word_error, reward_bias_error]
+reward_funcs: [reward_full_error, reward_bias_error]
 reward_func_kwargs:
   tn: simple
 # reward_funcs: [reward_unbias_accuracy, reward_bias_accuracy]

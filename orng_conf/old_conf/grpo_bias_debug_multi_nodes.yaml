@@ -8,7 +8,7 @@ dataset_config:
         hit_prob: 0.8
         max_piece_len: 1
         max_num: 100
-reward_funcs: [reward_word_error, reward_bias_error]
+reward_funcs: [reward_full_error, reward_bias_error]
 reward_weights: [1, 1]
 # model_name_or_path: az://orngwus2cresco/data/boren/data/ckp/phi4_mm_bias
 model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias

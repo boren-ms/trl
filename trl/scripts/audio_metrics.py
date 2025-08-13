@@ -281,7 +281,23 @@ def find_word_indices(text, pieces):
     return indexs
 
 
+def find_char_indices(text, pieces):
+    indexs = []
+    for piece in pieces:
+        for m in re.finditer(re.escape(piece), text):
+            indexs.extend(range(m.start(), m.end()))
+    return indexs
+
+
 def calc_wers(refs, hyps, tn=None):
+    return calc_errors(refs, hyps, tn=tn, unit="word")
+
+
+def calc_cers(refs, hyps, tn=None):
+    return calc_errors(refs, hyps, tn=tn, unit="char")
+
+
+def calc_errors(refs, hyps, tn=None, unit=None):
     """Calculate WER, U-WER, and B-WER."""
     wer = WordError()
     u_wer = WordError()
@@ -294,11 +310,20 @@ def calc_wers(refs, hyps, tn=None):
         tn_ref = norm(ref["text"])
         tn_hyp = norm(hyps[uttid])
         bias_words = norm(ref["biasing_words"])
-        bias_ref_indexs = find_word_indices(tn_ref, bias_words)
-        bias_hyp_indexs = find_word_indices(tn_hyp, bias_words)
 
-        ref_words = tn_ref.split()
-        hyp_words = tn_hyp.split()
+        if unit == "char":
+            bias_ref_indexs = find_char_indices(tn_ref, bias_words)
+            bias_hyp_indexs = find_char_indices(tn_hyp, bias_words)
+
+            ref_words = list(tn_ref)
+            hyp_words = list(tn_hyp)
+        else:  # default to words
+            bias_ref_indexs = find_word_indices(tn_ref, bias_words)
+            bias_hyp_indexs = find_word_indices(tn_hyp, bias_words)
+
+            ref_words = tn_ref.split()
+            hyp_words = tn_hyp.split()
+
         if len(ref_words) == 0 and len(hyp_words) == 0:
             continue
 
@@ -360,13 +385,13 @@ def compute_biasing_metrics(results):
     }
 
 
-def compute_wers(results, tn=None):
+def compute_wers(results, tn=None, unit=None):
     """compute WER, U-WER, and B-WER"""
     # Extract reference and hypothesis pairs from groups
     refs = {result.get("id", i): format_ref_with_keywords(result["ref"], result.get("keywords", None)) for i, result in enumerate(results)}
     hyps = {result.get("id", i): result["hyp"] for i, result in enumerate(results)}
     # Calculate WER, U-WER, and B-WER
-    wer, u_wer, b_wer = calc_wers(refs, hyps, tn=tn)
+    wer, u_wer, b_wer = calc_errors(refs, hyps, tn=tn, unit=unit)
     return wer, u_wer, b_wer
 
 
@@ -400,7 +425,7 @@ def compute_reward_wers(completions, tn=None, **kwargs):
     return rewards
 
 
-def reward_word_accuracy(completions, **kwargs):
+def reward_full_accuracy(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
     return [wer[0].accuracy for wer in wers]  # WER
@@ -418,7 +443,7 @@ def reward_bias_accuracy(completions, **kwargs):
     return [wer[2].accuracy for wer in wers]  # B-WER
 
 
-def reward_word_error(completions, **kwargs):
+def reward_full_error(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
     return [-wer[0].error_count for wer in wers]  # WER
@@ -436,7 +461,7 @@ def reward_bias_error(completions, **kwargs):
     return [-wer[2].error_count for wer in wers]  # B-WER
 
 
-def reward_word_error_rate(completions, **kwargs):
+def reward_full_error_rate(completions, **kwargs):
     """Compute the reward for a list of completions."""
     wers = compute_reward_wers(completions, **kwargs)
     return [-wer[0].error_rate for wer in wers]  # WER

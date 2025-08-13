@@ -13,7 +13,7 @@ train_data:
     new_sampling: True
     common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     common_word_num: 1000
-reward_funcs: [reward_word_error, reward_bias_error]
+reward_funcs: [reward_full_error, reward_bias_error]
 reward_weights: [1, 10]
 model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 # model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
