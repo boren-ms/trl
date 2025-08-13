@@ -66,24 +66,24 @@ train_data:
     #     buffer_size: 5000
     #     num_rejections: 8
     biasing:
-        # bias_prob: 0.8
-        hit_prob: 1
-        miss_prob: 1
-        context_prob: 0.5
+        # bias_prob: 0.0
+        hit_prob: 0.5
+        miss_prob: 0.5
+        context_prob: 0.9
         max_piece_len: 1
         sample_range: [0, 100]
         log_interval: 1000 # print biasing every 10000 samples
-        common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
-        common_word_num: 1000
-eval_strategy: steps
-eval_on_start: True
-eval_steps: 10
-per_device_eval_batch_size: 20
-num_eval_generations: 2
-eval_data:
-    - nickname: clean_no
-      dataset_name: ls_bias
-      jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+        # common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
+        # common_word_num: 1000
+# eval_strategy: steps
+# eval_on_start: True
+# eval_steps: 10
+# per_device_eval_batch_size: 20
+# num_eval_generations: 2
+# eval_data:
+#     - nickname: clean_no
+#       dataset_name: ls_bias
+#       jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
 #       data_dir: az://orngscuscresco/data/boren/data
 #   bias_key: null # null
 # data_dir: az://${DATA_STORAGE}/data/boren/data

@@ -250,6 +250,7 @@ def bias_sampling(ds, **kwargs):
             "prompt": prompt_format.format(prompt),
             "text": text,  # text is updated
             "keywords": keywords,
+            "context": context,
         }
 
     ds = ds.map(proc_sample)

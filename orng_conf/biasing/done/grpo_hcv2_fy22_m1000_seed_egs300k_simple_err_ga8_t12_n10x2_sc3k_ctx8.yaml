@@ -20,7 +20,6 @@ train_data:
     context_prob: 0.8 # prob for context
     sample_range: [0, 1000] # all rare words
     log_interval: 10000 # print biasing every 10000 samples
-    tag: ""
     common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     common_word_num: 3000
 
@@ -75,46 +74,38 @@ eval_data:
   - nickname: clean_no
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    tag: ""
     data_dir: az://${DATA_STORAGE}/data/boren/data
   - nickname: other_no
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    tag: ""
     data_dir: az://${DATA_STORAGE}/data/boren/data
   - nickname: clean_100
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    tag: ""
     data_dir: az://${DATA_STORAGE}/data/boren/data
     bias_key: distractors # distractors
   - nickname: other_100
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    tag: ""
     bias_key: distractors # distractors
     data_dir: az://${DATA_STORAGE}/data/boren/data
   - nickname: clean_500
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
-    tag: ""
     bias_key: distractors # distractors
     data_dir: az://${DATA_STORAGE}/data/boren/data
   - nickname: other_500
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
-    tag: ""
     bias_key: distractors # distractors
     data_dir: az://${DATA_STORAGE}/data/boren/data
   # - nickname: clean_1000
   #   dataset_name: ls_bias
   #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
-  #   tag: ""
   #   bias_key: distractors # distractors
   #   data_dir: az://${DATA_STORAGE}/data/boren/data
   # - nickname: other_1000
   #   dataset_name: ls_bias
   #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
-  #   tag: ""
   #   bias_key: distractors # distractors
   #   data_dir: az://${DATA_STORAGE}/data/boren/data

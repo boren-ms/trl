@@ -15,21 +15,19 @@
 import os
 import textwrap
 import warnings
-import time
 import pandas as pd
-from collections import defaultdict, Counter
+from collections import defaultdict
 from collections.abc import Sized
 from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 from more_itertools import chunked, unique_everseen
-from dataclasses import asdict
 import datasets
 import torch
 import torch.utils.data
 import transformers
-from accelerate.utils import broadcast_object_list, gather, gather_object, is_peft_model, set_seed
+from accelerate.utils import broadcast_object_list, gather_object, is_peft_model, set_seed
 from datasets import Dataset, IterableDataset
 from packaging import version
 from torch import nn
@@ -1019,6 +1017,30 @@ class GRPOTrainer(Trainer):
         elif self.vllm_mode == "colocate":
             self.llm.reset_prefix_cache()
 
+    def _log_keywords(self, generation_batch):
+        """log the keywords relative information"""
+
+        def count_words(text):
+            if isinstance(text, list):
+                text = " ".join(text)
+            words = text.strip().split()
+            words = [word for word in words if word]  # Remove empty strings
+            return len(words)
+
+        keywords = [count_words(x.get("keywords", [])) for x in generation_batch]
+        contexts = [count_words(x.get("context", "")) for x in generation_batch]
+        ratios = [k / c if c > 0 else 0 for k, c in zip(keywords, contexts)]
+        mode = "train" if self.model.training else "eval"
+        self._metrics[mode]["keywords/match_num/min"].append(min(keywords))
+        self._metrics[mode]["keywords/match_num/max"].append(max(keywords))
+        self._metrics[mode]["keywords/match_num/mean"].append(sum(keywords) / len(keywords))
+        self._metrics[mode]["keywords/match_ratio/min"].append(min(ratios))
+        self._metrics[mode]["keywords/match_ratio/max"].append(max(ratios))
+        self._metrics[mode]["keywords/match_ratio/mean"].append(sum(ratios) / len(ratios))
+        self._metrics[mode]["keywords/context_num/min"].append(min(contexts))
+        self._metrics[mode]["keywords/context_num/max"].append(max(contexts))
+        self._metrics[mode]["keywords/context_num/mean"].append(sum(contexts) / len(contexts))
+
     @profiling_decorator
     def _prepare_inputs(self, generation_batch: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
         # Prepares inputs for model training/evaluation by managing completion generation and batch handling.
@@ -1033,12 +1055,12 @@ class GRPOTrainer(Trainer):
         #   - The input is treated as a standard local batch (no accumulation, no multiple iterations)
         #   - Completions are generated for each batch without buffering or reuse
         # Returns a single local batch in both cases.
-
         mode = "train" if self.model.training else "eval"
         if mode == "train":
             generate_every = self.args.steps_per_generation * self.num_iterations
             if self._step % generate_every == 0 or self._buffered_inputs is None:
                 # self._buffered_inputs=None can occur when resuming from a checkpoint
+                self._log_keywords(generation_batch)
                 generation_batch = self._generate_and_score_completions(generation_batch)
                 # generation_batch = split_pixel_values_by_grid(generation_batch)
                 generation_batch = shuffle_sequence_dict(generation_batch)
