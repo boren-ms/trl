@@ -5,6 +5,7 @@ new_run: True
 reward_funcs: [reward_full_error, reward_bias_error]
 reward_func_kwargs:
     tn: simple
+    unit: char
 report_to: [] # no wandb
 learning_rate: 1e-5
 save_only_model: True
