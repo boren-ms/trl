@@ -10,7 +10,7 @@ train_data:
     hit_prob: 1
     miss_prob: 1
     context_prob: 0.8 # prob for context
-    sample_range: [0, 1000] # all rare words
+    sample_range: [0, 900] # all rare words
     sampling_version: v1
     log_interval: 10000 # print biasing every 10000 samples
     common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
