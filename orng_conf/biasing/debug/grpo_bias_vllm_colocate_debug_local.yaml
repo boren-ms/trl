@@ -68,12 +68,12 @@ train_data:
     #     num_rejections: 8
     biasing:
         # bias_prob: 0.0
-        hit_prob: 1
+        hit_prob: 0.5
         miss_prob: 1
         context_prob: 0.9
-        max_piece_len: 2
+        max_piece_len: 1
         sample_range: [0, 400]
-        sampling_version: v0
+        sampling_version: v1
         log_interval: 1000 # print biasing every 10000 samples
         # common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         # common_word_num: 1000

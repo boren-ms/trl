@@ -173,19 +173,21 @@ class PieceSampler:
 
     def _sample_v1(self, pieces):
         """Sample segments from the positive pieces."""
-        pieces = list(set(pieces))  # ensure uniqueness
+        pieces = list(self.filter_commons(set(pieces)))  # ensure uniq and filter commons
         if self.miss_prob > 0:  # add negative sampling, if miss_prob > 0
             self.buffer.extend(pieces)
-        if random.random() > self.bias_prob:
+        n_egs = random.randint(*self.sample_range)
+        if random.random() > self.bias_prob or not pieces or n_egs <= 0:
             return []
-        num_pieces = random.randint(*self.sample_range)
+
         examples = []
         if random.random() <= self.hit_prob:
-            examples += rand_sample(pieces, num_pieces)
-        if random.random() <= self.miss_prob:
-            n_miss = num_pieces - len(examples)
-            examples += rand_sample(self.buffer, n_miss, n_miss)
-        return self.filter_commons(examples)
+            n_hit = random.randint(1, min(n_egs, len(pieces)))
+            examples += random.sample(pieces, n_hit)
+        n_miss = n_egs - len(examples)
+        if random.random() <= self.miss_prob and n_miss > 0:
+            examples += random.sample(self.buffer, min(n_miss, len(self.buffer)))
+        return examples
 
     def _old_sample(self, pieces):
         """Sample segments from the positive pieces."""
