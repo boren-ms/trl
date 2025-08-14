@@ -59,7 +59,7 @@ train_data:
         max_piece_len: 1
         sample_range: [1, 1000] # all rare words
         log_interval: 100 # print biasing every 10000 samples
-        # new_sampling: True
+        # sampling_version: v0
         # common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 2000

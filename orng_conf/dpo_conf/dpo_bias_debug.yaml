@@ -43,7 +43,7 @@ train_data:
         max_piece_len: 1
         max_num: 100
         log_interval: 1000 # print biasing every 10000 samples
-        new_sampling: True
+        sampling_version: v0
         common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
         common_word_num: 1000
 # eval_strategy: steps

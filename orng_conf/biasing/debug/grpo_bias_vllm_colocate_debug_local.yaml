@@ -73,7 +73,7 @@ train_data:
         context_prob: 0.9
         max_piece_len: 2
         sample_range: [0, 400]
-        new_sampling: True
+        sampling_version: v0
         log_interval: 1000 # print biasing every 10000 samples
         # common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         # common_word_num: 1000

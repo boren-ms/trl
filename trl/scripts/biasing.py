@@ -109,7 +109,7 @@ class PieceSampler:
         hit_prob=0.5,
         miss_prob=1,
         max_piece_len=1,
-        new_sampling=False,
+        sampling_version=None,
         common_word_file=None,
         common_word_num=None,
         sample_range=10,
@@ -135,7 +135,12 @@ class PieceSampler:
         self.miss_prob = miss_prob
         self.tag = tag
         self.tag_all = tag_all
-        self._sample = self._new_sample if new_sampling else self._old_sample
+        if sampling_version == "v0":
+            self._sample = self._sample_v0
+        elif sampling_version == "v1":
+            self._sample = self._sample_v1
+        else:
+            self._sample = self._old_sample
         self.log_interval = int(log_interval) if log_interval else None
         self.common_words = set(read_words(common_word_file, common_word_num) if common_word_file else [])
         self.idx = 0
@@ -151,7 +156,7 @@ class PieceSampler:
             new_examples.append(phrase)
         return new_examples
 
-    def _new_sample(self, pieces):
+    def _sample_v0(self, pieces):
         """Sample segments from the positive pieces."""
         if self.miss_prob > 0:  # add negative sampling, if miss_prob > 0
             self.buffer.extend(set(pieces))
@@ -164,6 +169,22 @@ class PieceSampler:
         if random.random() <= self.miss_prob:
             n_miss = num_pieces - len(examples)
             examples += rand_uniq_sample(self.buffer, n_miss, n_miss)
+        return self.filter_commons(examples)
+
+    def _sample_v1(self, pieces):
+        """Sample segments from the positive pieces."""
+        pieces = list(set(pieces))  # ensure uniqueness
+        if self.miss_prob > 0:  # add negative sampling, if miss_prob > 0
+            self.buffer.extend(pieces)
+        if random.random() > self.bias_prob:
+            return []
+        num_pieces = random.randint(*self.sample_range)
+        examples = []
+        if random.random() <= self.hit_prob:
+            examples += rand_sample(pieces, num_pieces)
+        if random.random() <= self.miss_prob:
+            n_miss = num_pieces - len(examples)
+            examples += rand_sample(self.buffer, n_miss, n_miss)
         return self.filter_commons(examples)
 
     def _old_sample(self, pieces):

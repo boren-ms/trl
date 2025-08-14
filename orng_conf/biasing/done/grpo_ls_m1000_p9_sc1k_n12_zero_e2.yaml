@@ -10,7 +10,7 @@ train_data:
     # bias_prob: 0.8
     hit_prob: 0.9
     log_interval: 10000 # print biasing every 10000 samples
-    new_sampling: True
+    sampling_version: v0
     common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     common_word_num: 1000
 # reward_funcs: [reward_unbias_error, reward_bias_error]
