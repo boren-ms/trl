@@ -52,6 +52,24 @@ def tag_pieces(pieces, tag="*", specified=None, norm=None):
 #     return random.sample(lst, n)
 
 
+def rand_int(min_val, max_val):
+    """Randomly sample an integer between min_val and max_val."""
+    mu = (min_val + max_val) / 2
+    sigma = (max_val - min_val) / 4
+    n = int(random.gauss(mu, sigma))
+    n = min(max(n, min_val), max_val)
+    return n
+
+
+def rand_uniq_sample(lst, n_max, n_min=0):
+    """Randomly sample random n elements from the list."""
+    # ignore new sampling for now
+    lst = list(set(lst))
+    n_max = min(n_max, len(lst))
+    n_min = min(n_min, n_max)
+    return random.sample(lst, rand_int(n_min, n_max))
+
+
 def rand_sample(lst, n_max, n_min=0):
     """Randomly sample random n elements from the list."""
     # ignore new sampling for now
@@ -117,7 +135,7 @@ class PieceSampler:
         self.miss_prob = miss_prob
         self.tag = tag
         self.tag_all = tag_all
-        self.new_sampling = new_sampling
+        self._sample = self._new_sample if new_sampling else self._old_sample
         self.log_interval = int(log_interval) if log_interval else None
         self.common_words = set(read_words(common_word_file, common_word_num) if common_word_file else [])
         self.idx = 0
@@ -133,7 +151,22 @@ class PieceSampler:
             new_examples.append(phrase)
         return new_examples
 
-    def _sample(self, pieces):
+    def _new_sample(self, pieces):
+        """Sample segments from the positive pieces."""
+        if self.miss_prob > 0:  # add negative sampling, if miss_prob > 0
+            self.buffer.extend(set(pieces))
+        if random.random() > self.bias_prob:
+            return []
+        num_pieces = rand_int(*self.sample_range)
+        examples = []
+        if random.random() <= self.hit_prob:
+            examples += rand_uniq_sample(pieces, num_pieces)
+        if random.random() <= self.miss_prob:
+            n_miss = num_pieces - len(examples)
+            examples += rand_uniq_sample(self.buffer, n_miss, n_miss)
+        return self.filter_commons(examples)
+
+    def _old_sample(self, pieces):
         """Sample segments from the positive pieces."""
         if self.miss_prob > 0:  # add negative sampling, if miss_prob > 0
             self.buffer.extend(pieces)
