@@ -1544,7 +1544,7 @@ class GRPOTrainer(Trainer):
         input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
         attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
         logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
-
+        mode = "train" if self.model.training else "eval"
         # Compute the entropy at each position in the completion
         if self.token_entropy_percentile_threshold > 0.0:
             logps_and_entropies = self._get_per_token_logps_and_entropies(model, input_ids, attention_mask, logits_to_keep, compute_entropy=True, **prompt_inputs)
@@ -1590,8 +1590,14 @@ class GRPOTrainer(Trainer):
             per_token_loss = per_token_loss + self.beta * per_token_kl
 
         if self.args.vllm_imp_ratio_cap is not None:
-            vllm_per_token_kl = torch.exp(old_per_token_logps - inputs["rollout_per_token_logps"]).clamp(max=self.args.vllm_imp_ratio_cap).detach()
+            logps_diff = torch.exp(old_per_token_logps - inputs["rollout_per_token_logps"])
+            vllm_per_token_kl = logps_diff.clamp(max=self.args.vllm_imp_ratio_cap).detach()
             per_token_loss = vllm_per_token_kl * per_token_loss
+            logps_diff = logps_diff[completion_mask.bool()]
+            equal_ratio = (logps_diff < 1e-8).float().mean().item()
+            self._metrics[mode]["logps_diff/max"].append(logps_diff.max().item())
+            self._metrics[mode]["logps_diff/mean"].append(logps_diff.mean().item())
+            self._metrics[mode]["logps_diff/equal_ratio"].append(equal_ratio)
 
         if self.loss_type == "grpo":
             loss = ((per_token_loss * completion_mask).sum(-1) / completion_mask.sum(-1).clamp(min=1.0)).mean()
@@ -1603,16 +1609,10 @@ class GRPOTrainer(Trainer):
             raise ValueError(f"Unknown loss type: {self.loss_type}")
 
         # Log the metrics
-        mode = "train" if self.model.training else "eval"
-
         if self.beta != 0.0:
             mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
             self._metrics[mode]["kl"].append(self.accelerator.gather(mean_kl).nanmean().item())
 
-        if inputs["rollout_per_token_logps"] is not None:
-            logps_diff = torch.abs(old_per_token_logps - inputs["rollout_per_token_logps"]).exp() * completion_mask
-            self._metrics[mode]["logps_diff/max"].append(logps_diff.max().item())
-            self._metrics[mode]["logps_diff/mean"].append(logps_diff.mean().item())
         # Compute the clipped probability ratios
         is_low_clipped = (coef_1 < 1 - self.epsilon_low) & (advantages.unsqueeze(1) < 0)
         is_high_clipped = (coef_1 > 1 + self.epsilon_high) & (advantages.unsqueeze(1) > 0)
