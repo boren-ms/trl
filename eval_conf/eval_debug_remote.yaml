@@ -1,0 +1,63 @@
+use_vllm: True
+vllm_max_length: 4096
+batch_size: 4
+generation_config:
+  max_new_tokens: 512
+  # temperature: 0.0
+  do_sample: false
+new_run: True
+# max_chunk_len: 30
+# with_history: True
+# model_path: /root/data/ckp/hf_models/phi4_mm_bias
+# model_path: /root/outputs/dev-n2-hpe5/grpo_vllm_libri_v1_n12_err_m1000_p8_bp8_mp1_all_sc1k_seed_rw10_coloc/checkpoint-8400/
+# model_path: /root/data/ckp/hf_models/phi4_mm_bias
+model_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+eval_data:
+  # - nickname: health
+  #   # num_egs: 2
+  #   dataset_name: inhouse_entity
+  #   jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DeliciousHealthy_Entity_FY24Q1_en-US_DTEST/test.jsonl
+  #   data_dir: /root/data/
+  - nickname: clean_no
+    num_egs: 20
+    dataset_name: ls_bias
+    jsonl_path: az://orngcresco/data/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    data_dir: az://orngcresco/data/boren/data/
+
+  - nickname: entity_Conversation_Gaming_0
+    dataset_name: inhouse_entity
+    data_dir: az://orngcresco/data/boren/data/
+    src_dir: /home/boren/data/
+    jsonl_path: az://orngcresco/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    distractor_file: az://orngcresco/data/boren/data/librispeech_biasing/words/all_rare_words.txt
+    max_bias: 0
+
+  # bias_key: distractors
+  # - nickname: clean_1000
+  #   num_egs: 512
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
+  #   bias_key: distractors
+  # - nickname: other_no
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+  # - nickname: clean_100
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+  #   bias_key: distractors
+  # - nickname: other_100
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+  #   bias_key: distractors
+  # - nickname: clean_500
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
+  #   bias_key: distractors
+  # - nickname: other_500
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
+  #   bias_key: distractors
+  # - nickname: other_1000
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
+  #   bias_key: distractors
