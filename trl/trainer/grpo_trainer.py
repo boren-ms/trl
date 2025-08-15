@@ -1690,7 +1690,19 @@ class GRPOTrainer(Trainer):
 
     def log(self, logs: dict[str, float], start_time: Optional[float] = None) -> None:
         mode = "train" if self.model.training else "eval"
-        metrics = {key: sum(val) / len(val) for key, val in self._metrics[mode].items()}  # average the metrics
+
+        def agg_value(key, val):
+            if val is None or len(val) == 0:
+                return 0
+            items = key.split("/")[-1].split("_")
+            if "min" in items:
+                return min(val)
+            elif "max" in items:
+                return max(val)
+            else:
+                return sum(val) / len(val)
+
+        metrics = {key: agg_value(key, val) for key, val in self._metrics[mode].items()}  # average the metrics
 
         # This method can be called both in training and evaluation. When called in evaluation, the keys in `logs`
         # start with "eval_". We need to add the prefix "eval_" to the keys in `metrics` to match the format.
