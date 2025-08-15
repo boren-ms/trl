@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
 from collections import defaultdict, deque
 from collections.abc import Sequence
 from itertools import takewhile
@@ -98,6 +97,7 @@ def apply_chat_template(
     example: dict[str, list[dict[str, str]]],
     tokenizer: PreTrainedTokenizerBase,
     tools: Optional[list[Union[dict, Callable]]] = None,
+    **template_kwargs,
 ) -> dict[str, str]:
     r"""
     Apply a chat template to a conversational example along with the schema for a list of functions in `tools`.
@@ -119,7 +119,7 @@ def apply_chat_template(
 
     # Apply the chat template to the whole conversation
     if "messages" in example:
-        messages = tokenizer.apply_chat_template(example["messages"], tools=tools, tokenize=False)
+        messages = tokenizer.apply_chat_template(example["messages"], tools=tools, tokenize=False, **template_kwargs)
 
     # Apply the chat template to the prompt, adding the generation prompt
     if "prompt" in example:
@@ -138,12 +138,13 @@ def apply_chat_template(
             continue_final_message=continue_final_message,
             tokenize=False,
             add_generation_prompt=add_generation_prompt,
+            **template_kwargs,
         )
 
     # Apply the chat template to the entire prompt + completion
     if "prompt" in example:  # explicit prompt and prompt-completion case
         if "chosen" in example:
-            prompt_chosen = tokenizer.apply_chat_template(example["prompt"] + example["chosen"], tools=tools, tokenize=False)
+            prompt_chosen = tokenizer.apply_chat_template(example["prompt"] + example["chosen"], tools=tools, tokenize=False, **template_kwargs)
             # DeepSeek-R1 inserts a <think> token when using `add_generation_prompt`, which can cause discrepancies
             # between the prompt alone and the combined prompt+completion. To ensure consistency, we extract the
             # common prefix between the two. In most cases, this is a no-op.
@@ -162,7 +163,7 @@ def apply_chat_template(
             completion = prompt_completion[len(prompt) :]
     else:  # implicit prompt case
         if "chosen" in example:
-            chosen = tokenizer.apply_chat_template(example["chosen"], tools=tools, tokenize=False)
+            chosen = tokenizer.apply_chat_template(example["chosen"], tools=tools, tokenize=False, **template_kwargs)
         if "rejected" in example:
             rejected = tokenizer.apply_chat_template(example["rejected"], tools=tools, tokenize=False)
 
@@ -188,6 +189,7 @@ def maybe_apply_chat_template(
     example: dict[str, list[dict[str, str]]],
     tokenizer: PreTrainedTokenizerBase,
     tools: Optional[list[Union[dict, Callable]]] = None,
+    **template_kwargs: Any,
 ) -> dict[str, str]:
     r"""
     If the example is in a conversational format, apply a chat template to it.
@@ -210,7 +212,9 @@ def maybe_apply_chat_template(
             Tokenizer to apply the chat template with.
         tools (`list[Union[dict, Callable]]` or `None`, *optional*, defaults to `None`):
             A list of tools (callable functions) that will be accessible to the model. If the template does not support
-            function calling, this argument will have no effect
+            function calling, this argument will have no effect.
+        **template_kwargs (`Any`, *optional*):
+            Additional kwargs to pass to the template renderer. Will be accessible by the chat template.
 
     Returns:
         `dict[str, str]`:
@@ -238,7 +242,7 @@ def maybe_apply_chat_template(
     ```
     """
     if is_conversational(example):
-        return apply_chat_template(example, tokenizer, tools)
+        return apply_chat_template(example, tokenizer, tools, **template_kwargs)
     else:
         return example
 
@@ -538,8 +542,8 @@ class _SegmentTree:
         return self.tree[i]
 
 
-def _pack_ffd(examples: pa.Table, seq_length: int) -> pa.Table:
-    """Pack sequences in a pyarrow Table using First Fit Decreasing strategy."""
+def _pack_bfd(examples: pa.Table, seq_length: int) -> pa.Table:
+    """Pack sequences in a pyarrow Table using Best Fit Decreasing strategy."""
     columns = []
     list_column_idx = None
     for idx, column in enumerate(examples.columns):
@@ -629,10 +633,10 @@ def pack_dataset(dataset: DatasetType, seq_length: int, strategy: str = "ffd", m
             Dataset to pack
         seq_length (`int`):
             Target sequence length to pack to.
-        strategy (`str`, *optional*, defaults to `"ffd"`):
+        strategy (`str`, *optional*, defaults to `"bfd"`):
             Packing strategy to use. Can be either:
 
-            - `"ffd"` (First Fit Decreasing): Slower but preserves sequence boundaries. Sequences are never cut in the
+            - `"bfd"` (Best Fit Decreasing): Slower but preserves sequence boundaries. Sequences are never cut in the
                 middle.
             - `"wrapped"`: Faster but more aggressive. Ignores sequence boundaries and will cut sequences in the middle
                 to completely fill each packed sequence with data.
@@ -653,7 +657,7 @@ def pack_dataset(dataset: DatasetType, seq_length: int, strategy: str = "ffd", m
     ...     "attention_mask": [[1, 1, 0], [1, 0], [1, 0, 0], [1]],
     ... }
     >>> dataset = Dataset.from_dict(examples)
-    >>> packed_dataset = pack_dataset(dataset, seq_length=4, strategy="ffd")
+    >>> packed_dataset = pack_dataset(dataset, seq_length=4, strategy="bfd")
     >>> packed_dataset[:]
     {'input_ids': [[1, 2, 3, 9], [6, 7, 8, 4, 5]],
      'attention_mask': [[1, 1, 0, 1], [1, 0, 0, 1, 0]]}
@@ -663,12 +667,12 @@ def pack_dataset(dataset: DatasetType, seq_length: int, strategy: str = "ffd", m
         map_kwargs = {}
     # Fast packing with pyarrow
     dataset = dataset.with_format("arrow")
-    if strategy == "ffd":
-        dataset = dataset.map(_pack_ffd, batched=True, fn_kwargs={"seq_length": seq_length}, **map_kwargs)
+    if strategy == "bfd":
+        dataset = dataset.map(_pack_bfd, batched=True, fn_kwargs={"seq_length": seq_length}, **map_kwargs)
     elif strategy == "wrapped":
         dataset = dataset.map(_pack_wrapped, batched=True, fn_kwargs={"seq_length": seq_length}, **map_kwargs)
     else:
-        raise ValueError(f"Invalid packing strategy: {strategy}. Use 'ffd' or 'wrapped'.")
+        raise ValueError(f"Invalid packing strategy: {strategy}. Use 'bfd' or 'wrapped'.")
     dataset = dataset.with_format(None)
     return dataset
 
@@ -755,10 +759,12 @@ def is_conversational_from_value(example: dict[str, Any]) -> bool:
     >>> example = {"conversations": [{"from": "user", "value": "What color is the sky?"}]}
     >>> is_conversational_from_value(example)
     True
+
     >>> example = {"conversations": [{"role": "user", "content": "What color is the sky?"}]}
     >>> is_conversational_from_value(example)
     False
-    >>> example = {"conversations": "The sky is"})
+
+    >>> example = {"conversations": "The sky is"}
     >>> is_conversational_from_value(example)
     False
     ```

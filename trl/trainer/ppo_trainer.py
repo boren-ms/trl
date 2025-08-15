@@ -90,6 +90,7 @@ class PolicyAndValueWrapper(nn.Module):
         self.policy = policy
         self.value_model = value_model
         self.critic_backbone = getattr(value_model, value_model.base_model_prefix)
+        self.is_gradient_checkpointing = policy.is_gradient_checkpointing
 
     def forward(self, **kwargs):
         output = self.critic_backbone(**kwargs)
@@ -796,6 +797,7 @@ class PPOTrainer(Trainer):
 
         tags.update(self._tag_names)
 
+        # docstyle-ignore
         citation = textwrap.dedent("""\
         @article{mziegler2019fine-tuning,
             title        = {{Fine-Tuning Language Models from Human Preferences}},
@@ -810,7 +812,7 @@ class PPOTrainer(Trainer):
             hub_model_id=self.hub_model_id,
             dataset_name=dataset_name,
             tags=tags,
-            wandb_url=wandb.run.get_url() if is_wandb_available() and wandb.run is not None else None,
+            wandb_url=wandb.run.url if is_wandb_available() and wandb.run is not None else None,
             comet_url=get_comet_experiment_url(),
             trainer_name="PPO",
             trainer_citation=citation,

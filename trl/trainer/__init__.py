@@ -23,6 +23,7 @@ _import_structure = {
     "bco_config": ["BCOConfig"],
     "bco_trainer": ["BCOTrainer"],
     "callbacks": [
+        "BEMACallback",
         "LogCompletionsCallback",
         "MergeModelCallback",
         "RichProgressCallback",
@@ -70,8 +71,6 @@ _import_structure = {
     "sft_config": ["SFTConfig"],
     "sft_trainer": ["SFTTrainer"],
     "utils": [
-        "ConstantLengthDataset",
-        "DataCollatorForCompletionOnlyLM",
         "RunningMoments",
         "compute_accuracy",
         "disable_dropout_in_model",
@@ -95,6 +94,7 @@ if TYPE_CHECKING:
     from .bco_config import BCOConfig
     from .bco_trainer import BCOTrainer
     from .callbacks import (
+        BEMACallback,
         LogCompletionsCallback,
         MergeModelCallback,
         RichProgressCallback,
@@ -141,8 +141,6 @@ if TYPE_CHECKING:
     from .sft_config import SFTConfig
     from .sft_trainer import SFTTrainer
     from .utils import (
-        ConstantLengthDataset,
-        DataCollatorForCompletionOnlyLM,
         RunningMoments,
         compute_accuracy,
         disable_dropout_in_model,

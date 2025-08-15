@@ -23,7 +23,6 @@ from importlib.metadata import version
 from typing import Any, Literal, Optional, Union
 import types
 
-import datasets
 import numpy as np
 import pandas as pd
 import torch
@@ -33,10 +32,8 @@ from accelerate import Accelerator, PartialState
 from accelerate.state import AcceleratorState
 from huggingface_hub import ModelCard, ModelCardData
 from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import IterableDataset
 from transformers import (
     BitsAndBytesConfig,
-    DataCollatorForLanguageModeling,
     EvalPrediction,
     GenerationConfig,
     PreTrainedTokenizerBase,
@@ -930,8 +927,7 @@ def get_peft_config(model_args: ModelConfig) -> "Optional[PeftConfig]":
 def get_exp_cap(value, decimal=4):
     """
     Get the exponent cap of a value. This is used to cap the exponent of a value to avoid overflow. The formula is :
-    log(value.dtype.max) E.g.
-      For float32 data type, the maximum exponent value is 88.7228 to 4 decimal points.
+    log(value.dtype.max) E.g. for float32 data type, the maximum exponent value is 88.7228 to 4 decimal points.
 
     Args:
         value (`torch.Tensor`):
@@ -1052,6 +1048,10 @@ class OnPolicyConfig(TrainingArguments):
     logging_steps: float = field(
         default=10,
         metadata={"help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, " "will be interpreted as ratio of total training steps."},
+    )
+    gradient_checkpointing: bool = field(
+        default=True,
+        metadata={"help": "If True, use gradient checkpointing to save memory at the expense of slower backward pass."},
     )
     bf16: Optional[bool] = field(
         default=None,
@@ -1732,16 +1732,17 @@ def selective_log_softmax(logits, index) -> torch.Tensor:
 
 def entropy_from_logits(logits, chunk_size: int = 1) -> torch.Tensor:
     """
-    Compute the Shannon entropy (in nats) for each row of *logits* without
-    materialising the full soft-max in memory.
-    The batch dimension is processed in chunks of size `chunk_size` so that
-    only a subset of rows is expanded to probabilities at any one time.
+    Compute the Shannon entropy (in nats) for each row of *logits* without materialising the full soft-max in memory.
+    The batch dimension is processed in chunks of size `chunk_size` so that only a subset of rows is expanded to
+    probabilities at any one time.
+
     Args:
         logits (`torch.Tensor`):
-            Logits tensor of shape `(..., num_classes)`. Entropy is taken along the last axis; all
-            leading dimensions are preserved.
+            Logits tensor of shape `(..., num_classes)`. Entropy is taken along the last axis; all leading dimensions
+            are preserved.
         chunk_size (`int`, *optional*, defaults to `1`):
             Number of rows to process per iteration.
+
     Returns:
         `torch.Tensor`:
             Entropy values with shape `logits.shape[:-1]`.

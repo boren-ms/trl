@@ -60,6 +60,12 @@ class PRMConfig(TrainingArguments):
             "will be interpreted as ratio of total training steps."
         },
     )
+    gradient_checkpointing: bool = field(
+        default=True,
+        metadata={
+            "help": "If True, use gradient checkpointing to save memory at the expense of slower backward pass."
+        },
+    )
     bf16: Optional[bool] = field(
         default=None,
         metadata={
@@ -68,6 +74,9 @@ class PRMConfig(TrainingArguments):
             "`fp16` is not set."
         },
     )
+    # Note: In transformers>=4.54.0, `average_tokens_across_devices` defaults to True. Overriding this setting is only
+    # needed for earlier versions. Once we require transformers>=4.54.0, this line can be safely removed.
+    # See https://github.com/huggingface/transformers/pull/39395
     average_tokens_across_devices: bool = field(
         default=True,
         metadata={

@@ -253,7 +253,7 @@ class GKDTrainer(SFTTrainer):
 
     @staticmethod
     def generate_on_policy_outputs(model, inputs, generation_config, pad_token_id=None):
-        # Generate output with respect to the prompt only
+        # Generate output with respect to the prompt-only
         generated_outputs = model.generate(
             input_ids=inputs["prompts"],
             attention_mask=inputs.get("prompt_attention_mask", None),
@@ -342,6 +342,7 @@ class GKDTrainer(SFTTrainer):
 
         tags.update(self._tag_names)
 
+        # docstyle-ignore
         citation = textwrap.dedent("""\
         @inproceedings{agarwal2024on-policy,
             title        = {{On-Policy Distillation of Language Models: Learning from Self-Generated Mistakes}},
@@ -358,7 +359,7 @@ class GKDTrainer(SFTTrainer):
             hub_model_id=self.hub_model_id,
             dataset_name=dataset_name,
             tags=tags,
-            wandb_url=wandb.run.get_url() if is_wandb_available() and wandb.run is not None else None,
+            wandb_url=wandb.run.url if is_wandb_available() and wandb.run is not None else None,
             comet_url=get_comet_experiment_url(),
             trainer_name="GKD",
             trainer_citation=citation,

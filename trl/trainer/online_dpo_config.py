@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 from transformers import TrainingArguments
 
@@ -66,11 +66,17 @@ class OnlineDPOConfig(TrainingArguments):
         use_vllm (`bool`, *optional*, defaults to `False`):
             Whether to use vLLM for generating completions. Requires vLLM to be installed (`pip install vllm`).
         vllm_gpu_memory_utilization (`float`, *optional*, defaults to `0.55`):
-            The vLLM memory utilization. The default value is 0.55.
+        vllm_model_impl (`str`, *optional*, defaults to `"vllm"`):
+            Model implementation to use for vLLM. Must be one of `"transformers"` or `"vllm"`. `"transformers"`: Use
+            the `transformers` backend for model implementation. `"vllm"`: Use the `vllm` library for model
+            implementation.
         ds3_gather_for_generation (`bool`, *optional*, defaults to `True`):
             This setting applies to DeepSpeed ZeRO-3. If enabled, the policy model weights are gathered for generation,
             improving generation speed. However, disabling this option allows training models that exceed the VRAM
             capacity of a single GPU, albeit at the cost of slower generation.
+        model_init_kwargs (`dict[str, Any]` or `None`, *optional*, defaults to `None`):
+            Keyword arguments to pass to `AutoModelForCausalLM.from_pretrained` when instantiating the model from a
+            string.
     """
 
     # Parameters whose default values are overridden from TrainingArguments
@@ -80,10 +86,11 @@ class OnlineDPOConfig(TrainingArguments):
     )
     logging_steps: float = field(
         default=10,
-        metadata={
-            "help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, "
-            "will be interpreted as ratio of total training steps."
-        },
+        metadata={"help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, " "will be interpreted as ratio of total training steps."},
+    )
+    gradient_checkpointing: bool = field(
+        default=True,
+        metadata={"help": "If True, use gradient checkpointing to save memory at the expense of slower backward pass."},
     )
     bf16: Optional[bool] = field(
         default=None,
@@ -96,15 +103,11 @@ class OnlineDPOConfig(TrainingArguments):
 
     reward_model_path: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Path to the reward model. Either `judge` or `reward_model_path` must be set, but not both."
-        },
+        metadata={"help": "Path to the reward model. Either `judge` or `reward_model_path` must be set, but not both."},
     )
     judge: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Name of the judge to use. Either `judge` or `reward_model_path` must be set, but not both."
-        },
+        metadata={"help": "Name of the judge to use. Either `judge` or `reward_model_path` must be set, but not both."},
     )
     max_new_tokens: int = field(
         default=64,
@@ -156,9 +159,14 @@ class OnlineDPOConfig(TrainingArguments):
     )
     use_vllm: bool = field(
         default=False,
+        metadata={"help": "Whether to use vLLM for generating completions. Requires vLLM to be installed " "(`pip install vllm`)."},
+    )
+    vllm_model_impl: str = field(
+        default="vllm",
         metadata={
-            "help": "Whether to use vLLM for generating completions. Requires vLLM to be installed "
-            "(`pip install vllm`)."
+            "help": "Model implementation to use for vLLM. Must be one of `transformers` or `vllm`. `transformers`: "
+            "Use the `transformers` backend for model implementation. `vllm`: Use the `vllm` library for "
+            "model implementation."
         },
     )
     vllm_gpu_memory_utilization: Optional[float] = field(
@@ -190,6 +198,10 @@ class OnlineDPOConfig(TrainingArguments):
     wandb_log_unique_prompts: Optional[bool] = field(
         default=False,
         metadata={"help": "Whether to log unique prompts in wandb. If `True`, only unique prompts are logged. If `False`, " "all prompts are logged."},
+    )
+    model_init_kwargs: Optional[dict[str, Any]] = field(
+        default=None,
+        metadata={"help": "Keyword arguments to pass to `AutoModelForCausalLM.from_pretrained` when instantiating the model " "from a string."},
     )
 
     def __post_init__(self):
