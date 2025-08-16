@@ -52,10 +52,14 @@ def tag_pieces(pieces, tag="*", specified=None, norm=None):
 #     return random.sample(lst, n)
 
 
-def rand_int(min_val, max_val):
+def gauss_int(min_val, max_val, coverage=0.95):
     """Randomly sample an integer between min_val and max_val."""
+    z_table = {0.68: 1.0, 0.90: 1.645, 0.95: 1.96, 0.975: 2.24, 0.99: 2.576, 0.997: 3.0}
+    # Find the closest key in z_table to the requested coverage
+    closest_coverage = min(z_table.keys(), key=lambda k: abs(k - coverage))
+    z = z_table[closest_coverage]
     mu = (min_val + max_val) / 2
-    sigma = (max_val - min_val) / 4
+    sigma = (max_val - min_val) / (2 * z)
     n = int(random.gauss(mu, sigma))
     n = min(max(n, min_val), max_val)
     return n
@@ -67,7 +71,7 @@ def rand_uniq_sample(lst, n_max, n_min=0):
     lst = list(set(lst))
     n_max = min(n_max, len(lst))
     n_min = min(n_min, n_max)
-    return random.sample(lst, rand_int(n_min, n_max))
+    return random.sample(lst, gauss_int(n_min, n_max))
 
 
 def rand_sample(lst, n_max, n_min=0):
@@ -99,6 +103,13 @@ def get_range(args):
     raise ValueError(f"Invalid range argument: {args}. Must be int or tuple/list.")
 
 
+def random_sample(lst, n):
+    n = int(min(n, len(lst)))
+    if n <= 0:
+        return []
+    return random.sample(lst, n)
+
+
 class PieceSampler:
     """Sample segments from the text using instance parameters."""
 
@@ -107,6 +118,7 @@ class PieceSampler:
         buffer_size=100000,
         bias_prob=1.0,
         hit_prob=0.5,
+        min_hit_ratio=0.0,
         miss_prob=1,
         max_piece_len=1,
         sampling_version=None,
@@ -132,6 +144,7 @@ class PieceSampler:
         self.bias_prob = bias_prob
         self.sample_range = get_range(sample_range)
         self.hit_prob = hit_prob
+        self.min_hit_ratio = min_hit_ratio
         self.miss_prob = miss_prob
         self.tag = tag
         self.tag_all = tag_all
@@ -139,6 +152,8 @@ class PieceSampler:
             self._sample = self._sample_v0
         elif sampling_version == "v1":
             self._sample = self._sample_v1
+        elif sampling_version == "v2":
+            self._sample = self._sample_v2
         else:
             self._sample = self._old_sample
         self.log_interval = int(log_interval) if log_interval else None
@@ -162,7 +177,7 @@ class PieceSampler:
             self.buffer.extend(set(pieces))
         if random.random() > self.bias_prob:
             return []
-        num_pieces = rand_int(*self.sample_range)
+        num_pieces = gauss_int(*self.sample_range)
         examples = []
         if random.random() <= self.hit_prob:
             examples += rand_uniq_sample(pieces, num_pieces)
@@ -183,10 +198,28 @@ class PieceSampler:
         examples = []
         if random.random() <= self.hit_prob:
             n_hit = random.randint(1, min(n_egs, len(pieces)))
-            examples += random.sample(pieces, n_hit)
+            examples += random_sample(pieces, n_hit)
         n_miss = n_egs - len(examples)
         if random.random() <= self.miss_prob and n_miss > 0:
-            examples += random.sample(self.buffer, min(n_miss, len(self.buffer)))
+            examples += random_sample(self.buffer, n_miss)
+        return examples
+
+    def _sample_v2(self, pieces):
+        """Sample segments from the positive pieces."""
+        pieces = list(self.filter_commons(set(pieces)))  # ensure uniq and filter commons
+        if self.miss_prob > 0:  # add negative sampling, if miss_prob > 0
+            self.buffer.extend(pieces)
+        n_egs = random.randint(*self.sample_range)
+        if random.random() > self.bias_prob or not pieces or n_egs <= 0:
+            return []
+
+        examples = []
+        if random.random() <= self.hit_prob:
+            n_hit = len(pieces) * random.uniform(self.min_hit_ratio, 1)
+            examples += random_sample(pieces, n_hit)
+        n_miss = n_egs - len(examples)
+        if random.random() <= self.miss_prob and n_miss > 0:
+            examples += random_sample(self.buffer, n_miss)
         return examples
 
     def _old_sample(self, pieces):

@@ -2,8 +2,6 @@
 3631660 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e1_simple_err_t12_n8_sc3k_ctx8_inject_ref_imp5_smp_v1.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh dev-n1-hpe5 -- 'pgrep -fa /launch_'[0m
 39450 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_zero_e1_simple_err_ga1_t12_n10x2_sc3k_ctx8.yaml --seed_name grpo_ls_m1000_zero_e1_simple_err_ga1_t12_n10x2_sc3k_ctx8_G4x8
-[32;1mRUN: /home/boren/.openai/bin/brix ssh dev-n1-uks7 -- 'pgrep -fa /launch_'[0m
-exit status 1
 [32;1mRUN: /home/boren/.openai/bin/brix ssh dev-n1-wus2 -- 'pgrep -fa /launch_'[0m
 16567 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_zero_e1_simple_err_t12_n10_sc3k_ctx8_inject_ref_imp5.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh dev1-n1-wus2 -- 'pgrep -fa /launch_'[0m
@@ -19,10 +17,10 @@ exit status 1
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h-n4-hpe4 -- 'pgrep -fa /launch_'[0m
 55257 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_zero_e6_simple_err_t12_n10_sc3k_ctx8_inject_ref_imp5.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h1-n2-hpe4 -- 'pgrep -fa /launch_'[0m
-1643510 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e1_simple_char_err_t12_n10_sc3k_ctx8_new.yaml --seed_name grpo_ls_m1000_seed_e1_simple_char_err_t12_n10_sc3k_ctx8_new_G1x8
+2991938 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_zero_e3_simple_err_t12_n8_sc3k_ctx8_inject_ref_imp5_smp_v1_tag.yaml --seed_name grpo_ls_m1000_zero_e3_simple_err_t12_n8_sc3k_ctx8_inject_ref_imp5_smp_v1_tag_G1x8
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h1-n2-wus2 -- 'pgrep -fa /launch_'[0m
 exit status 1
 [32;1mRUN: /home/boren/.openai/bin/brix ssh l-n1-hpe2 -- 'pgrep -fa /launch_'[0m
 24089 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e1_simple_err_t12_n10_sc3k_ctx8.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh l-n4-hpe2 -- 'pgrep -fa /launch_'[0m
-202407 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_zero_e3_simple_err_t12_n8_sc3k_ctx8_inject_ref_imp5_smp_v1_tag.yaml --seed_name grpo_ls_m1000_zero_e3_simple_err_t12_n8_sc3k_ctx8_inject_ref_imp5_smp_v1_tag_G1x8
+exit status 1
