@@ -103,6 +103,13 @@ def get_range(args):
     raise ValueError(f"Invalid range argument: {args}. Must be int or tuple/list.")
 
 
+def to_list(x, default=None):
+    """Convert the input to a list."""
+    if x is None:
+        return default
+    return x if isinstance(x, (list, tuple)) else [x]
+
+
 def random_sample(lst, n):
     n = int(min(n, len(lst)))
     if n <= 0:
@@ -118,7 +125,7 @@ class PieceSampler:
         buffer_size=100000,
         bias_prob=1.0,
         hit_prob=0.5,
-        min_hit_ratio=0.0,
+        hit_ratio=None,
         miss_prob=1,
         max_piece_len=1,
         sampling_version=None,
@@ -144,7 +151,7 @@ class PieceSampler:
         self.bias_prob = bias_prob
         self.sample_range = get_range(sample_range)
         self.hit_prob = hit_prob
-        self.min_hit_ratio = min_hit_ratio
+        self.hit_ratio = to_list(hit_ratio, (0, 1))
         self.miss_prob = miss_prob
         self.tag = tag
         self.tag_all = tag_all
@@ -215,8 +222,8 @@ class PieceSampler:
 
         examples = []
         if random.random() <= self.hit_prob:
-            n_hit = len(pieces) * random.uniform(self.min_hit_ratio, 1)
-            examples += random_sample(pieces, n_hit)
+            n_hit = len(pieces) * random.uniform(self.hit_ratio[0], self.hit_ratio[-1])
+            examples += random_sample(pieces, min(n_hit, n_egs))
         n_miss = n_egs - len(examples)
         if random.random() <= self.miss_prob and n_miss > 0:
             examples += random_sample(self.buffer, n_miss)
