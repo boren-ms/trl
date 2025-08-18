@@ -2,7 +2,7 @@
 
 # Array of storage accounts
 accounts=(
-    # tsstd01uks
+    tsstd01uks
     tsstd01wus2
     # highperf01eus
 )
