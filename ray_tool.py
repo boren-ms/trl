@@ -569,7 +569,8 @@ class RayNode:
         ray.init(address="auto")  # Connect to the running cluster
         print("Connected to Ray cluster.")
         nodes = [node for node in ray.nodes() if node["Alive"]]
-        self.indexs = indexs or list(range(len(nodes)))
+
+        self.indexs = indexs if indexs is not None else list(range(len(nodes)))
         self.nodes = [nodes[i] for i in self.indexs]
         print(f"Initialized RayHelper with {len(self.nodes)} nodes: {[node['NodeName'] for node in self.nodes]}")
 
