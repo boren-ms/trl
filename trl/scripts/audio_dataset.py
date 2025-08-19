@@ -3,6 +3,7 @@ import os
 import ast
 import urllib
 import random
+import re
 import blobfile as bf
 import pandas as pd
 import numpy as np
@@ -318,6 +319,43 @@ def filter_ds(ds, **kwargs):
     return ds
 
 
+def merge_speakers(text):
+    cur_spk = None
+    words = []
+    for wd in text.split():
+        if re.match(r"<SPK\d+>", wd):
+            if cur_spk == wd:
+                continue
+            else:
+                cur_spk = wd
+        words.append(wd)
+    return " ".join(words)
+
+
+def get_value(x, key):
+    keys = key.split(".")
+    for k in keys:
+        x = x.get(k, {})
+    return x or None
+
+
+def diarization(ds, **kwargs):
+    """Perform speaker diarization on the dataset."""
+    trans_key = kwargs.get("trans_key", "text")
+
+    def speaker_trans(example):
+        text = get_value(example, trans_key)
+        text = merge_speakers(text)
+        prompt = get_task_prompt(task="asr")
+        return {
+            "prompt": prompt_format.format(prompt),
+            "text": text,  # text is updated
+        }
+
+    ds = ds.map(speaker_trans)
+    return ds
+
+
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
     if filter_kwargs := kwargs.get("filter", {}):
@@ -326,6 +364,8 @@ def augment(ds, **kwargs):
         ds = bias_sampling(ds, **biasing_kwargs)
     if pref_kwargs := kwargs.get("simu_preference", {}):
         ds = simulate_preference(ds, **pref_kwargs)
+    if dia_kwargs := kwargs.get("diarization", {}):
+        ds = diarization(ds, **dia_kwargs)
     if kwargs.get("load_audio", False):
         ds = load_audio(ds)
     return ds
