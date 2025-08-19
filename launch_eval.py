@@ -39,7 +39,7 @@ def launch_evaluation(model_path, config_file=None, ray_node=None):
     rank = int(os.environ.get("RCALL_INSTANCE_INDEX", "0")) - head
     rank_size = ray_node.num_nodes
     num_gpu = int(os.environ.get("RCALL_NUM_GPU", "8"))
-    main_process_ip = ray_node.hostname(head)
+    main_process_ip = ray_node.hostname()
     main_process_port = 12345
     script_path = cur_dir / "trl/scripts/eval_bias.py"
     cmd = [
