@@ -21,6 +21,13 @@ def sorted_nodes(nodes):
     return sorted(nodes)
 
 
+def to_list(data):
+    """Convert data to a list if it is not already."""
+    if isinstance(data, (list, tuple)):
+        return list(data)
+    return [data]
+
+
 def to_int(value, default=-1):
     """Convert a value to an integer, if possible."""
     try:
@@ -570,7 +577,7 @@ class RayNode:
         print("Connected to Ray cluster.")
         nodes = [node for node in ray.nodes() if node["Alive"]]
 
-        self.indexs = indexs if indexs is not None else list(range(len(nodes)))
+        self.indexs = to_list(indexs) if indexs is not None else list(range(len(nodes)))
         self.nodes = [nodes[i] for i in self.indexs]
         print(f"Initialized RayHelper with {len(self.nodes)} nodes: {[node['NodeName'] for node in self.nodes]}")
 
