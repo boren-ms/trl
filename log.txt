@@ -21,3 +21,5 @@
 557564 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e1_simple_err_t12_n8_sc3k_ctx8_inject_ref_imp5_smp_v2a.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh l-n1-hpe2 -- 'pgrep -fa /launch_'[0m
 16055 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e1_simple_err_t12_n8_sc3k_ctx8_inject_ref_imp5_smp_v2_nobias.yaml
+[32;1mRUN: /home/boren/.openai/bin/brix ssh l1-n1-hpe2 -- 'pgrep -fa /launch_'[0m
+16136 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e1_simple_err_t12_n8_sc3k_ctx5_inject_ref_imp5_smp_v2b.yaml
