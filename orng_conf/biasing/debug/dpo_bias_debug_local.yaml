@@ -1,0 +1,27 @@
+# report_to: [wandb]
+learning_rate: 1.0e-5
+lr_scheduler_type: cosine
+output_dir: ~/outputs/debug
+num_train_epochs: 1
+per_device_train_batch_size: 3
+gradient_accumulation_steps: 1
+gradient_checkpointing: True
+logging_steps: 1
+bf16: True
+max_prompt_length: 1024
+# wandb_log_unique_prompts: True
+# model_name_or_path: az://orngcresco/data/boren/data/ckp/phi4_mm_bias
+# model_name_or_path: /home/boren/data/ckp/hf_models/phi4_mm_bias
+model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
+save_steps: 50
+# beta: 0.0
+train_data:
+    dataset_name: jsonl
+    # nug_egs: 5000
+    jsonl_paths: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct/metric_vllm_ls_train_debug_biasing_smp2__results.jsonl
+    wer_filter:
+        wer_range: [1, 100]
+        bwer_range: [1, 100]
+    format_preference:
+        chosen_key: ref
+        rejected_key: hyp

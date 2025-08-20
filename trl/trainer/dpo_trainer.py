@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Callable, Literal, Optional, Union
 
 import pandas as pd
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -54,7 +55,7 @@ from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_utils import EvalLoopOutput
 from transformers.utils import is_liger_kernel_available, is_peft_available
 
-from ..data_utils import maybe_apply_chat_template, maybe_extract_prompt
+from ..data_utils import maybe_apply_chat_template, maybe_extract_prompt, load_audio
 from ..models import create_reference_model, prepare_deepspeed
 from ..models.utils import prepare_fsdp
 from .callbacks import SyncRefModelCallback
@@ -151,10 +152,10 @@ class DataCollatorForPreference(DataCollatorMixin):
         chosen_attention_mask = [torch.ones_like(input_ids) for input_ids in chosen_input_ids]
         rejected_input_ids = [torch.tensor(example["rejected_input_ids"]) for example in examples]
         rejected_attention_mask = [torch.ones_like(input_ids) for input_ids in rejected_input_ids]
-        if "pixel_values" in examples[0]:
-            pixel_values = [torch.tensor(example["pixel_values"]) for example in examples]
-        if "pixel_attention_mask" in examples[0]:
-            pixel_attention_mask = [torch.tensor(example["pixel_attention_mask"]) for example in examples]
+        if "input_audio_embeds" in examples[0]:
+            input_audio_embeds = [torch.tensor(example["input_audio_embeds"]) for example in examples]
+        if "audio_attention_mask" in examples[0]:
+            audio_attention_mask = [torch.tensor(example["audio_attention_mask"]) for example in examples]
         if "ref_chosen_logps" in examples[0] and "ref_rejected_logps" in examples[0]:
             ref_chosen_logps = torch.tensor([example["ref_chosen_logps"] for example in examples])
             ref_rejected_logps = torch.tensor([example["ref_rejected_logps"] for example in examples])
@@ -167,12 +168,12 @@ class DataCollatorForPreference(DataCollatorMixin):
         output["chosen_attention_mask"] = pad(chosen_attention_mask, padding_value=0)
         output["rejected_input_ids"] = pad(rejected_input_ids, padding_value=self.pad_token_id)
         output["rejected_attention_mask"] = pad(rejected_attention_mask, padding_value=0)
-        if "pixel_values" in examples[0]:
-            output["pixel_values"] = pad(pixel_values, padding_value=0.0)
-        if "pixel_attention_mask" in examples[0]:
-            output["pixel_attention_mask"] = pad(pixel_attention_mask, padding_value=0)
-        if "image_sizes" in examples[0]:
-            output["image_sizes"] = torch.tensor([example["image_sizes"] for example in examples])
+        if "input_audio_embeds" in examples[0]:
+            output["input_audio_embeds"] = pad(input_audio_embeds, padding_value=0.0)
+        if "audio_attention_mask" in examples[0]:
+            output["audio_attention_mask"] = pad(audio_attention_mask, padding_value=0)
+        if "audio_embed_sizes" in examples[0]:
+            output["audio_embed_sizes"] = torch.tensor([example["audio_embed_sizes"] for example in examples])
         if "ref_chosen_logps" in examples[0] and "ref_rejected_logps" in examples[0]:
             output["ref_chosen_logps"] = ref_chosen_logps
             output["ref_rejected_logps"] = ref_rejected_logps
@@ -313,15 +314,17 @@ class DPOTrainer(Trainer):
             raise ValueError("`generate_during_eval=True` requires Weights and Biases, MLFlow or Comet to be installed." " Please install `wandb`, `mlflow` or `comet-ml` to resolve.")
 
         self.is_encoder_decoder = model.config.is_encoder_decoder
-        self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
+        # self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
+        self.is_vision_model = True
         self.is_peft_model = is_peft_available() and isinstance(model, PeftModel)
+        self.is_lora_model = args.ref_lora_name is not None
         self.model_adapter_name = args.model_adapter_name
         self.ref_adapter_name = args.ref_adapter_name
         self.reference_free = args.reference_free
 
         if ref_model:
             self.ref_model = ref_model
-        elif self.is_peft_model or args.precompute_ref_log_probs:
+        elif self.is_peft_model or args.precompute_ref_log_probs or self.is_lora_model:
             # The `model` with adapters turned off will be used as the reference model
             self.ref_model = None
         else:
@@ -361,8 +364,9 @@ class DPOTrainer(Trainer):
         self.generate_during_eval = args.generate_during_eval
         self.label_pad_token_id = args.label_pad_token_id
         self.max_prompt_length = args.max_prompt_length
+        assert self.max_prompt_length is not None, "max_prompt_length must be specified in DPOConfig."
         self.max_completion_length = args.max_completion_length
-        self.max_length = args.max_length
+        self.max_length = args.max_length or args.max_prompt_length + args.max_completion_length if args.max_completion_length is not None else args.max_prompt_length * 2
         self.truncation_mode = args.truncation_mode
         self.precompute_ref_log_probs = args.precompute_ref_log_probs
         self.use_logits_to_keep = args.use_logits_to_keep
@@ -460,7 +464,7 @@ class DPOTrainer(Trainer):
                 raise ValueError("You cannot use `precompute_ref_log_probs=True` with Deepspeed ZeRO-3. Please set `precompute_ref_log_probs=False`.")
 
         if self.ref_model is None:
-            if not (self.is_peft_model or self.precompute_ref_log_probs):
+            if not (self.is_peft_model or self.precompute_ref_log_probs or self.is_lora_model):
                 raise ValueError("No reference model and model is not a Peft model. Try setting `precompute_ref_log_probs=True`")
             if args.sync_ref_model:
                 raise ValueError("You currently cannot use `ref_model=None` with TR-DPO method. Please provide `ref_model`.")
@@ -692,10 +696,11 @@ class DPOTrainer(Trainer):
         Same as `tokenize_row` but for vision models. Please refer to `tokenize_row` for more information.
         """
         processor, tokenizer = processing_class, processing_class.tokenizer  # the processing class is a processor
-        processed_features = processor(images=features["images"], text=features["prompt"], add_special_tokens=False)
-
+        # processed_features = processor(images=features["images"], text=features["prompt"], add_special_tokens=False)
+        audio = load_audio(features)
+        processed_features = processor(text=features["prompt"], audios=[audio], return_tensors="pt")
         prompt_input_ids = processed_features["input_ids"][0]
-        pixel_values = processed_features["pixel_values"][0]
+        # pixel_values = processed_features["pixel_values"][0]
         chosen_input_ids = tokenizer(features["chosen"], add_special_tokens=False)["input_ids"]
         rejected_input_ids = tokenizer(features["rejected"], add_special_tokens=False)["input_ids"]
 
@@ -717,15 +722,15 @@ class DPOTrainer(Trainer):
 
         output = {
             "prompt_input_ids": prompt_input_ids,
-            "pixel_values": pixel_values,
+            # "pixel_values": pixel_values,
             "chosen_input_ids": chosen_input_ids,
             "rejected_input_ids": rejected_input_ids,
         }
-
-        if "pixel_attention_mask" in processed_features:
-            output["pixel_attention_mask"] = processed_features["pixel_attention_mask"][0]
-        if "image_sizes" in processed_features:
-            output["image_sizes"] = processed_features["image_sizes"][0]
+        if "input_audio_embeds" in processed_features:
+            output["input_audio_embeds"] = processed_features["input_audio_embeds"][0]
+            output["audio_embed_sizes"] = processed_features["audio_embed_sizes"][0]
+        if processed_features["audio_attention_mask"] is not None:
+            output["audio_attention_mask"] = processed_features["audio_attention_mask"][0]
 
         return output
 
@@ -739,7 +744,9 @@ class DPOTrainer(Trainer):
                 "prompt_input_ids",
                 "chosen_input_ids",
                 "rejected_input_ids",
-                "image_sizes",
+                "input_audio_embeds",
+                "audio_attention_mask",
+                "audio_embed_sizes",
                 "ref_chosen_logps",
                 "ref_rejected_logps",
             ]
@@ -849,7 +856,9 @@ class DPOTrainer(Trainer):
         """Computes log probabilities of the reference model for a single padded batch of a DPO specific dataset."""
         compte_ref_context_manager = autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
         with torch.no_grad(), compte_ref_context_manager:
-            if self.ref_model is None:
+            if self.is_lora_model:
+                ref_model_output = self.concatenated_forward(self.model, batch, input_mode=4)
+            elif self.ref_model is None:
                 with self.null_ref_context():
                     ref_model_output = self.concatenated_forward(self.model, batch, is_ref_model=True)
             else:
@@ -902,13 +911,12 @@ class DPOTrainer(Trainer):
         # For the prompt, the input_ids are the same for both the chosen and rejected responses
         output["prompt_input_ids"] = torch.cat([batch["prompt_input_ids"], batch["prompt_input_ids"]], dim=0)
         output["prompt_attention_mask"] = torch.cat([batch["prompt_attention_mask"], batch["prompt_attention_mask"]], dim=0)
-        if "pixel_values" in batch:
-            output["pixel_values"] = torch.cat([batch["pixel_values"], batch["pixel_values"]], dim=0)
+        if "input_audio_embeds" in batch:
+            output["input_audio_embeds"] = torch.cat([batch["input_audio_embeds"], batch["input_audio_embeds"]], dim=0)
+            output["audio_embed_sizes"] = torch.cat([batch["audio_embed_sizes"], batch["audio_embed_sizes"]], dim=0)
 
-        if "pixel_attention_mask" in batch:
-            output["pixel_attention_mask"] = torch.cat([batch["pixel_attention_mask"], batch["pixel_attention_mask"]], dim=0)
-        if "image_sizes" in batch:
-            output["image_sizes"] = torch.cat([batch["image_sizes"], batch["image_sizes"]], dim=0)
+        if "audio_attention_mask" in batch:
+            output["audio_attention_mask"] = torch.cat([batch["audio_attention_mask"], batch["audio_attention_mask"]], dim=0)
 
         # Concatenate the chosen and rejected completions
         max_completion_length = max(batch["chosen_input_ids"].shape[1], batch["rejected_input_ids"].shape[1])
@@ -1117,13 +1125,14 @@ class DPOTrainer(Trainer):
         if self.aux_loss_enabled:
             model_kwargs["output_router_logits"] = True
 
-        # Add the pixel values and attention masks for vision models
-        if "pixel_values" in concatenated_batch:
-            model_kwargs["pixel_values"] = concatenated_batch["pixel_values"]
-        if "pixel_attention_mask" in concatenated_batch:
-            model_kwargs["pixel_attention_mask"] = concatenated_batch["pixel_attention_mask"]
-        if "image_sizes" in concatenated_batch:
-            model_kwargs["image_sizes"] = concatenated_batch["image_sizes"]
+        if "input_audio_embeds" in concatenated_batch:
+            model_kwargs["input_audio_embeds"] = concatenated_batch["input_audio_embeds"]
+            model_kwargs["audio_embed_sizes"] = concatenated_batch["audio_embed_sizes"]
+            model_kwargs["input_mode"] = 2
+
+        if "audio_attention_mask" in model_kwargs:
+            model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
+        model_kwargs.update(kwargs)
 
         prompt_attention_mask = concatenated_batch["prompt_attention_mask"]
         completion_attention_mask = concatenated_batch["completion_attention_mask"]
@@ -1354,13 +1363,14 @@ class DPOTrainer(Trainer):
         if self.aux_loss_enabled:
             model_kwargs["output_router_logits"] = True
 
-        # Add the pixel values and attention masks for vision models
-        if "pixel_values" in concatenated_batch:
-            model_kwargs["pixel_values"] = concatenated_batch["pixel_values"]
-        if "pixel_attention_mask" in concatenated_batch:
-            model_kwargs["pixel_attention_mask"] = concatenated_batch["pixel_attention_mask"]
-        if "image_sizes" in concatenated_batch:
-            model_kwargs["image_sizes"] = concatenated_batch["image_sizes"]
+        if "input_audio_embeds" in concatenated_batch:
+            model_kwargs["input_audio_embeds"] = concatenated_batch["input_audio_embeds"]
+            model_kwargs["audio_embed_sizes"] = concatenated_batch["audio_embed_sizes"]
+            model_kwargs["input_mode"] = 2
+
+        if "audio_attention_mask" in model_kwargs:
+            model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
+        # model_kwargs.update(kwargs)
 
         prompt_input_ids = concatenated_batch["prompt_input_ids"]
         prompt_attention_mask = concatenated_batch["prompt_attention_mask"]
