@@ -4,13 +4,15 @@ train_data:
   # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
   tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
   biasing:
-    buffer_size: 10000
+    buffer_size: 100000
     max_piece_len: 1
-    bias_prob: 1
+    bias_prob: 0.8
     hit_prob: 1
     miss_prob: 1
-    context_prob: 0.8 # prob for context
+    context_prob: 1 # prob for context
     sample_range: [0, 1000] # all rare words
+    sampling_version: v2
+    hit_ratio: [0.0, 1.0]
     log_interval: 10000 # print biasing every 10000 samples
     # common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     # common_word_num: 3000
@@ -36,6 +38,8 @@ output_dir: ./output
 per_device_train_batch_samples: 4
 num_generations: 4
 # generation_scale: 2
+# inject_reference: True
+# token_entropy_percentile_threshold: 0.8
 # steps_per_generation: 2 # generate 4 batches
 gradient_accumulation_steps: 4
 logging_steps: 10
