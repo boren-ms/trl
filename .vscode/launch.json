@@ -70,6 +70,29 @@
             ]
         },
         {
+            "name": "dpo_bias",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "trl/scripts/dpo_bias.py",
+            "console": "integratedTerminal",
+            "env": {
+                "WANDB_ENTITY": "genai",
+                "WANDB_PROJECT": "biasing_debug",
+                "RANK": "0",
+                "LOCAL_RANK": "0",
+                "WORLD_SIZE": "1",
+                "MASTER_ADDR": "localhost",
+                "MASTER_PORT": "12355",
+                "WANDB_MODE": "offline",
+                "TORCHDYNAMO_DISABLE": "1",
+            },
+            "justMyCode": false,
+            "args": [
+                "--config",
+                "orng_conf/biasing/debug/dpo_bias_debug_local.yaml"
+            ]
+        },
+        {
             "name": "online_dpo_bias",
             "type": "debugpy",
             "request": "launch",
