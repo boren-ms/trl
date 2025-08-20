@@ -8,7 +8,8 @@ gradient_accumulation_steps: 1
 gradient_checkpointing: True
 logging_steps: 1
 bf16: True
-max_prompt_length: 1024
+max_prompt_length: 6000
+max_completion_length: 1024
 # wandb_log_unique_prompts: True
 # model_name_or_path: az://orngcresco/data/boren/data/ckp/phi4_mm_bias
 # model_name_or_path: /home/boren/data/ckp/hf_models/phi4_mm_bias
