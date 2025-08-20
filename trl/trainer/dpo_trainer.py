@@ -259,9 +259,7 @@ class DPOTrainer(Trainer):
         data_collator: Optional[DataCollator] = None,  # type: ignore
         train_dataset: Optional[Union[Dataset, IterableDataset]] = None,
         eval_dataset: Optional[Union[Dataset, IterableDataset, dict[str, Union[Dataset, IterableDataset]]]] = None,
-        processing_class: Optional[
-            Union[PreTrainedTokenizerBase, BaseImageProcessor, FeatureExtractionMixin, ProcessorMixin]
-        ] = None,
+        processing_class: Optional[Union[PreTrainedTokenizerBase, BaseImageProcessor, FeatureExtractionMixin, ProcessorMixin]] = None,
         compute_metrics: Optional[Callable[[EvalLoopOutput], dict]] = None,
         callbacks: Optional[list[TrainerCallback]] = None,
         optimizers: tuple[Optional[torch.optim.Optimizer], Optional[torch.optim.lr_scheduler.LambdaLR]] = (None, None),
@@ -296,24 +294,15 @@ class DPOTrainer(Trainer):
 
         # Model
         if not isinstance(model, str) and ref_model is model:
-            raise ValueError(
-                "`model` and `ref_model` cannot be the same object. If you want `ref_model` to be the "
-                "same as `model`, you must mass a copy of it, or `None` if you use peft."
-            )
+            raise ValueError("`model` and `ref_model` cannot be the same object. If you want `ref_model` to be the " "same as `model`, you must mass a copy of it, or `None` if you use peft.")
 
         if args.model_init_kwargs is not None and not isinstance(model, str):
-            warnings.warn(
-                "You passed model_init_kwargs to the `DPOConfig`, but your model is already instantiated. "
-                "The `model_init_kwargs` will be ignored."
-            )
+            warnings.warn("You passed model_init_kwargs to the `DPOConfig`, but your model is already instantiated. " "The `model_init_kwargs` will be ignored.")
         if isinstance(model, str):
             model = self._create_model_from_path(model, args)
 
         if args.ref_model_init_kwargs is not None and not isinstance(ref_model, str):
-            warnings.warn(
-                "You passed ref_model_init_kwargs to the `DPOConfig`, but your ref_model is already instantiated. "
-                "The `ref_model_init_kwargs` will be ignored."
-            )
+            warnings.warn("You passed ref_model_init_kwargs to the `DPOConfig`, but your ref_model is already instantiated. " "The `ref_model_init_kwargs` will be ignored.")
         if isinstance(ref_model, str):
             ref_model = self._create_model_from_path(ref_model, args, is_ref=True)
 
@@ -321,10 +310,7 @@ class DPOTrainer(Trainer):
         model = self._prepare_peft_model(model, ref_model, peft_config, args)
 
         if args.generate_during_eval and not (is_wandb_available() or is_comet_available() or is_mlflow_available()):
-            raise ValueError(
-                "`generate_during_eval=True` requires Weights and Biases, MLFlow or Comet to be installed."
-                " Please install `wandb`, `mlflow` or `comet-ml` to resolve."
-            )
+            raise ValueError("`generate_during_eval=True` requires Weights and Biases, MLFlow or Comet to be installed." " Please install `wandb`, `mlflow` or `comet-ml` to resolve.")
 
         self.is_encoder_decoder = model.config.is_encoder_decoder
         self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
@@ -350,15 +336,9 @@ class DPOTrainer(Trainer):
         # Liger kernel
         if args.use_liger_loss:
             if not is_liger_kernel_available():
-                raise ImportError(
-                    "You set `use_liger_loss=True` but the liger kernel is not available. "
-                    "Please install liger-kernel first: `pip install liger-kernel`"
-                )
+                raise ImportError("You set `use_liger_loss=True` but the liger kernel is not available. " "Please install liger-kernel first: `pip install liger-kernel`")
             if args.loss_type != "sigmoid":
-                raise ValueError(
-                    "You set `use_liger_loss=True` but the loss type is not `sigmoid`. "
-                    "Please set `loss_type='sigmoid'` to use the liger kernel."
-                )
+                raise ValueError("You set `use_liger_loss=True` but the loss type is not `sigmoid`. " "Please set `loss_type='sigmoid'` to use the liger kernel.")
             self.dpo_loss_fn = LigerFusedLinearDPOLoss(
                 ignore_index=args.label_pad_token_id,
                 beta=args.beta,
@@ -426,10 +406,7 @@ class DPOTrainer(Trainer):
                 UserWarning,
             )
         for loss_type in self.loss_type:
-            if (
-                loss_type in ["hinge", "ipo", "bco_pair", "sppo_hard", "nca_pair", "apo_zero", "apo_down"]
-                and args.label_smoothing > 0
-            ):
+            if loss_type in ["hinge", "ipo", "bco_pair", "sppo_hard", "nca_pair", "apo_zero", "apo_down"] and args.label_smoothing > 0:
                 warnings.warn(
                     f"You are using the {loss_type} loss type that does not support label smoothing. The "
                     "`label_smoothing` parameter will be ignored. Set `label_smoothing` to `0.0` to remove this warning.",
@@ -447,10 +424,7 @@ class DPOTrainer(Trainer):
         train_dataset = self._prepare_dataset(train_dataset, processing_class, args, "train")
         if eval_dataset is not None:
             if isinstance(eval_dataset, dict):
-                eval_dataset = {
-                    key: self._prepare_dataset(dataset, processing_class, args, key)
-                    for key, dataset in eval_dataset.items()
-                }
+                eval_dataset = {key: self._prepare_dataset(dataset, processing_class, args, key) for key, dataset in eval_dataset.items()}
             else:
                 eval_dataset = self._prepare_dataset(eval_dataset, processing_class, args, "eval")
 
@@ -478,26 +452,18 @@ class DPOTrainer(Trainer):
             self.model.add_model_tags(self._tag_names)
 
         if not hasattr(self, "accelerator"):
-            raise AttributeError(
-                "Your `Trainer` does not have an `accelerator` object. Consider upgrading `transformers`."
-            )
+            raise AttributeError("Your `Trainer` does not have an `accelerator` object. Consider upgrading `transformers`.")
 
         # Deepspeed Zero-3 does not support precompute_ref_log_probs
         if self.is_deepspeed_enabled:
             if self.accelerator.state.deepspeed_plugin.zero_stage == 3 and self.precompute_ref_log_probs:
-                raise ValueError(
-                    "You cannot use `precompute_ref_log_probs=True` with Deepspeed ZeRO-3. Please set `precompute_ref_log_probs=False`."
-                )
+                raise ValueError("You cannot use `precompute_ref_log_probs=True` with Deepspeed ZeRO-3. Please set `precompute_ref_log_probs=False`.")
 
         if self.ref_model is None:
             if not (self.is_peft_model or self.precompute_ref_log_probs):
-                raise ValueError(
-                    "No reference model and model is not a Peft model. Try setting `precompute_ref_log_probs=True`"
-                )
+                raise ValueError("No reference model and model is not a Peft model. Try setting `precompute_ref_log_probs=True`")
             if args.sync_ref_model:
-                raise ValueError(
-                    "You currently cannot use `ref_model=None` with TR-DPO method. Please provide `ref_model`."
-                )
+                raise ValueError("You currently cannot use `ref_model=None` with TR-DPO method. Please provide `ref_model`.")
         else:
             if self.is_deepspeed_enabled:
                 self.ref_model = prepare_deepspeed(self.ref_model, self.accelerator)
@@ -508,9 +474,7 @@ class DPOTrainer(Trainer):
 
         if args.sync_ref_model:
             if self.precompute_ref_log_probs:
-                raise ValueError(
-                    "You cannot use `precompute_ref_log_probs=True` with TR-DPO method. Please set `precompute_ref_log_probs=False`."
-                )
+                raise ValueError("You cannot use `precompute_ref_log_probs=True` with TR-DPO method. Please set `precompute_ref_log_probs=False`.")
 
             self.add_callback(SyncRefModelCallback(ref_model=self.ref_model, accelerator=self.accelerator))
 
@@ -532,10 +496,7 @@ class DPOTrainer(Trainer):
             torch_dtype = getattr(torch, torch_dtype)
             model_init_kwargs["torch_dtype"] = torch_dtype
         else:
-            raise ValueError(
-                "Invalid `torch_dtype` passed to `DPOConfig`. Expected either 'auto' or a string representing "
-                f"a `torch.dtype` (e.g., 'float32'), but got {torch_dtype}."
-            )
+            raise ValueError("Invalid `torch_dtype` passed to `DPOConfig`. Expected either 'auto' or a string representing " f"a `torch.dtype` (e.g., 'float32'), but got {torch_dtype}.")
         # Disable caching if gradient checkpointing is enabled (not supported)
         # if args.gradient_checkpointing:
         #     model_init_kwargs["use_cache"] = False
@@ -544,18 +505,14 @@ class DPOTrainer(Trainer):
         model = AutoModelForCausalLM.from_pretrained(model_path, **model_init_kwargs)
         return model
 
-    def _prepare_peft_model(
-        self, model: PreTrainedModel, ref_model: PreTrainedModel, peft_config: Any, args: DPOConfig
-    ) -> PreTrainedModel:
+    def _prepare_peft_model(self, model: PreTrainedModel, ref_model: PreTrainedModel, peft_config: Any, args: DPOConfig) -> PreTrainedModel:
         """Prepares a model for PEFT training."""
         # Initialize this variable to False. This helps tracking the case when `peft_module_casting_to_bf16`
         # has been called in order to properly call autocast if needed.
         self._peft_has_been_casted_to_bf16 = False
 
         if not is_peft_available() and peft_config is not None:
-            raise ValueError(
-                "PEFT is not installed and you passed a `peft_config` in the trainer's kwargs, please install it to use the PEFT models"
-            )
+            raise ValueError("PEFT is not installed and you passed a `peft_config` in the trainer's kwargs, please install it to use the PEFT models")
         elif is_peft_available() and peft_config is not None:
             # if model is a peft model and we have a peft_config, we merge and unload it first
             if isinstance(model, PeftModel):
@@ -569,11 +526,7 @@ class DPOTrainer(Trainer):
                 )
 
             if getattr(model, "is_loaded_in_8bit", False) or getattr(model, "is_loaded_in_4bit", False):
-                _support_gc_kwargs = hasattr(
-                    args, "gradient_checkpointing_kwargs"
-                ) and "gradient_checkpointing_kwargs" in list(
-                    inspect.signature(prepare_model_for_kbit_training).parameters
-                )
+                _support_gc_kwargs = hasattr(args, "gradient_checkpointing_kwargs") and "gradient_checkpointing_kwargs" in list(inspect.signature(prepare_model_for_kbit_training).parameters)
 
                 prepare_model_kwargs = {"use_gradient_checkpointing": args.gradient_checkpointing}
 
@@ -637,9 +590,7 @@ class DPOTrainer(Trainer):
             # Apply the chat template if needed
             if isinstance(dataset, Dataset):  # `IterableDataset.map` does not support `desc`
                 map_kwargs["desc"] = f"Applying chat template to {dataset_name} dataset"
-            dataset = dataset.map(
-                maybe_apply_chat_template, fn_kwargs={"tokenizer": processing_class, "tools": args.tools}, **map_kwargs
-            )
+            dataset = dataset.map(maybe_apply_chat_template, fn_kwargs={"tokenizer": processing_class, "tools": args.tools}, **map_kwargs)
 
             # Tokenize the dataset
             if isinstance(dataset, Dataset):  # `IterableDataset.map` does not support `desc`
@@ -817,9 +768,7 @@ class DPOTrainer(Trainer):
             ref_rejected_logps = []
             for padded_batch in tqdm(iterable=data_loader, desc="Train dataset reference log probs"):
                 ref_chosen_logp, ref_rejected_logp = self.compute_ref_log_probs(padded_batch)
-                ref_chosen_logp, ref_rejected_logp = self.accelerator.gather_for_metrics(
-                    (ref_chosen_logp, ref_rejected_logp)
-                )
+                ref_chosen_logp, ref_rejected_logp = self.accelerator.gather_for_metrics((ref_chosen_logp, ref_rejected_logp))
                 ref_chosen_logps.append(ref_chosen_logp.cpu())
                 ref_rejected_logps.append(ref_rejected_logp.cpu())
 
@@ -831,9 +780,7 @@ class DPOTrainer(Trainer):
             all_ref_rejected_logps = torch.cat(ref_rejected_logps).float().numpy()
 
             self.train_dataset = self.train_dataset.add_column(name="ref_chosen_logps", column=all_ref_chosen_logps)
-            self.train_dataset = self.train_dataset.add_column(
-                name="ref_rejected_logps", column=all_ref_rejected_logps
-            )
+            self.train_dataset = self.train_dataset.add_column(name="ref_rejected_logps", column=all_ref_rejected_logps)
 
             self._precomputed_train_ref_log_probs = True
 
@@ -871,9 +818,7 @@ class DPOTrainer(Trainer):
             ref_rejected_logps = []
             for padded_batch in tqdm(iterable=data_loader, desc="Eval dataset reference log probs"):
                 ref_chosen_logp, ref_rejected_logp = self.compute_ref_log_probs(padded_batch)
-                ref_chosen_logp, ref_rejected_logp = self.accelerator.gather_for_metrics(
-                    (ref_chosen_logp, ref_rejected_logp)
-                )
+                ref_chosen_logp, ref_rejected_logp = self.accelerator.gather_for_metrics((ref_chosen_logp, ref_rejected_logp))
                 ref_chosen_logps.append(ref_chosen_logp.cpu())
                 ref_rejected_logps.append(ref_rejected_logp.cpu())
 
@@ -893,11 +838,7 @@ class DPOTrainer(Trainer):
     @contextmanager
     def null_ref_context(self):
         """Context manager for handling null reference model (that is, peft adapter manipulation)."""
-        with (
-            self.accelerator.unwrap_model(self.model).disable_adapter()
-            if self.is_peft_model and not self.ref_adapter_name
-            else nullcontext()
-        ):
+        with self.accelerator.unwrap_model(self.model).disable_adapter() if self.is_peft_model and not self.ref_adapter_name else nullcontext():
             if self.ref_adapter_name:
                 self.model.set_adapter(self.ref_adapter_name)
             yield
@@ -906,9 +847,7 @@ class DPOTrainer(Trainer):
 
     def compute_ref_log_probs(self, batch: dict[str, torch.LongTensor]) -> tuple[torch.Tensor, torch.Tensor]:
         """Computes log probabilities of the reference model for a single padded batch of a DPO specific dataset."""
-        compte_ref_context_manager = (
-            autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
-        )
+        compte_ref_context_manager = autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
         with torch.no_grad(), compte_ref_context_manager:
             if self.ref_model is None:
                 with self.null_ref_context():
@@ -918,9 +857,7 @@ class DPOTrainer(Trainer):
         return ref_model_output["chosen_logps"], ref_model_output["rejected_logps"]
 
     @staticmethod
-    def concatenated_inputs(
-        batch: dict[str, Union[list, torch.LongTensor]], padding_value: int
-    ) -> dict[str, torch.LongTensor]:
+    def concatenated_inputs(batch: dict[str, Union[list, torch.LongTensor]], padding_value: int) -> dict[str, torch.LongTensor]:
         """
         Concatenate the `chosen` and `rejected` inputs from the batch into a single tensor for both the prompt and
         completion sequences.
@@ -964,16 +901,12 @@ class DPOTrainer(Trainer):
 
         # For the prompt, the input_ids are the same for both the chosen and rejected responses
         output["prompt_input_ids"] = torch.cat([batch["prompt_input_ids"], batch["prompt_input_ids"]], dim=0)
-        output["prompt_attention_mask"] = torch.cat(
-            [batch["prompt_attention_mask"], batch["prompt_attention_mask"]], dim=0
-        )
+        output["prompt_attention_mask"] = torch.cat([batch["prompt_attention_mask"], batch["prompt_attention_mask"]], dim=0)
         if "pixel_values" in batch:
             output["pixel_values"] = torch.cat([batch["pixel_values"], batch["pixel_values"]], dim=0)
 
         if "pixel_attention_mask" in batch:
-            output["pixel_attention_mask"] = torch.cat(
-                [batch["pixel_attention_mask"], batch["pixel_attention_mask"]], dim=0
-            )
+            output["pixel_attention_mask"] = torch.cat([batch["pixel_attention_mask"], batch["pixel_attention_mask"]], dim=0)
         if "image_sizes" in batch:
             output["image_sizes"] = torch.cat([batch["image_sizes"], batch["image_sizes"]], dim=0)
 
@@ -1062,16 +995,10 @@ class DPOTrainer(Trainer):
         # We ignore the reference model as beta -> 0. The label_smoothing parameter encodes our uncertainty about the
         # labels and calculates a conservative DPO loss.
         if loss_type == "sigmoid":
-            losses = (
-                -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
-                - F.logsigmoid(-self.beta * logits) * self.label_smoothing
-            )
+            losses = -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing) - F.logsigmoid(-self.beta * logits) * self.label_smoothing
 
         elif loss_type == "robust":
-            losses = (
-                -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
-                + F.logsigmoid(-self.beta * logits) * self.label_smoothing
-            ) / (1 - 2 * self.label_smoothing)
+            losses = (-F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing) + F.logsigmoid(-self.beta * logits) * self.label_smoothing) / (1 - 2 * self.label_smoothing)
 
         elif loss_type == "exo_pair":
             # eqn (16) of the EXO paper: https://huggingface.co/papers/2402.00856
@@ -1079,9 +1006,9 @@ class DPOTrainer(Trainer):
 
             if self.label_smoothing == 0:
                 self.label_smoothing = 1e-3
-            losses = (self.beta * logits).sigmoid() * (
-                F.logsigmoid(self.beta * logits) - math.log(1 - self.label_smoothing)
-            ) + (-self.beta * logits).sigmoid() * (F.logsigmoid(-self.beta * logits) - math.log(self.label_smoothing))
+            losses = (self.beta * logits).sigmoid() * (F.logsigmoid(self.beta * logits) - math.log(1 - self.label_smoothing)) + (-self.beta * logits).sigmoid() * (
+                F.logsigmoid(-self.beta * logits) - math.log(self.label_smoothing)
+            )
 
         elif loss_type == "hinge":
             losses = torch.relu(1 - self.beta * logits)
@@ -1098,9 +1025,7 @@ class DPOTrainer(Trainer):
             rewards = torch.cat((chosen_rewards, rejected_rewards), 0).mean().detach()
             self.running.update(rewards)
             delta = self.running.mean
-            losses = -F.logsigmoid((self.beta * chosen_logratios) - delta) - F.logsigmoid(
-                -(self.beta * rejected_logratios - delta)
-            )
+            losses = -F.logsigmoid((self.beta * chosen_logratios) - delta) - F.logsigmoid(-(self.beta * rejected_logratios - delta))
 
         elif loss_type == "sppo_hard":
             # In the paper (https://huggingface.co/papers/2405.00675), SPPO employs a soft probability approach,
@@ -1114,11 +1039,7 @@ class DPOTrainer(Trainer):
         elif loss_type == "nca_pair":
             chosen_rewards = (chosen_logps - ref_chosen_logps) * self.beta
             rejected_rewards = (rejected_logps - ref_rejected_logps) * self.beta
-            losses = (
-                -F.logsigmoid(chosen_rewards)
-                - 0.5 * F.logsigmoid(-chosen_rewards)
-                - 0.5 * F.logsigmoid(-rejected_rewards)
-            )
+            losses = -F.logsigmoid(chosen_rewards) - 0.5 * F.logsigmoid(-chosen_rewards) - 0.5 * F.logsigmoid(-rejected_rewards)
 
         elif loss_type == "aot_pair":
             chosen_logratios = chosen_logps - ref_chosen_logps
@@ -1126,10 +1047,7 @@ class DPOTrainer(Trainer):
             chosen_logratios_sorted, _ = torch.sort(chosen_logratios, dim=0)
             rejected_logratios_sorted, _ = torch.sort(rejected_logratios, dim=0)
             delta = chosen_logratios_sorted - rejected_logratios_sorted
-            losses = (
-                -F.logsigmoid(self.beta * delta) * (1 - self.label_smoothing)
-                - F.logsigmoid(-self.beta * delta) * self.label_smoothing
-            )
+            losses = -F.logsigmoid(self.beta * delta) * (1 - self.label_smoothing) - F.logsigmoid(-self.beta * delta) * self.label_smoothing
 
         elif loss_type == "aot":
             logratios = chosen_logps - rejected_logps
@@ -1137,10 +1055,7 @@ class DPOTrainer(Trainer):
             logratios_sorted, _ = torch.sort(logratios, dim=0)
             ref_logratios_sorted, _ = torch.sort(ref_logratios, dim=0)
             delta = logratios_sorted - ref_logratios_sorted
-            losses = (
-                -F.logsigmoid(self.beta * delta) * (1 - self.label_smoothing)
-                - F.logsigmoid(-self.beta * delta) * self.label_smoothing
-            )
+            losses = -F.logsigmoid(self.beta * delta) * (1 - self.label_smoothing) - F.logsigmoid(-self.beta * delta) * self.label_smoothing
 
         elif loss_type == "apo_zero":
             # Eqn (7) of the APO paper (https://huggingface.co/papers/2408.06266)
@@ -1194,9 +1109,7 @@ class DPOTrainer(Trainer):
 
         return losses, chosen_rewards, rejected_rewards
 
-    def _compute_loss_liger(
-        self, model: nn.Module, batch: dict[str, Union[list, torch.LongTensor]]
-    ) -> dict[str, torch.Tensor]:
+    def _compute_loss_liger(self, model: nn.Module, batch: dict[str, Union[list, torch.LongTensor]]) -> dict[str, torch.Tensor]:
         unwrapped_model = self.accelerator.unwrap_model(model)
         concatenated_batch = self.concatenated_inputs(batch, padding_value=self.padding_value)
 
@@ -1273,9 +1186,7 @@ class DPOTrainer(Trainer):
             loss_mask = completion_attention_mask.bool()
         else:
             # For decoder-only models
-            input_ids = torch.cat(
-                (concatenated_batch["prompt_input_ids"], concatenated_batch["completion_input_ids"]), dim=1
-            )
+            input_ids = torch.cat((concatenated_batch["prompt_input_ids"], concatenated_batch["completion_input_ids"]), dim=1)
             attention_mask = torch.cat(
                 (concatenated_batch["prompt_attention_mask"], concatenated_batch["completion_attention_mask"]),
                 dim=1,
@@ -1306,10 +1217,7 @@ class DPOTrainer(Trainer):
                     loss_mask = loss_mask[:, -self.max_length :]
                     attention_mask, input_ids, loss_mask = flush_left(attention_mask, input_ids, loss_mask)
                 else:
-                    raise ValueError(
-                        f"Unknown truncation mode: '{self.truncation_mode}'. Should be one of ['keep_end', "
-                        "'keep_start']."
-                    )
+                    raise ValueError(f"Unknown truncation mode: '{self.truncation_mode}'. Should be one of ['keep_end', " "'keep_start'].")
             else:
                 # Flush left to reduce the memory usage
                 # [[0, 0, x, x, x, x],  ->  [[x, x, x, x],
@@ -1353,9 +1261,7 @@ class DPOTrainer(Trainer):
                 if hasattr(unwrapped_ref_model, "get_decoder"):
                     ref_base_model = unwrapped_ref_model.get_decoder()
                 else:
-                    ref_base_model = getattr(
-                        unwrapped_ref_model, self.args.base_model_attribute_name, unwrapped_ref_model
-                    )
+                    ref_base_model = getattr(unwrapped_ref_model, self.args.base_model_attribute_name, unwrapped_ref_model)
 
                 ref_outputs = ref_base_model(
                     input_ids,
@@ -1425,9 +1331,7 @@ class DPOTrainer(Trainer):
 
         return output
 
-    def concatenated_forward(
-        self, model: nn.Module, batch: dict[str, Union[list, torch.LongTensor]], is_ref_model: bool = False
-    ) -> dict[str, torch.Tensor]:
+    def concatenated_forward(self, model: nn.Module, batch: dict[str, Union[list, torch.LongTensor]], is_ref_model: bool = False) -> dict[str, torch.Tensor]:
         """
         Runs the given model on the given batch of inputs, concatenating the chosen and rejected inputs together.
 
@@ -1503,10 +1407,7 @@ class DPOTrainer(Trainer):
                     loss_mask = loss_mask[:, -self.max_length :]
                     attention_mask, input_ids, loss_mask = flush_left(attention_mask, input_ids, loss_mask)
                 else:
-                    raise ValueError(
-                        f"Unknown truncation mode: '{self.truncation_mode}'. Should be one of ['keep_end', "
-                        "'keep_start']."
-                    )
+                    raise ValueError(f"Unknown truncation mode: '{self.truncation_mode}'. Should be one of ['keep_end', " "'keep_start'].")
             else:
                 # Flush left to reduce the memory usage
                 # [[0, 0, x, x, x, x],  ->  [[x, x, x, x],
@@ -1566,9 +1467,7 @@ class DPOTrainer(Trainer):
         if self.padding_free:
             # Unflatten the per_token_logps (shape: [1, sum_seq_len] -> [batch_size, seq_len])
             batch_size, seq_len = attention_mask.shape
-            per_token_logps_ = torch.zeros(
-                batch_size, seq_len, device=outputs.logits.device, dtype=outputs.logits.dtype
-            )
+            per_token_logps_ = torch.zeros(batch_size, seq_len, device=outputs.logits.device, dtype=outputs.logits.dtype)
             per_token_logps_[attention_mask.bool()] = per_token_logps
             per_token_logps = per_token_logps_
 
@@ -1593,9 +1492,7 @@ class DPOTrainer(Trainer):
             chosen_labels = labels[:num_examples, :-1] if not self.is_encoder_decoder else labels[:num_examples]
 
             # Compute the log probabilities of the labels
-            output["nll_loss"] = F.cross_entropy(
-                torch.flatten(chosen_logits, end_dim=1), torch.flatten(chosen_labels, end_dim=1), ignore_index=0
-            )
+            output["nll_loss"] = F.cross_entropy(torch.flatten(chosen_logits, end_dim=1), torch.flatten(chosen_labels, end_dim=1), ignore_index=0)
 
         if "ipo" in self.loss_type:
             all_logps = all_logps / loss_mask.sum(-1)
@@ -1708,29 +1605,15 @@ class DPOTrainer(Trainer):
         metrics[f"{prefix}rewards/chosen"] = self.accelerator.gather_for_metrics(chosen_rewards).mean().item()
         metrics[f"{prefix}rewards/rejected"] = self.accelerator.gather_for_metrics(rejected_rewards).mean().item()
         metrics[f"{prefix}rewards/accuracies"] = self.accelerator.gather_for_metrics(reward_accuracies).mean().item()
-        metrics[f"{prefix}rewards/margins"] = (
-            self.accelerator.gather_for_metrics(chosen_rewards - rejected_rewards).mean().item()
-        )
-        metrics[f"{prefix}logps/chosen"] = (
-            self.accelerator.gather_for_metrics(model_output["chosen_logps"]).detach().mean().item()
-        )
-        metrics[f"{prefix}logps/rejected"] = (
-            self.accelerator.gather_for_metrics(model_output["rejected_logps"]).detach().mean().item()
-        )
-        metrics[f"{prefix}logits/chosen"] = (
-            self.accelerator.gather_for_metrics(model_output["mean_chosen_logits"]).detach().mean().item()
-        )
-        metrics[f"{prefix}logits/rejected"] = (
-            self.accelerator.gather_for_metrics(model_output["mean_rejected_logits"]).detach().mean().item()
-        )
+        metrics[f"{prefix}rewards/margins"] = self.accelerator.gather_for_metrics(chosen_rewards - rejected_rewards).mean().item()
+        metrics[f"{prefix}logps/chosen"] = self.accelerator.gather_for_metrics(model_output["chosen_logps"]).detach().mean().item()
+        metrics[f"{prefix}logps/rejected"] = self.accelerator.gather_for_metrics(model_output["rejected_logps"]).detach().mean().item()
+        metrics[f"{prefix}logits/chosen"] = self.accelerator.gather_for_metrics(model_output["mean_chosen_logits"]).detach().mean().item()
+        metrics[f"{prefix}logits/rejected"] = self.accelerator.gather_for_metrics(model_output["mean_rejected_logits"]).detach().mean().item()
         if self.args.rpo_alpha is not None or "sft" in self.loss_type:
-            metrics[f"{prefix}nll_loss"] = (
-                self.accelerator.gather_for_metrics(model_output["nll_loss"]).detach().mean().item()
-            )
+            metrics[f"{prefix}nll_loss"] = self.accelerator.gather_for_metrics(model_output["nll_loss"]).detach().mean().item()
         if self.aux_loss_enabled:
-            metrics[f"{prefix}aux_loss"] = (
-                self.accelerator.gather_for_metrics(model_output["aux_loss"]).detach().mean().item()
-            )
+            metrics[f"{prefix}aux_loss"] = self.accelerator.gather_for_metrics(model_output["aux_loss"]).detach().mean().item()
 
         return losses.mean(), metrics
 
@@ -1741,9 +1624,7 @@ class DPOTrainer(Trainer):
         return_outputs=False,
         num_items_in_batch=None,
     ) -> Union[torch.Tensor, tuple[torch.Tensor, dict[str, float]]]:
-        compute_loss_context_manager = (
-            autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
-        )
+        compute_loss_context_manager = autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
         with compute_loss_context_manager:
             loss, metrics = self.get_batch_loss_metrics(model, inputs, train_eval="train")
 
@@ -1762,9 +1643,7 @@ class DPOTrainer(Trainer):
 
         # If one uses `generate_during_eval` with peft + bf16, we need to explicitly call generate with
         # the torch amp context manager as some hidden states are silently casted to full precision.
-        generate_context_manager = (
-            autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
-        )
+        generate_context_manager = autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
 
         with generate_context_manager:
             policy_output = model.generate(
@@ -1818,9 +1697,7 @@ class DPOTrainer(Trainer):
             else:
                 ignore_keys = []
 
-        prediction_context_manager = (
-            autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
-        )
+        prediction_context_manager = autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
 
         with torch.no_grad(), prediction_context_manager:
             loss, metrics = self.get_batch_loss_metrics(model, inputs, train_eval="eval")
@@ -1876,12 +1753,7 @@ class DPOTrainer(Trainer):
 
             table = pd.DataFrame(
                 columns=["Prompt", "Policy", "Ref Model"],
-                data=[
-                    [prompt, pol[len(prompt) :], ref[len(prompt) :]]
-                    for prompt, pol, ref in zip(
-                        random_batch_dataset["prompt"], policy_output_decoded, ref_output_decoded
-                    )
-                ],
+                data=[[prompt, pol[len(prompt) :], ref[len(prompt) :]] for prompt, pol, ref in zip(random_batch_dataset["prompt"], policy_output_decoded, ref_output_decoded)],
             )
             if "wandb" in self.args.report_to and self.accelerator.is_main_process:
                 wandb.log({"game_log": wandb.Table(data=table)})
@@ -1896,9 +1768,7 @@ class DPOTrainer(Trainer):
                 mlflow.log_table(data=table, artifact_file="game_log.json")
 
         # Base evaluation
-        initial_output = super().evaluation_loop(
-            dataloader, description, prediction_loss_only, ignore_keys, metric_key_prefix
-        )
+        initial_output = super().evaluation_loop(dataloader, description, prediction_loss_only, ignore_keys, metric_key_prefix)
 
         return initial_output
 
