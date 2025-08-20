@@ -19,7 +19,6 @@ model_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 eval_data:
   - nickname: ls_train_debug_biasing_smp2
     dataset_name: tsv
-    num_egs: 2
     #   load_audio: True
     #   streaming: True
     tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
