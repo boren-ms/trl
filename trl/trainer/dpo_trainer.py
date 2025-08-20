@@ -154,8 +154,7 @@ class DataCollatorForPreference(DataCollatorMixin):
         rejected_attention_mask = [torch.ones_like(input_ids) for input_ids in rejected_input_ids]
         if "input_audio_embeds" in examples[0]:
             input_audio_embeds = [torch.tensor(example["input_audio_embeds"]) for example in examples]
-        if "audio_attention_mask" in examples[0]:
-            audio_attention_mask = [torch.tensor(example["audio_attention_mask"]) for example in examples]
+            audio_attention_masks = [torch.ones_like(embed) for embed in input_audio_embeds]
         if "ref_chosen_logps" in examples[0] and "ref_rejected_logps" in examples[0]:
             ref_chosen_logps = torch.tensor([example["ref_chosen_logps"] for example in examples])
             ref_rejected_logps = torch.tensor([example["ref_rejected_logps"] for example in examples])
@@ -170,9 +169,7 @@ class DataCollatorForPreference(DataCollatorMixin):
         output["rejected_attention_mask"] = pad(rejected_attention_mask, padding_value=0)
         if "input_audio_embeds" in examples[0]:
             output["input_audio_embeds"] = pad(input_audio_embeds, padding_value=0.0)
-        if "audio_attention_mask" in examples[0]:
-            output["audio_attention_mask"] = pad(audio_attention_mask, padding_value=0)
-        if "audio_embed_sizes" in examples[0]:
+            output["audio_attention_mask"] = pad(audio_attention_masks, padding_value=0)
             output["audio_embed_sizes"] = torch.tensor([example["audio_embed_sizes"] for example in examples])
         if "ref_chosen_logps" in examples[0] and "ref_rejected_logps" in examples[0]:
             output["ref_chosen_logps"] = ref_chosen_logps
@@ -611,6 +608,7 @@ class DPOTrainer(Trainer):
                     "add_special_tokens": False,
                 },
                 **map_kwargs,
+                load_from_cache_file=False,
             )
 
         return dataset
@@ -914,8 +912,6 @@ class DPOTrainer(Trainer):
         if "input_audio_embeds" in batch:
             output["input_audio_embeds"] = torch.cat([batch["input_audio_embeds"], batch["input_audio_embeds"]], dim=0)
             output["audio_embed_sizes"] = torch.cat([batch["audio_embed_sizes"], batch["audio_embed_sizes"]], dim=0)
-
-        if "audio_attention_mask" in batch:
             output["audio_attention_mask"] = torch.cat([batch["audio_attention_mask"], batch["audio_attention_mask"]], dim=0)
 
         # Concatenate the chosen and rejected completions
@@ -1128,11 +1124,9 @@ class DPOTrainer(Trainer):
         if "input_audio_embeds" in concatenated_batch:
             model_kwargs["input_audio_embeds"] = concatenated_batch["input_audio_embeds"]
             model_kwargs["audio_embed_sizes"] = concatenated_batch["audio_embed_sizes"]
-            model_kwargs["input_mode"] = 2
-
-        if "audio_attention_mask" in model_kwargs:
             model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
-        model_kwargs.update(kwargs)
+            model_kwargs["input_mode"] = 2
+            model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
 
         prompt_attention_mask = concatenated_batch["prompt_attention_mask"]
         completion_attention_mask = concatenated_batch["completion_attention_mask"]
@@ -1366,9 +1360,7 @@ class DPOTrainer(Trainer):
         if "input_audio_embeds" in concatenated_batch:
             model_kwargs["input_audio_embeds"] = concatenated_batch["input_audio_embeds"]
             model_kwargs["audio_embed_sizes"] = concatenated_batch["audio_embed_sizes"]
-            model_kwargs["input_mode"] = 2
-
-        if "audio_attention_mask" in model_kwargs:
+            model_kwargs["input_mode"] = 2  # for Phi-MM speech lora
             model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
         # model_kwargs.update(kwargs)
 
