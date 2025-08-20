@@ -6,6 +6,7 @@ from tqdm import tqdm
 from transformers import GenerationConfig
 from trl import TrlParser
 import wandb
+import pandas as pd
 from more_itertools import unique_everseen
 from itertools import zip_longest
 from torch.utils.data import DataLoader, Sampler
@@ -326,14 +327,14 @@ class Evaluation:
             dataloader = self.accelerator.prepare(DataLoader(dataset, **dl_kwargs))
             self.rank_log(f"Evaluating {len(dataset)} example with {self.rank_size} GPUs")
             results = []
-            keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER", "keywords", "Transcription"]
+            keys = ["hyp", "ref", "audio_path", "id", "WER", "UWER", "BWER", "keywords", "Transcription", "prompt"]
             for inputs in tqdm(dataloader, desc="Evaluating batches", disable=not self.is_main):
                 outputs = self.generate(inputs)
                 for x, hyp in zip(inputs, outputs):
                     x["hyp"] = hyp
                     x["ref"] = x["text"]
                     x.update(self.measure([x]))
-                    results.append({k: x.get(k, None) for k in keys})
+                    results.append({k: x[k] for k in keys if k in x})
             return results
 
         return auto_eval()
@@ -373,10 +374,10 @@ class Evaluation:
         output_dir = Path(self.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         file_stem = pfx.replace("/", "_")
-        result_file = output_dir / f"{file_stem}_results.json"
+        result_file = output_dir / f"{file_stem}_results.jsonl"
         metrics_file = output_dir / f"{file_stem}_metrics.json"
-        with open(result_file, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=4)
+        df = pd.DataFrame(results)
+        df.to_json(result_file, orient="records", lines=True, force_ascii=False)
         with open(metrics_file, "w", encoding="utf-8") as f:
             json.dump(metrics, f, indent=4)
         self.rank_log(f"Metrics saved to {metrics_file}")
