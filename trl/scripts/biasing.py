@@ -124,6 +124,7 @@ class PieceSampler:
         self,
         buffer_size=100000,
         bias_prob=1.0,
+        context_prob=1.0,
         hit_prob=0.5,
         hit_ratio=None,
         miss_prob=1,
@@ -149,6 +150,7 @@ class PieceSampler:
         self.buffer = deque(maxlen=buffer_size)
         self.max_piece_len = max_piece_len
         self.bias_prob = bias_prob
+        self.ctx_prob = context_prob
         self.sample_range = get_range(sample_range)
         self.hit_prob = hit_prob
         self.hit_ratio = to_list(hit_ratio, (0, 1))
@@ -256,12 +258,13 @@ class PieceSampler:
         if self.tag_all:  # tag the input sample pieces as well
             examples = tag_pieces(examples, self.tag)
         self.idx += 1
-        prompt, trans = ", ".join(examples), " ".join(pieces)
+        context, trans = ", ".join(examples), " ".join(pieces)
         if self.log_interval is not None and self.idx % self.log_interval == 0:
-            print(f"[{self.idx}] biasing  list: {prompt}")
+            print(f"[{self.idx}] biasing  list: {context}")
             print(f"[{self.idx}] transcription: {trans}")
-
-        return prompt, trans, shared
+        if random.random() >= self.ctx_prob:
+            context = ""  # ignore context with some probability
+        return context, trans, shared
 
 
 # %%

@@ -229,7 +229,6 @@ def stream_shuffle(ds, **kwargs):
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
     rand_prompt = kwargs.pop("rand_prompt", False)
-    context_prob = kwargs.pop("context_prob", 1)
 
     kwargs = kwargs or {
         "bias_prob": 0.9,
@@ -241,7 +240,7 @@ def bias_sampling(ds, **kwargs):
     def proc_sample(sample):
         """Process a sample from the dataset."""
         context, text, keywords = bias_sampler.sample(sample["text"])
-        if random.random() < context_prob:
+        if context:
             prompt = get_task_prompt(task="biasing", rand=rand_prompt)
             prompt = f"{prompt} {context}"
         else:
