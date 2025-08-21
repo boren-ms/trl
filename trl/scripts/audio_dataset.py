@@ -15,6 +15,7 @@ from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
 from trl.scripts.audio_prompts import get_task_prompt
 from trl.scripts.chunk_dataset import generate_examples, get_chunk_manager
 from trl.data_utils import sf_read
+from trl.trainer.utils import rank_print
 
 
 prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
@@ -215,17 +216,6 @@ def openasr_dataset(**kwargs):
     return ds
 
 
-def stream_shuffle(ds, **kwargs):
-    """Process the dataset."""
-    streaming = kwargs.get("streaming", False)
-    if streaming:
-        ds = ds.to_iterable_dataset(num_shards=kwargs.get("num_shards", 1))
-    num_egs = kwargs.get("num_egs", None)
-    if num_egs is not None:
-        ds = ds.take(num_egs)
-    return ds
-
-
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
     rand_prompt = kwargs.pop("rand_prompt", False)
@@ -353,7 +343,55 @@ def wer_filter_ds(ds, **kwargs):
 
     n_egs = len(ds)
     ds = ds.filter(wer_filter_fn, num_proc=1)
-    print(f"Filtered dataset: {n_egs} to {len(ds)}")
+    all_rank_print(f"Filtered dataset: {n_egs} to {len(ds)}")
+    return ds
+
+
+def all_rank_print(*args, **kwargs):
+    rank_print(*args, main=False, **kwargs)
+
+
+def dist_state():
+    from accelerate import PartialState
+
+    return PartialState()
+
+
+def stream_shuffle(ds, **kwargs):
+    """Process the dataset."""
+    streaming = kwargs.get("streaming", False)
+    if streaming:
+        num_shards = kwargs.get("num_shards", dist_state().num_processes)  # this is shared with shard_ds
+        ds = ds.to_iterable_dataset(num_shards=num_shards)
+    num_egs = kwargs.get("num_egs", None)
+    if num_egs is not None:
+        ds = ds.take(num_egs)
+    return ds
+
+
+def shard_ds(ds, **kwargs):
+    """Shard the dataset."""
+    num_shards = kwargs.get("num_shards", dist_state().num_processes)
+    shard_id = kwargs.get("shard_id", dist_state().process_index)
+    all_rank_print(f"Sharding dataset into {num_shards} shards, picking {shard_id}")
+    all_rank_print("Original dataset:", ds)
+    if num_shards > 1:
+        ds = ds.shard(
+            num_shards=num_shards,
+            index=shard_id,
+            contiguous=kwargs.get("contiguous", False),  # keeps a contiguous block; set False if you prefer striding
+        )
+    all_rank_print("Sharded dataset:", ds)
+    return ds
+
+
+def post_process(ds, **kwargs):
+    """Post process the dataset."""
+    ds = stream_shuffle(ds, **kwargs)
+    if kwargs.get("load_audio", False):
+        ds = load_audio(ds)
+    if kwargs.get("do_shard", False):
+        ds = shard_ds(ds, **kwargs)
     return ds
 
 
@@ -369,8 +407,8 @@ def augment(ds, **kwargs):
         ds = simulate_preference(ds, **pref_kwargs)
     if fmt_pref_kwargs := kwargs.get("format_preference", {}):
         ds = format_preference(ds, **fmt_pref_kwargs)
-    if kwargs.get("load_audio", False):
-        ds = load_audio(ds)
+    if post_process_kwargs := kwargs.get("post_process", {}):
+        ds = post_process(ds, **post_process_kwargs)
     return ds
 
 
