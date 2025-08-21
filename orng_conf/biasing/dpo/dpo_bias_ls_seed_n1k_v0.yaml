@@ -10,7 +10,12 @@ train_data:
   format_preference:
     chosen_key: ref
     rejected_key: hyp
-
+  post_process:
+    streaming: True
+    do_shard: True
+    #num_shards: 2 # make this auto using num of GPUs
+accelerator_config:
+  dispatch_batches: False
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 # model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
@@ -18,7 +23,8 @@ model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000
 loss_type: ["sigmoid", "bco_pair", "sft"]
 loss_weights: [0.8, 0.2, 1.0]
 report_to: [wandb]
-num_train_epochs: 1
+# num_train_epochs: 1 # can not use this for streaming datasets with cosine, use max steps
+max_steps: 1000 # num_egs = 1000*20*N_GPU(8) = 160k
 learning_rate: 1e-5
 # new_lora: True
 lr_scheduler_type: cosine #cosine
@@ -44,37 +50,73 @@ eval_data:
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     data_dir: az://${DATA_STORAGE}/data/boren/data
+    post_process:
+      do_shard: True
+    format_preference:
+      chosen_key: text
+      rejected_key: text
   - nickname: other_no
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
     data_dir: az://${DATA_STORAGE}/data/boren/data
+    post_process:
+      do_shard: True
+    format_preference:
+      chosen_key: text
+      rejected_key: text
   - nickname: clean_100
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     data_dir: az://${DATA_STORAGE}/data/boren/data
+    post_process:
+      do_shard: True
+    format_preference:
+      chosen_key: text
+      rejected_key: text
     bias_key: distractors # distractors
   - nickname: other_100
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
     bias_key: distractors # distractors
     data_dir: az://${DATA_STORAGE}/data/boren/data
+    post_process:
+      do_shard: True
+    format_preference:
+      chosen_key: text
+      rejected_key: text
   - nickname: clean_500
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
     bias_key: distractors # distractors
     data_dir: az://${DATA_STORAGE}/data/boren/data
+    post_process:
+      do_shard: True
+    format_preference:
+      chosen_key: text
+      rejected_key: text
   - nickname: other_500
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
     bias_key: distractors # distractors
     data_dir: az://${DATA_STORAGE}/data/boren/data
+    post_process:
+      do_shard: True
+    format_preference:
+      chosen_key: text
+      rejected_key: text
   # - nickname: clean_1000
   #   dataset_name: ls_bias
   #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
   #   bias_key: distractors # distractors
   #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  # format_preference:
+  #   chosen_key: text
+  #   rejected_key: text
   # - nickname: other_1000
   #   dataset_name: ls_bias
   #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
   #   bias_key: distractors # distractors
   #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  # format_preference:
+  #   chosen_key: text
+  #   rejected_key: text
