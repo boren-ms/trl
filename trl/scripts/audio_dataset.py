@@ -386,18 +386,15 @@ def create_audio_dataset(dataset_name="openasr", **kwargs):
         ds = entity_dataset(**kwargs)
     elif dataset_name == "openasr":
         ds = openasr_dataset(**kwargs)
-        ds = augment(ds, **kwargs)
     elif dataset_name == "tsv":
         ds = tsv_dataset(**kwargs)
-        ds = augment(ds, **kwargs)
     elif dataset_name == "jsonl":
         ds = jsonl_dataset(**kwargs)
-        ds = augment(ds, **kwargs)
     elif dataset_name == "chunk":
         ds = chunk_dataset(**kwargs)
-        ds = augment(ds, **kwargs)
     else:
         raise ValueError(f"Unknown dataset name: {dataset_name}")
+    ds = augment(ds, **kwargs)
     return ds
 
 

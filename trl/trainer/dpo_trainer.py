@@ -19,6 +19,7 @@ import textwrap
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager, nullcontext
+from more_itertools import unique_everseen
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Literal, Optional, Union
@@ -29,7 +30,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from accelerate import PartialState
-from accelerate.utils import tqdm
+from accelerate.utils import tqdm, gather_object
 from datasets import Dataset, IterableDataset
 from torch import autocast
 from torch.utils.data import DataLoader
@@ -52,7 +53,7 @@ from transformers.integrations import (
 )
 from transformers.models.auto.modeling_auto import MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES
 from transformers.trainer_callback import TrainerCallback
-from transformers.trainer_utils import EvalLoopOutput
+from transformers.trainer_utils import EvalLoopOutput, has_length
 from transformers.utils import is_liger_kernel_available, is_peft_available
 
 from ..data_utils import maybe_apply_chat_template, maybe_extract_prompt, load_audio
@@ -74,6 +75,7 @@ from .utils import (
     pad_to_length,
     peft_module_casting_to_bf16,
     selective_log_softmax,
+    rank_print,
 )
 
 
@@ -101,6 +103,9 @@ def shift_tokens_right(input_ids: torch.Tensor, decoder_start_token_id: int) -> 
     shifted_input_ids = input_ids.new_zeros(input_ids.shape)
     shifted_input_ids[:, 1:] = input_ids[:, :-1].clone()
     shifted_input_ids[:, 0] = decoder_start_token_id
+
+
+ADDITIONAL_KEYS = ["id", "text", "keywords"]
 
 
 @dataclass
@@ -173,6 +178,10 @@ class DataCollatorForPreference(DataCollatorMixin):
         if "ref_chosen_logps" in examples[0] and "ref_rejected_logps" in examples[0]:
             output["ref_chosen_logps"] = ref_chosen_logps
             output["ref_rejected_logps"] = ref_rejected_logps
+
+        for key in ADDITIONAL_KEYS:
+            if key in examples[0]:
+                output[key] = [example[key] for example in examples]
 
         return output
 
@@ -580,7 +589,6 @@ class DPOTrainer(Trainer):
         if isinstance(dataset, Dataset):  # IterableDataset does not support num_proc nor writer_batch_size
             map_kwargs["num_proc"] = args.dataset_num_proc
             map_kwargs["writer_batch_size"] = 10
-
         with PartialState().main_process_first():
             # Extract prompt if needed
             if isinstance(dataset, Dataset):  # `IterableDataset.map` does not support `desc`
@@ -693,6 +701,10 @@ class DPOTrainer(Trainer):
         Same as `tokenize_row` but for vision models. Please refer to `tokenize_row` for more information.
         """
         processor, tokenizer = processing_class, processing_class.tokenizer  # the processing class is a processor
+        # eos_token_id = tokenizer.eos_token_id # general models
+        tokens = tokenizer.encode("<|end|>")  # for phi MM
+        eos_token_id = tokens[0] if len(tokens) == 1 else tokenizer.eos_token_id  # if <|end|> is special token
+
         # processed_features = processor(images=features["images"], text=features["prompt"], add_special_tokens=False)
         audio = load_audio(features)
         processed_features = processor(text=features["prompt"], audios=[audio], return_tensors="pt")
@@ -705,10 +717,10 @@ class DPOTrainer(Trainer):
         if add_special_tokens:
             if tokenizer.bos_token_id is not None:
                 prompt_input_ids = [tokenizer.bos_token_id] + prompt_input_ids
-            if tokenizer.eos_token_id is not None:
-                prompt_input_ids = prompt_input_ids + [tokenizer.eos_token_id]
-        chosen_input_ids = chosen_input_ids + [tokenizer.eos_token_id]
-        rejected_input_ids = rejected_input_ids + [tokenizer.eos_token_id]
+            if eos_token_id is not None:
+                prompt_input_ids = prompt_input_ids + [eos_token_id]
+        chosen_input_ids = chosen_input_ids + [eos_token_id]
+        rejected_input_ids = rejected_input_ids + [eos_token_id]
 
         # disable truncate on prompt due audio token
         # if max_prompt_length is not None:
@@ -733,6 +745,9 @@ class DPOTrainer(Trainer):
         if processed_features["audio_attention_mask"] is not None:
             output["audio_attention_mask"] = processed_features["audio_attention_mask"][0]
 
+        for key in ADDITIONAL_KEYS:
+            if key in features:
+                output[key] = features[key]
         return output
 
     def _set_signature_columns_if_needed(self):
@@ -750,6 +765,7 @@ class DPOTrainer(Trainer):
                 "audio_embed_sizes",
                 "ref_chosen_logps",
                 "ref_rejected_logps",
+                *ADDITIONAL_KEYS,
             ]
 
     def get_train_dataloader(self) -> DataLoader:
@@ -1737,45 +1753,52 @@ class DPOTrainer(Trainer):
         metric_key_prefix: str = "eval",
     ) -> EvalLoopOutput:
         """
-        Overriding built-in evaluation loop to store metrics for each batch. Prediction/evaluation loop, shared by
-        `Trainer.evaluate()` and `Trainer.predict()`.
-
+        Prediction/evaluation loop, shared by `Trainer.evaluate()` and `Trainer.predict()`.
         Works both with or without labels.
         """
+        model = self._wrap_model(self.model, training=False, dataloader=dataloader)
+        rank_print(f"\n***** Running {description} *****")
+        rank_print(f"Dataloader example size = {self.num_examples(dataloader)}")
+        eval_dataset = getattr(dataloader, "dataset", None)
+        if has_length(eval_dataset):
+            num_samples = len(eval_dataset)
+            rank_print(f"Dataset example size = {num_samples}")
+        model.eval()
+        if hasattr(self.optimizer, "eval") and callable(self.optimizer.eval):
+            self.optimizer.eval()
 
-        # Sample and save to game log if requested (for one batch to save time)
-        if self.generate_during_eval:
-            # Generate random indices within the range of the total number of samples
-            num_samples = len(dataloader.dataset)
-            random_indices = random.sample(range(num_samples), k=self.args.eval_batch_size)
-
-            # Use dataloader.dataset.select to get the random batch without iterating over the DataLoader
-            random_batch_dataset = dataloader.dataset.select(random_indices)
-            random_batch = self.data_collator(random_batch_dataset)
-            random_batch = self._prepare_inputs(random_batch)
-
-            policy_output_decoded, ref_output_decoded = self.generate_from_model_and_ref(self.model, random_batch)
-
-            table = pd.DataFrame(
-                columns=["Prompt", "Policy", "Ref Model"],
-                data=[[prompt, pol[len(prompt) :], ref[len(prompt) :]] for prompt, pol, ref in zip(random_batch_dataset["prompt"], policy_output_decoded, ref_output_decoded)],
+        # Initialize containers
+        results = []
+        metrics = {}
+        for inputs in tqdm(dataloader):
+            generate_ids = model.generate(
+                input_ids=inputs["prompt_input_ids"],
+                attention_mask=inputs["prompt_attention_mask"],
+                input_audio_embeds=inputs["input_audio_embeds"],
+                audio_attention_mask=inputs["audio_attention_mask"],
+                audio_embed_sizes=inputs["audio_embed_sizes"],
+                input_mode=2,  # fixed speech task
             )
-            if "wandb" in self.args.report_to and self.accelerator.is_main_process:
-                wandb.log({"game_log": wandb.Table(data=table)})
+            prompt_len = inputs["prompt_input_ids"].shape[1]
+            completions = self.processing_class.batch_decode(generate_ids[:, prompt_len:], skip_special_tokens=True, clean_up_tokenization_spaces=False)
+            # assume 'id' in the inputs
+            for egs_idx, text, keywords, completion in zip(inputs["id"], inputs["text"], inputs["keywords"], completions):
+                # required by compute_metrics (list of list(dict)) #list(dict) is group results
+                results.append([{"id": egs_idx, "text": text, "keywords": keywords, "completions": completion}])
 
-            if "comet_ml" in self.args.report_to:
-                log_table_to_comet_experiment(
-                    name="game_log.csv",
-                    table=table,
-                )
-
-            if "mlflow" in self.args.report_to and self.accelerator.is_main_process:
-                mlflow.log_table(data=table, artifact_file="game_log.json")
-
-        # Base evaluation
-        initial_output = super().evaluation_loop(dataloader, description, prediction_loss_only, ignore_keys, metric_key_prefix)
-
-        return initial_output
+        rank_print(f"Evaluation got {len(results)} results")
+        gathered_results = gather_object(results)
+        rank_print(f"Gathered {len(gathered_results)} results from all processes")
+        uniq_results = list(unique_everseen((result for result in gathered_results), key=lambda x: x[0].get("id", "")))
+        rank_print(f"Get unique {len(uniq_results)} results from gathered results")
+        if self.compute_metrics and len(uniq_results) > 0:
+            metrics = self.compute_metrics(uniq_results)
+        key_pfx = metric_key_prefix.replace("eval_", "eval/") + "_"
+        for key in list(metrics.keys()):
+            if not key.startswith(key_pfx):
+                metrics[f"{key_pfx}{key}"] = metrics.pop(key)
+        self.store_metrics(metrics, train_eval="eval")
+        return EvalLoopOutput(predictions=None, label_ids=None, metrics=metrics, num_samples=num_samples)
 
     def log(self, logs: dict[str, float], start_time: Optional[float] = None) -> None:
         """
