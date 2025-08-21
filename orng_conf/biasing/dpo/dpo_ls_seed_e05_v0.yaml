@@ -3,7 +3,7 @@ train_data:
   # nug_egs: 5000
   # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
   # jsonl_paths: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct/metric_vllm_ls_train_debug_biasing_smp2__results.jsonl
-  jsonl_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/ls_train_960hr_biasing_smp_v2_sc3k.jsonl
+  jsonl_paths: az://${DATA_STORAGE}/data/boren/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf/metric_vllm_ls_train_960hr_biasing_smp_v2_sc3k__results.jsonl
   wer_filter:
     wer_range: [1, 100]
     bwer_range: [1, 100]
