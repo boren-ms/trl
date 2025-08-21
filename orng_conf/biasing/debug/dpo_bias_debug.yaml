@@ -1,58 +1,122 @@
-# model_name_or_path: az://orngscuscresco/data/boren/data/ckp/phi4_mm_bias
-model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias_merged
+train_data:
+    dataset_name: jsonl
+    num_egs: 5000
+    # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
+    # jsonl_paths: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct/metric_vllm_ls_train_debug_biasing_smp2__results.jsonl
+    jsonl_paths: az://${DATA_STORAGE}/data/boren/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf/metric_vllm_ls_train_960hr_biasing_smp_v2_sc3k__results.jsonl
+    wer_filter:
+        wer_range: [1, 100]
+        bwer_range: [1, 100]
+    format_preference:
+        chosen_key: ref
+        rejected_key: hyp
+    post_process:
+        streaming: True
+        do_shard: True
+        #num_shards: 2 # make this auto using num of GPUs
+accelerator_config:
+    dispatch_batches: False
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-reward_funcs: [reward_full_error, reward_bias_error]
-reward_weights: [1, 10]
+# model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
+new_lora: True # ensure lora switch between base and trained for ref_model and training model
+# model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
+loss_type: ["sigmoid", "bco_pair", "sft"]
+loss_weights: [0.8, 0.2, 1.0]
 report_to: [wandb]
-learning_rate: 5e-6
-lr_scheduler_type: cosine
-output_dir: ~/outputs/debug
-per_device_train_batch_size: 24
-num_generations: 4
-# dataloader_drop_last: True
-
-logging_steps: 1
+# num_train_epochs: 1 # can not use this for streaming datasets with cosine, use max steps
+max_steps: 1000 # num_egs = 1000*20*N_GPU(8) = 160k
+learning_rate: 1e-5
+# new_lora: True
+lr_scheduler_type: cosine #cosine
+output_dir: ./output
+per_device_train_batch_size: 5
+per_device_eval_batch_size: 5
+gradient_accumulation_steps: 1
+logging_steps: 10
 bf16: True
 gradient_checkpointing: True
-log_completions: False
-max_prompt_length: 2048
-max_completion_length: 512
-wandb_log_unique_prompts: True
-# beta: 0.1
-epsilon_high: 0.28
+max_prompt_length: 6000
+max_completion_length: 1024
+save_only_model: True
+save_total_limit: 5
+save_on_each_node: True
 save_steps: 100
-use_vllm: True
-vllm_mode: colocate
-vllm_tensor_parallel_size: 1
-vllm_gpu_memory_utilization: 0.4
-
-# vllm_server_host: ${VLLM_SERVER_HOST}
-# vllm_server_host: 10.133.219.39
-# vllm_server_port: 26500
-# resume_from_checkpoint: True
-train_data:
-    dataset_name: tsv
-    # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
-    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
-    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
-    tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
-    # tsv_paths: /root/data/LibriSpeech/debug.tsv
-    biasing:
-        bias_prob: 0.8
-        hit_prob: 0.8
-        max_piece_len: 1
-        max_num: 100
-        log_interval: 1000 # print biasing every 10000 samples
-        sampling_version: v0
-        common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
-        common_word_num: 1000
 # eval_strategy: steps
-# eval_on_start: True
-# eval_steps: 10
-# per_device_eval_batch_size: 200
-# num_eval_generations: 2
+# eval_on_start: False
+# eval_steps: 200
 # eval_data:
-#     - nickname: clean_no
-#       dataset_name: ls_bias
-#       jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-#       data_dir: az://orngscuscresco/data/boren/data
+#   - nickname: clean_no
+#     dataset_name: ls_bias
+#     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+#     data_dir: az://${DATA_STORAGE}/data/boren/data
+#     post_process:
+#       do_shard: True
+#     format_preference:
+#       chosen_key: text
+#       rejected_key: text
+#   - nickname: other_no
+#     dataset_name: ls_bias
+#     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+#     data_dir: az://${DATA_STORAGE}/data/boren/data
+#     post_process:
+#       do_shard: True
+#     format_preference:
+#       chosen_key: text
+#       rejected_key: text
+#   - nickname: clean_100
+#     dataset_name: ls_bias
+#     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+#     data_dir: az://${DATA_STORAGE}/data/boren/data
+#     post_process:
+#       do_shard: True
+#     format_preference:
+#       chosen_key: text
+#       rejected_key: text
+#     bias_key: distractors # distractors
+#   - nickname: other_100
+#     dataset_name: ls_bias
+#     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+#     bias_key: distractors # distractors
+#     data_dir: az://${DATA_STORAGE}/data/boren/data
+#     post_process:
+#       do_shard: True
+#     format_preference:
+#       chosen_key: text
+#       rejected_key: text
+#   - nickname: clean_500
+#     dataset_name: ls_bias
+#     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
+#     bias_key: distractors # distractors
+#     data_dir: az://${DATA_STORAGE}/data/boren/data
+#     post_process:
+#       do_shard: True
+#     format_preference:
+#       chosen_key: text
+#       rejected_key: text
+#   - nickname: other_500
+#     dataset_name: ls_bias
+#     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
+#     bias_key: distractors # distractors
+#     data_dir: az://${DATA_STORAGE}/data/boren/data
+#     post_process:
+#       do_shard: True
+#     format_preference:
+#       chosen_key: text
+#       rejected_key: text
+#   # - nickname: clean_1000
+#   #   dataset_name: ls_bias
+#   #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
+#   #   bias_key: distractors # distractors
+#   #   data_dir: az://${DATA_STORAGE}/data/boren/data
+#   # format_preference:
+#   #   chosen_key: text
+#   #   rejected_key: text
+#   # - nickname: other_1000
+#   #   dataset_name: ls_bias
+#   #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
+#   #   bias_key: distractors # distractors
+#   #   data_dir: az://${DATA_STORAGE}/data/boren/data
+#   # format_preference:
+#   #   chosen_key: text
+#   #   rejected_key: text
