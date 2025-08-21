@@ -874,7 +874,7 @@ class DPOTrainer(Trainer):
         compte_ref_context_manager = autocast(self.accelerator.device.type) if self._peft_has_been_casted_to_bf16 else nullcontext()
         with torch.no_grad(), compte_ref_context_manager:
             if self.is_lora_model:
-                ref_model_output = self.concatenated_forward(self.model, batch, input_mode=4)
+                ref_model_output = self.concatenated_forward(self.model, batch, is_ref_model=True)
             elif self.ref_model is None:
                 with self.null_ref_context():
                     ref_model_output = self.concatenated_forward(self.model, batch, is_ref_model=True)
@@ -1379,7 +1379,7 @@ class DPOTrainer(Trainer):
         if "input_audio_embeds" in concatenated_batch:
             model_kwargs["input_audio_embeds"] = concatenated_batch["input_audio_embeds"]
             model_kwargs["audio_embed_sizes"] = concatenated_batch["audio_embed_sizes"]
-            model_kwargs["input_mode"] = 2  # for Phi-MM speech lora
+            model_kwargs["input_mode"] = 0 if is_ref_model and self.is_lora_model else 2  # 2: speech lora, 0: no lora
             model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
         # model_kwargs.update(kwargs)
 
