@@ -103,7 +103,7 @@ def get_task_script(task=None, config_file=None):
     cur_dir = Path(__file__).parent
     tasks = {
         "grpo": cur_dir / "trl/scripts/grpo_bias.py",
-        "dpo": cur_dir / "trl/scripts/online_dpo_bias.py",
+        "dpo": cur_dir / "trl/scripts/dpo_bias.py",
         "online_dpo": cur_dir / "trl/scripts/online_dpo_bias.py",  # add alias
     }
 
