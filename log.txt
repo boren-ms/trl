@@ -1,7 +1,3 @@
-[32;1mRUN: /home/boren/.openai/bin/brix ssh dev-n1-hpe2 -- 'pgrep -fa /launch_'[0m
-1395734 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_ref.yaml
-[32;1mRUN: /home/boren/.openai/bin/brix ssh dev-n1-uks7 -- 'pgrep -fa /launch_'[0m
-1287842 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e025_simple_err_t12_n8_bp8_imp5_ref_smp2a.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh dev-n1-wus2 -- 'pgrep -fa /launch_'[0m
 1294015 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e1_simple_err_t12_n8_bp8_imp5_ref_smp2a.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh dev1-n1-wus2 -- 'pgrep -fa /launch_'[0m
@@ -9,19 +5,20 @@
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h-n1-uks7 -- 'pgrep -fa /launch_'[0m
 1323473 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_char.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h-n2-hpe4 -- 'pgrep -fa /launch_'[0m
-983947 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_nobias.yaml --nodes 1
-985277 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_wer.yaml --nodes 0
+2406866 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_ref_smp2a.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h-n2-uks7 -- 'pgrep -fa /launch_'[0m
 108118 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_ref_smp2.yaml --nodes 0
 112296 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_ref_smp2a_sc3k.yaml --nodes 1
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h-n2-wus2 -- 'pgrep -fa /launch_'[0m
-3588215 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e05_simple_err_t12_n4_bp8_imp5.yaml --nodes 0
-3589851 python3 ./launch_eval.py phi-libri_ft_m1000_p8_new-QpHq/5000_hf --config eval_conf/eval_vllm_ls_960hr_biasing_smp_v2_sc3k.yaml --nodes 1
+240302 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e05_simple_cer_t12_n8_bp8_imp5_ref_sc3k_nobias.yaml --nodes 0
+242284 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_ubwer.yaml --nodes 1
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h1-n2-hpe4 -- 'pgrep -fa /launch_'[0m
-1390483 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_fmt_reward.yaml --nodes 1
-1400719 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_ref_smp2a.yaml --nodes 0
+3028908 python3 ./launch_train.py orng_conf/biasing/dpo/dpo_bias_ls_seed_n1k_v0.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h1-n2-wus2 -- 'pgrep -fa /launch_'[0m
-1791806 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e05_simple_err_t12_n8_sc3k_ctx8_inject_ref_imp5_smp_v2a_ga4.yaml --nodes 1
 2956075 python3 ./launch_train.py orng_conf/biasing/pending/grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5.yaml --nodes 0
+[32;1mRUN: /home/boren/.openai/bin/brix ssh l-n1-hpe2 -- 'pgrep -fa /launch_'[0m
+exit status 1
 [32;1mRUN: /home/boren/.openai/bin/brix ssh l-n2-hpe2 -- 'pgrep -fa /launch_'[0m
-60206 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e05_simple_err_t12_n8_ctx8_imp5_ref_smp2a_sc3k.yaml
+exit status 1
+[32;1mRUN: /home/boren/.openai/bin/brix ssh l1-n1-hpe2 -- 'pgrep -fa /launch_'[0m
+6181 python3 ./launch_train.py orng_conf/biasing/ls_verify/grpo_ls_m1000_seed_e025_simple_err_t12_n8_bp8_imp5_ref_smp2a.yaml
