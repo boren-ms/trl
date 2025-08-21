@@ -269,6 +269,23 @@ def to_chat(text, chat=True, role="assistant"):
     ]
 
 
+def format_preference(ds, **kwargs):
+    """Format the preference for the dataset."""
+    chosen_key = kwargs.get("chosen_key", "chosen")
+    rejected_key = kwargs.get("rejected_key", "rejected")
+    prompt_key = kwargs.get("prompt_key", "prompt")
+
+    def format_sample(sample):
+        """Format a single sample."""
+        return {
+            "prompt": sample.get(prompt_key, None),
+            "chosen": sample.get(chosen_key, None),
+            "rejected": sample.get(rejected_key, None),
+        }
+
+    return ds.map(format_sample)
+
+
 def simulate_preference(ds, **kwargs):
     """simulate the preference  to the dataset."""
     error_range = kwargs.pop("error_range", (0.1, 0.25))
@@ -317,14 +334,41 @@ def filter_ds(ds, **kwargs):
     return ds
 
 
+def wer_filter_ds(ds, **kwargs):
+    """Filter the dataset."""
+    wer_range = kwargs.get("wer_range", None)
+    bwer_range = kwargs.get("bwer_range", None)
+    uwer_range = kwargs.get("uwer_range", None)
+
+    def is_good(wer, wer_range=None):
+        if wer_range is None or wer is None:
+            return True
+        if not isinstance(wer_range, (list, tuple)):
+            wer_range = [wer_range]
+        return wer_range[0] <= wer <= wer_range[-1]
+
+    def wer_filter_fn(x):
+        good = is_good(x.get("WER", None), wer_range) and is_good(x.get("BWER", None), bwer_range) and is_good(x.get("UWER", None), uwer_range)
+        return good
+
+    n_egs = len(ds)
+    ds = ds.filter(wer_filter_fn, num_proc=1)
+    print(f"Filtered dataset: {n_egs} to {len(ds)}")
+    return ds
+
+
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
     if filter_kwargs := kwargs.get("filter", {}):
         ds = filter_ds(ds, **filter_kwargs)
+    if wer_filter_kwargs := kwargs.get("wer_filter", {}):
+        ds = wer_filter_ds(ds, **wer_filter_kwargs)
     if biasing_kwargs := kwargs.get("biasing", {}):
         ds = bias_sampling(ds, **biasing_kwargs)
     if pref_kwargs := kwargs.get("simu_preference", {}):
         ds = simulate_preference(ds, **pref_kwargs)
+    if fmt_pref_kwargs := kwargs.get("format_preference", {}):
+        ds = format_preference(ds, **fmt_pref_kwargs)
     if kwargs.get("load_audio", False):
         ds = load_audio(ds)
     return ds
@@ -338,15 +382,15 @@ def create_audio_dataset(dataset_name="openasr", **kwargs):
         ds = entity_dataset(**kwargs)
     elif dataset_name == "openasr":
         ds = openasr_dataset(**kwargs)
-        ds = augment(ds, **kwargs)
     elif dataset_name == "tsv":
         ds = tsv_dataset(**kwargs)
-        ds = augment(ds, **kwargs)
+    elif dataset_name == "jsonl":
+        ds = jsonl_dataset(**kwargs)
     elif dataset_name == "chunk":
         ds = chunk_dataset(**kwargs)
-        ds = augment(ds, **kwargs)
     else:
         raise ValueError(f"Unknown dataset name: {dataset_name}")
+    ds = augment(ds, **kwargs)
     return ds
 
 
@@ -357,8 +401,12 @@ if __name__ == "__main__":
     # print(dataset)
     # print(dataset[0]["text"])
     tsv_path = "/datablob1/users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv"
-    dataset = create_audio_dataset(dataset_name="tsv", num_egs=2, tsv_paths=[tsv_path])
-    print(dataset)
-    print(next(iter(dataset)))
+    import yaml
+
+    yaml_file = Path("/mnt2/newhome/boren/trl/orng_conf/biasing/debug/dpo_bias_debug_local.yaml")
+    kwargs = yaml.safe_load(yaml_file.read_text())
+    ds = create_audio_dataset(**kwargs["train_data"])
+    print(ds)
+    print(next(iter(ds)))
 
 # %%
