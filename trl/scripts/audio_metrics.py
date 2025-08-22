@@ -365,12 +365,10 @@ def calc_errors(refs, hyps, tn=None, unit=None):
 
 def format_ref_with_keywords(text, keywords=None):
     """Extract keywords from the text based on biasing words."""
-    tag_words = re.findall(r"\*.*?\*", text)
-    if tag_words:  # prefer tagged words if found
-        keywords = tag_words
-
+    if keywords is None:  # tagged words if found
+        keywords = re.findall(r"\*.*?\*", text)
     return {
-        "biasing_words": keywords if keywords is not None else [],
+        "biasing_words": keywords,
         "text": text,
     }
 

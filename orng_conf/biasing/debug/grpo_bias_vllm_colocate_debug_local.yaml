@@ -13,10 +13,10 @@ save_total_limit: 5
 save_on_each_node: True
 # new_lora: True
 # lr_scheduler_type: cosine
-output_dir: ~/outputs/debug
+output_dir: ~/outputs/debug_grpo
 per_device_train_batch_samples: 2
 num_generations: 5
-generation_scale: 2
+# generation_scale: 2
 token_entropy_percentile_threshold: 0.8
 # dataloader_drop_last: True
 
@@ -28,7 +28,7 @@ gradient_checkpointing: True
 # gradient_accumulation_steps: 2
 # steps_per_generation: 2
 log_completions: True
-max_prompt_length: 6000
+max_prompt_length: 3000
 max_completion_length: 512
 inject_reference: True
 #
@@ -38,7 +38,7 @@ save_steps: 100
 use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
-vllm_gpu_memory_utilization: 0.35
+vllm_gpu_memory_utilization: 0.3
 vllm_imp_ratio_cap: 5
 # use_vllm_lora_update: True # not work yet
 # vllm_server_host: ${VLLM_SERVER_HOST}
@@ -67,10 +67,11 @@ train_data:
     #     buffer_size: 5000
     #     num_rejections: 8
     biasing:
-        bias_prob: 0.5
+        bias_prob: 0
         hit_prob: 1
-        miss_prob: 0.5
+        miss_prob: 1
         context_prob: 1.0
+        # task_info: 1 # 0 disable, 1 task token, 2 task token + hit words
         max_piece_len: 1
         sample_range: [0, 300]
         sampling_version: v2
