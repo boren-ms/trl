@@ -10,7 +10,7 @@ train_data:
     hit_prob: 1
     miss_prob: 1
     context_prob: 1 # prob for context
-    task_info: 2 # 0 disable, 1 task token, 2 task token + hit words
+    task_info: 1 # 0 disable, 1 task token, 2 task token + hit words
     sample_range: [0, 1000] # all rare words
     sampling_version: v2
     hit_ratio: [0.0, 1.0]
@@ -39,7 +39,7 @@ output_dir: ./output
 per_device_train_batch_samples: 2
 num_generations: 8
 # generation_scale: 2
-# inject_reference: True
+inject_reference: True
 # token_entropy_percentile_threshold: 0.8
 # steps_per_generation: 2 # generate 4 batches
 gradient_accumulation_steps: 4
