@@ -1,6 +1,5 @@
 train_data:
   dataset_name: jsonl
-  # nug_egs: 5000
   # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
   # jsonl_paths: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct/metric_vllm_ls_train_debug_biasing_smp2__results.jsonl
   jsonl_paths: az://${DATA_STORAGE}/data/boren/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf/metric_vllm_ls_train_960hr_biasing_smp_v2_sc3k__results.jsonl
@@ -11,11 +10,12 @@ train_data:
     chosen_key: ref
     rejected_key: hyp
   post_process:
-    streaming: True
-    do_shard: True
+    num_egs: 10000
+    # streaming: True
+    # do_shard: True
     #num_shards: 2 # make this auto using num of GPUs
-accelerator_config:
-  dispatch_batches: False
+# accelerator_config:
+#   dispatch_batches: False
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 # model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
@@ -37,7 +37,7 @@ logging_steps: 10
 bf16: True
 gradient_checkpointing: True
 max_prompt_length: 6000
-max_completion_length: 1024
+max_completion_length: 512
 save_only_model: True
 save_total_limit: 5
 save_on_each_node: True
@@ -51,8 +51,8 @@ eval_data:
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     data_dir: az://${DATA_STORAGE}/data/boren/data
-    post_process:
-      do_shard: True
+    # post_process:
+    #   do_shard: True
     format_preference:
       chosen_key: text
       rejected_key: text
@@ -60,8 +60,8 @@ eval_data:
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
     data_dir: az://${DATA_STORAGE}/data/boren/data
-    post_process:
-      do_shard: True
+    # post_process:
+    #   do_shard: True
     format_preference:
       chosen_key: text
       rejected_key: text
@@ -69,8 +69,8 @@ eval_data:
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     data_dir: az://${DATA_STORAGE}/data/boren/data
-    post_process:
-      do_shard: True
+    # post_process:
+    #   do_shard: True
     format_preference:
       chosen_key: text
       rejected_key: text
@@ -80,8 +80,8 @@ eval_data:
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
     bias_key: distractors # distractors
     data_dir: az://${DATA_STORAGE}/data/boren/data
-    post_process:
-      do_shard: True
+    # post_process:
+    #   do_shard: True
     format_preference:
       chosen_key: text
       rejected_key: text
@@ -90,8 +90,8 @@ eval_data:
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
     bias_key: distractors # distractors
     data_dir: az://${DATA_STORAGE}/data/boren/data
-    post_process:
-      do_shard: True
+    # post_process:
+    #   do_shard: True
     format_preference:
       chosen_key: text
       rejected_key: text
@@ -100,8 +100,8 @@ eval_data:
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
     bias_key: distractors # distractors
     data_dir: az://${DATA_STORAGE}/data/boren/data
-    post_process:
-      do_shard: True
+    # post_process:
+    #   do_shard: True
     format_preference:
       chosen_key: text
       rejected_key: text
