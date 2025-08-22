@@ -576,13 +576,14 @@ class RayNode:
         ray.init(address="auto")  # Connect to the running cluster
         print("Connected to Ray cluster.")
         nodes = [node for node in ray.nodes() if node["Alive"]]
+        nodes = sorted(nodes, key=lambda x: x["NodeManagerHostname"])
         print("Found nodes:")
         for i, node in enumerate(nodes):
-            print(f" - {i}: {node}")
+            print(f" - {i}: {node['NodeManagerHostname']}[{node['NodeManagerAddress']}]")
 
         self.indexs = to_list(indexs) if indexs is not None else list(range(len(nodes)))
         self.nodes = [nodes[i] for i in self.indexs]
-        print(f"Initialized RayHelper with {len(self.nodes)} nodes: {[node['NodeName'] for node in self.nodes]}")
+        print(f"Initialized RayHelper with {len(self.nodes)} nodes: {[node['NodeManagerHostname'] for node in self.nodes]}")
 
     @property
     def num_nodes(self):
@@ -595,11 +596,11 @@ class RayNode:
 
     def hostname(self, i=0):
         """Get the node hostname from the list of nodes."""
-        job_name = os.environ.get("RCALL_JOB_NAME", None)
-        assert job_name is not None, "RCALL_JOB_NAME must be set"
-        # node_hostname = self.nodes[index]["NodeManagerHostname"]
-        idx = self.indexs[i]
-        return f"{job_name}-{idx}"  # head node IP
+        return self.nodes[i]["NodeManagerHostname"]
+        # job_name = os.environ.get("RCALL_JOB_NAME", None)
+        # assert job_name is not None, "RCALL_JOB_NAME must be set"
+        # idx = self.indexs[i]
+        # return f"{job_name}-{idx}"  # head node IP
 
     def run(self, func, *args, waiting=True, **kwargs):
         # Launch one task per node, each pinned to a specific node
