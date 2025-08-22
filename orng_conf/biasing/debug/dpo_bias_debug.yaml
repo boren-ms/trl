@@ -3,7 +3,7 @@ train_data:
     num_egs: 5000
     # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
     # jsonl_paths: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct/metric_vllm_ls_train_debug_biasing_smp2__results.jsonl
-    jsonl_paths: az://${DATA_STORAGE}/data/boren/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf/metric_vllm_ls_train_960hr_biasing_smp_v2_sc3k__results.jsonl
+    jsonl_paths: az://orngscuscresco/data/boren/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf/metric_vllm_ls_train_960hr_biasing_smp_v2_sc3k__results.jsonl
     wer_filter:
         wer_range: [1, 100]
         bwer_range: [1, 100]
@@ -13,7 +13,7 @@ train_data:
     post_process:
         streaming: True
         do_shard: True
-        #num_shards: 2 # make this auto using num of GPUs
+    #num_shards: 2 # make this auto using num of GPUs
 accelerator_config:
     dispatch_batches: False
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
@@ -23,17 +23,16 @@ new_lora: True # ensure lora switch between base and trained for ref_model and t
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 loss_type: ["sigmoid", "bco_pair", "sft"]
 loss_weights: [0.8, 0.2, 1.0]
-report_to: [wandb]
+# report_to: [wandb]
 # num_train_epochs: 1 # can not use this for streaming datasets with cosine, use max steps
 max_steps: 1000 # num_egs = 1000*20*N_GPU(8) = 160k
 learning_rate: 1e-5
-# new_lora: True
 lr_scheduler_type: cosine #cosine
 output_dir: ./output
-per_device_train_batch_size: 5
-per_device_eval_batch_size: 5
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
 gradient_accumulation_steps: 1
-logging_steps: 10
+logging_steps: 1
 bf16: True
 gradient_checkpointing: True
 max_prompt_length: 6000

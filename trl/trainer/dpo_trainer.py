@@ -148,20 +148,32 @@ class DataCollatorForPreference(DataCollatorMixin):
 
     pad_token_id: int
     return_tensors: str = "pt"
+    bf16: bool = False
+
+    # Convert to tensor
+    def to_tensor(self, x):
+        if not isinstance(x, torch.Tensor):
+            x = torch.tensor(x)
+        if self.bf16 and x.is_floating_point():
+            x = x.to(torch.bfloat16)
+        return x
 
     def torch_call(self, examples: list[Union[list[int], Any, dict[str, Any]]]) -> dict[str, Any]:
-        # Convert to tensor
-        prompt_input_ids = [torch.tensor(example["prompt_input_ids"]) for example in examples]
+        def pickup_egs(key, as_tensor=False):
+            to_type = self.to_tensor if as_tensor else lambda x: x
+            return [to_type(egs[key]) for egs in examples]
+
+        prompt_input_ids = pickup_egs("prompt_input_ids", True)
         prompt_attention_mask = [torch.ones_like(input_ids) for input_ids in prompt_input_ids]
-        chosen_input_ids = [torch.tensor(example["chosen_input_ids"]) for example in examples]
+        chosen_input_ids = pickup_egs("chosen_input_ids", True)
         chosen_attention_mask = [torch.ones_like(input_ids) for input_ids in chosen_input_ids]
-        rejected_input_ids = [torch.tensor(example["rejected_input_ids"]) for example in examples]
+        rejected_input_ids = pickup_egs("rejected_input_ids", True)
         rejected_attention_mask = [torch.ones_like(input_ids) for input_ids in rejected_input_ids]
         if "input_audio_embeds" in examples[0]:
-            input_audio_embeds = [torch.tensor(example["input_audio_embeds"]) for example in examples]
+            input_audio_embeds = pickup_egs("input_audio_embeds", True)
         if "ref_chosen_logps" in examples[0] and "ref_rejected_logps" in examples[0]:
-            ref_chosen_logps = torch.tensor([example["ref_chosen_logps"] for example in examples])
-            ref_rejected_logps = torch.tensor([example["ref_rejected_logps"] for example in examples])
+            ref_chosen_logps = self.to_tensor(pickup_egs("ref_chosen_logps"))
+            ref_rejected_logps = self.to_tensor(pickup_egs("ref_rejected_logps"))
 
         # Pad
         output = {}
@@ -174,14 +186,14 @@ class DataCollatorForPreference(DataCollatorMixin):
         if "input_audio_embeds" in examples[0]:
             output["input_audio_embeds"] = pad(input_audio_embeds, padding_value=0)
             output["audio_attention_mask"] = pad([torch.ones(len(embed)) for embed in input_audio_embeds], padding_value=0)
-            output["audio_embed_sizes"] = torch.tensor([example["audio_embed_sizes"] for example in examples])
+            output["audio_embed_sizes"] = torch.tensor(pickup_egs("audio_embed_sizes"))
         if "ref_chosen_logps" in examples[0] and "ref_rejected_logps" in examples[0]:
             output["ref_chosen_logps"] = ref_chosen_logps
             output["ref_rejected_logps"] = ref_rejected_logps
 
         for key in ADDITIONAL_KEYS:
             if key in examples[0]:
-                output[key] = [example[key] for example in examples]
+                output[key] = pickup_egs(key)
 
         return output
 
@@ -364,7 +376,7 @@ class DPOTrainer(Trainer):
 
         # Data collator
         if data_collator is None:
-            data_collator = DataCollatorForPreference(pad_token_id=self.padding_value)
+            data_collator = DataCollatorForPreference(pad_token_id=self.padding_value, bf16=args.bf16)
 
         self.generate_during_eval = args.generate_during_eval
         self.label_pad_token_id = args.label_pad_token_id
