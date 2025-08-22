@@ -576,6 +576,9 @@ class RayNode:
         ray.init(address="auto")  # Connect to the running cluster
         print("Connected to Ray cluster.")
         nodes = [node for node in ray.nodes() if node["Alive"]]
+        print("Found nodes:")
+        for i, node in enumerate(nodes):
+            print(f" - {i}: {node}")
 
         self.indexs = to_list(indexs) if indexs is not None else list(range(len(nodes)))
         self.nodes = [nodes[i] for i in self.indexs]
