@@ -10,7 +10,7 @@ train_data:
     chosen_key: ref
     rejected_key: hyp
   post_process:
-    num_egs: 10000
+    num_egs: 5000
     # streaming: True
     # do_shard: True
     #num_shards: 2 # make this auto using num of GPUs
@@ -56,15 +56,15 @@ eval_data:
     format_preference:
       chosen_key: text
       rejected_key: text
-  - nickname: other_no
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    data_dir: az://${DATA_STORAGE}/data/boren/data
-    # post_process:
-    #   do_shard: True
-    format_preference:
-      chosen_key: text
-      rejected_key: text
+  # - nickname: other_no
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  #   # post_process:
+  #   #   do_shard: True
+  #   format_preference:
+  #     chosen_key: text
+  #     rejected_key: text
   - nickname: clean_100
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
@@ -75,16 +75,16 @@ eval_data:
       chosen_key: text
       rejected_key: text
     bias_key: distractors # distractors
-  - nickname: other_100
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    bias_key: distractors # distractors
-    data_dir: az://${DATA_STORAGE}/data/boren/data
-    # post_process:
-    #   do_shard: True
-    format_preference:
-      chosen_key: text
-      rejected_key: text
+  # - nickname: other_100
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+  #   bias_key: distractors # distractors
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  #   # post_process:
+  #   #   do_shard: True
+  #   format_preference:
+  #     chosen_key: text
+  #     rejected_key: text
   - nickname: clean_500
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
@@ -95,16 +95,16 @@ eval_data:
     format_preference:
       chosen_key: text
       rejected_key: text
-  - nickname: other_500
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
-    bias_key: distractors # distractors
-    data_dir: az://${DATA_STORAGE}/data/boren/data
-    # post_process:
-    #   do_shard: True
-    format_preference:
-      chosen_key: text
-      rejected_key: text
+  # - nickname: other_500
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
+  #   bias_key: distractors # distractors
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  #   # post_process:
+  #   #   do_shard: True
+  #   format_preference:
+  #     chosen_key: text
+  #     rejected_key: text
   # - nickname: clean_1000
   #   dataset_name: ls_bias
   #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
