@@ -1,3 +1,4 @@
+new_run: True
 train_data:
   dataset_name: jsonl
   # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
