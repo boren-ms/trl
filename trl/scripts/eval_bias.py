@@ -342,7 +342,8 @@ class Evaluation:
     def measure(self, results):
         # Placeholder: implement your metric computation here
         # results = [{"hyp": ..., "ref": ..., "id": ...}, ...]
-        wer, u_wer, b_wer = compute_wers(results)
+        # remove prefix with tag like <|hit|> <|/hit|>
+        wer, u_wer, b_wer = compute_wers(results, remove_hyp_pfx=True)
         return {
             f"WER": wer.get_wer(),
             f"UWER": u_wer.get_wer(),

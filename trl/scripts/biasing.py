@@ -136,6 +136,7 @@ class PieceSampler:
         tag="*",
         tag_all=True,
         log_interval=None,
+        task_info=0,
     ):
         """Initialize the PieceSampler with configuration parameters.
 
@@ -157,6 +158,7 @@ class PieceSampler:
         self.miss_prob = miss_prob
         self.tag = tag
         self.tag_all = tag_all
+        self.task_info = task_info
         if sampling_version == "v0":
             self._sample = self._sample_v0
         elif sampling_version == "v1":
@@ -257,6 +259,7 @@ class PieceSampler:
         pieces = tag_pieces(pieces, self.tag, shared)
         if self.tag_all:  # tag the input sample pieces as well
             examples = tag_pieces(examples, self.tag)
+            shared = tag_pieces(shared, self.tag)
         self.idx += 1
         context, trans = ", ".join(examples), " ".join(pieces)
         if self.log_interval is not None and self.idx % self.log_interval == 0:
@@ -264,6 +267,14 @@ class PieceSampler:
             print(f"[{self.idx}] transcription: {trans}")
         if random.random() >= self.ctx_prob:
             context = ""  # ignore context with some probability
+        if context:
+            leadings = []
+            if self.task_info >= 1:
+                leadings.append("<|hit|>" if shared else "<|miss|>")
+            if self.task_info >= 2:
+                leadings += shared
+                leadings.append("<|/hit|>" if shared else "<|/miss|>")
+            trans = " ".join(leadings + [trans])
         return context, trans, shared
 
 

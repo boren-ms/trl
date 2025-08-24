@@ -365,12 +365,10 @@ def calc_errors(refs, hyps, tn=None, unit=None):
 
 def format_ref_with_keywords(text, keywords=None):
     """Extract keywords from the text based on biasing words."""
-    tag_words = re.findall(r"\*.*?\*", text)
-    if tag_words:  # prefer tagged words if found
-        keywords = tag_words
-
+    if keywords is None:  # tagged words if found
+        keywords = re.findall(r"\*.*?\*", text)
     return {
-        "biasing_words": keywords if keywords is not None else [],
+        "biasing_words": keywords,
         "text": text,
     }
 
@@ -385,11 +383,62 @@ def compute_biasing_metrics(results):
     }
 
 
-def compute_wers(results, tn=None, unit=None):
+def remove_pfx_tag(text, tags=None):
+    """Remove leading <|hit|> or <|miss|> and trailing <|/hit|> or <|/miss|> tags from the text."""
+    tag = None
+    if m := re.search(r"^<\|[^<\|>]+\|>", text.strip()):
+        tag = m.group(0)[2:-2]
+    if tag is None or (tags is not None and tag not in tags):
+        return text.strip()
+
+    s_tag = f"<|{tag}|>"
+    e_tag = f"<|/{tag}|>"
+    if not text.startswith(s_tag):
+        return text
+    text = text.removeprefix(s_tag)
+    if (idx := text.find(e_tag)) >= 0:
+        text = text[idx + len(e_tag) :]
+    return text.strip()
+
+
+def remove_pfx_tags(text, tags=None):
+    while len(text):
+        n_len = len(text)
+        text = remove_pfx_tag(text, tags)
+        if len(text) == n_len:
+            break
+    return text
+
+
+def test_remove_pfx_tags():
+    test_cases = [
+        ("<|hit|> this is a test <|/hit|> Hello world", "Hello world"),
+        ("<|miss|> <|/miss|> Goodbye", "Goodbye"),
+        ("<|hit|>Test", "Test"),
+        ("<|miss|> Something", "Something"),
+        ("<|hit|><|miss|> Something", "Something"),
+        ("No marker here", "No marker here"),
+    ]
+    num_errors = 0
+    for inp, expected in test_cases:
+        output = remove_pfx_tags(inp)
+        if output != expected:
+            print(f"Input: {inp!r} | Output: {output!r} | Expected: {expected!r}")
+            num_errors += 1
+    return num_errors > 0
+
+
+def format_hyp(text, remove_pfx=False):
+    if remove_pfx:
+        text = remove_pfx_tags(text)
+    return text
+
+
+def compute_wers(results, tn=None, unit=None, remove_hyp_pfx=False):
     """compute WER, U-WER, and B-WER"""
     # Extract reference and hypothesis pairs from groups
     refs = {result.get("id", i): format_ref_with_keywords(result["ref"], result.get("keywords", None)) for i, result in enumerate(results)}
-    hyps = {result.get("id", i): result["hyp"] for i, result in enumerate(results)}
+    hyps = {result.get("id", i): format_hyp(result["hyp"], remove_hyp_pfx) for i, result in enumerate(results)}
     # Calculate WER, U-WER, and B-WER
     wer, u_wer, b_wer = calc_errors(refs, hyps, tn=tn, unit=unit)
     return wer, u_wer, b_wer
@@ -407,7 +456,8 @@ def eval_biasing_metrics(groups):
         }
         for i, group in enumerate(groups)
     ]
-    wer, u_wer, b_wer = compute_wers(results)
+    # not check hyp pfx for evaluation
+    wer, u_wer, b_wer = compute_wers(results, remove_hyp_pfx=True)
     return {
         "WER": wer.get_wer(),
         "UWER": u_wer.get_wer(),
