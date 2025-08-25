@@ -37,7 +37,10 @@ train_data:
         num_egs: 10
         streaming: True
         do_shard: True
-        num_shards: 2
+        path_map:
+            src_part: /root/data/
+            dst_part: /home/boren/data/
+        # num_shards: 2
 # eval_strategy: steps
 # eval_on_start: True
 # eval_steps: 10

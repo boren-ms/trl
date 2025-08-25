@@ -385,9 +385,26 @@ def shard_ds(ds, **kwargs):
     return ds
 
 
+def path_map(ds, **kwargs):
+    """Map the dataset paths."""
+    field = kwargs.get("field", "audio_path")
+    src_part = kwargs.get("src_part", None)
+    dst_part = kwargs.get("dst_part", None)
+
+    def map_fn(x):
+        x[field] = x[field].replace(src_part, dst_part)
+        return x
+
+    if src_part and dst_part:
+        ds = ds.map(map_fn)
+    return ds
+
+
 def post_process(ds, **kwargs):
     """Post process the dataset."""
     ds = stream_shuffle(ds, **kwargs)
+    if path_map_kwargs := kwargs.get("path_map", {}):
+        ds = path_map(ds, **path_map_kwargs)
     if kwargs.get("load_audio", False):
         ds = load_audio(ds)
     if kwargs.get("do_shard", False):
