@@ -1519,7 +1519,7 @@ class DPOTrainer(Trainer):
                 rejected_weights = all_weights[num_examples:]
                 output["policy_weights"] = torch.clamp(torch.exp(chosen_weights + rejected_weights), max=1)
 
-        if self.args.rpo_alpha is not None or "sft" in self.loss_type:
+        if (self.args.rpo_alpha is not None or "sft" in self.loss_type) and not is_ref_model:
             # Only use the chosen logits for the RPO loss or SFT loss
             chosen_logits = logits[:num_examples, :-1] if not self.is_encoder_decoder else logits[:num_examples]
             chosen_labels = labels[:num_examples, :-1] if not self.is_encoder_decoder else labels[:num_examples]
@@ -1597,6 +1597,9 @@ class DPOTrainer(Trainer):
             if "ref_chosen_logps" in batch and "ref_rejected_logps" in batch:
                 ref_chosen_logps = batch["ref_chosen_logps"]
                 ref_rejected_logps = batch["ref_rejected_logps"]
+            elif self.reference_free:
+                ref_chosen_logps = torch.zeros_like(model_output["chosen_logps"])
+                ref_rejected_logps = torch.zeros_like(model_output["rejected_logps"])
             else:
                 ref_chosen_logps, ref_rejected_logps = self.compute_ref_log_probs(batch)
 
@@ -1770,11 +1773,11 @@ class DPOTrainer(Trainer):
         """
         model = self._wrap_model(self.model, training=False, dataloader=dataloader)
         rank_print(f"\n***** Running {description} *****")
-        rank_print(f"Dataloader example size = {self.num_examples(dataloader)}")
         eval_dataset = getattr(dataloader, "dataset", None)
         if has_length(eval_dataset):
-            num_samples = len(eval_dataset)
-            rank_print(f"Dataset example size = {num_samples}")
+            rank_print(f"Dataloader example size = {self.num_examples(dataloader)}")
+            rank_print(f"Dataset example size = {len(eval_dataset)}")
+
         model.eval()
         if hasattr(self.optimizer, "eval") and callable(self.optimizer.eval):
             self.optimizer.eval()
@@ -1810,7 +1813,7 @@ class DPOTrainer(Trainer):
             if not key.startswith(key_pfx):
                 metrics[f"{key_pfx}{key}"] = metrics.pop(key)
         self.store_metrics(metrics, train_eval="eval")
-        return EvalLoopOutput(predictions=None, label_ids=None, metrics=metrics, num_samples=num_samples)
+        return EvalLoopOutput(predictions=None, label_ids=None, metrics=metrics, num_samples=len(uniq_results))
 
     def log(self, logs: dict[str, float], start_time: Optional[float] = None) -> None:
         """
