@@ -1791,6 +1791,8 @@ class DPOTrainer(Trainer):
                 audio_attention_mask=inputs["audio_attention_mask"],
                 audio_embed_sizes=inputs["audio_embed_sizes"],
                 input_mode=2,  # fixed speech task
+                max_new_tokens=self.max_completion_length,
+                do_sample=False,
             )
             prompt_len = inputs["prompt_input_ids"].shape[1]
             completions = self.processing_class.batch_decode(generate_ids[:, prompt_len:], skip_special_tokens=True, clean_up_tokenization_spaces=False)

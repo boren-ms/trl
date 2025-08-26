@@ -21,6 +21,4 @@
 # python ./wandb_result.py --metric eval search 'grpo_ls_m1000_seed'
 # python ./wandb_result.py --dataset ls,entity --metric metric_vllm search 'Phi-4-multimodal-instruct|5000_hf|grpo_ls_m1000_p9_n10_seed_e2_t12_simple_err_lora|phi-libri_ft_m1000_p8_new-QpH|grpo_ls_m1000_p9_n10_zero_e2_t12_notag_simple_err_lora|grpo_ls_m1000_p9_n10_zero_e2_t12_notag'
 # python ./wandb_result.py  --metric eval search 'grpo_ls_m1000_seed_e1_simple_err'
-python ./wandb_result.py  --metric eval search 'grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_ref_sc1k'
-python ./wandb_result.py  --metric eval search 'grpo_ls_m1000_seed_e05_simple_err_t12_'
-python ./wandb_result.py  --metric eval search 'grpo_ls_m1000_seed_e05_simple_err_t12_n4_bp8_imp5_G1x8|grpo_ls_m1000_seed_e05_simple_err_t12_n2_bp8_imp5_G1x8'
+python ./wandb_result.py  --metric eval search 'grpo_ls_m1000_seed1k_e05_simple_err_t12_n8_bp8_imp5_G2x8|grpo_ls_m1000_zero_e05_simple_err_t12_n8_bp8_imp5_G1x8'
