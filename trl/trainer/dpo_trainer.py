@@ -1156,8 +1156,8 @@ class DPOTrainer(Trainer):
             model_kwargs["input_audio_embeds"] = concatenated_batch["input_audio_embeds"]
             model_kwargs["audio_embed_sizes"] = concatenated_batch["audio_embed_sizes"]
             model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
-            model_kwargs["input_mode"] = 2
-            model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
+            model_kwargs["audio_projection_mode"] = "speech"
+            unwrapped_model.set_lora_adapter("speech")
 
         prompt_attention_mask = concatenated_batch["prompt_attention_mask"]
         completion_attention_mask = concatenated_batch["completion_attention_mask"]
@@ -1308,6 +1308,7 @@ class DPOTrainer(Trainer):
                     ref_base_model = unwrapped_model.get_decoder()
                 else:
                     ref_base_model = getattr(unwrapped_model, self.args.base_model_attribute_name, unwrapped_model)
+                unwrapped_model.unset_lora_adapter()
                 with self.null_ref_context():
                     ref_outputs = ref_base_model(
                         input_ids,

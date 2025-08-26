@@ -396,6 +396,7 @@ def prepare_env(forced=False):
         "soundfile",
         "more-itertools",
         "whisper_normalizer",
+        "liger-kernel",
         "fire",
         "deepspeed",
         "beautifulsoup4",
