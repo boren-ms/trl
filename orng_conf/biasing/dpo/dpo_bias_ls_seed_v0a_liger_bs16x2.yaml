@@ -17,9 +17,9 @@ train_data:
       src_part: az://orngscuscresco/
       dst_part: az://${DATA_STORAGE}/
     streaming: True
-    # do_shard: True
-# accelerator_config:
-#   dispatch_batches: False
+    do_shard: True
+accelerator_config:
+  dispatch_batches: False
 # dataloader_pin_memory: False
 # dataloader_prefetch_factor: 2
 # dataloader_num_workers: 2
