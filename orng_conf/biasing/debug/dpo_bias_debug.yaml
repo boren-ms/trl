@@ -50,7 +50,6 @@ train_data:
 eval_strategy: steps
 eval_on_start: True
 eval_steps: 10
-per_device_eval_batch_size: 2
 eval_data:
     - nickname: clean_no
       dataset_name: ls_bias
