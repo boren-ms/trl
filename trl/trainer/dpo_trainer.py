@@ -1806,10 +1806,9 @@ class DPOTrainer(Trainer):
         rank_print(f"Get unique {len(uniq_results)} results from gathered results")
         if self.compute_metrics and len(uniq_results) > 0:
             metrics = self.compute_metrics(uniq_results)
-        key_pfx = metric_key_prefix.replace("eval_", "eval/") + "_"
         for key in list(metrics.keys()):
-            if not key.startswith(key_pfx):
-                metrics[f"{key_pfx}{key}"] = metrics.pop(key)
+            if not key.startswith(metric_key_prefix):
+                metrics[f"{metric_key_prefix}_{key}"] = metrics.pop(key)
         self.store_metrics(metrics, train_eval="eval")
         return EvalLoopOutput(predictions=None, label_ids=None, metrics=metrics, num_samples=len(uniq_results))
 
