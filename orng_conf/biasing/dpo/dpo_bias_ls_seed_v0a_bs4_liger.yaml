@@ -32,7 +32,7 @@ new_lora: True # ensure lora switch between base and trained for ref_model and t
 # loss_type: ["sigmoid", "bco_pair", "sft"]
 # loss_weights: [0.8, 0.2, 1.0]
 use_logits_to_keep: True
-# use_liger_loss: True # liger not work with MPO
+use_liger_loss: True # liger not work with MPO
 # reference_free: True
 report_to: [wandb]
 # num_train_epochs: 1 # can not use this for streaming datasets with cosine, use max steps
@@ -40,7 +40,7 @@ max_steps: 2000 # num_egs = 1000*8*N_GPU(8) = 64k
 learning_rate: 1e-5
 lr_scheduler_type: cosine #cosine
 output_dir: ./output
-per_device_train_batch_size: 1
+per_device_train_batch_size: 4
 gradient_accumulation_steps: 8
 per_device_eval_batch_size: 8
 logging_steps: 10
