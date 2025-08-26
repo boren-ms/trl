@@ -442,7 +442,7 @@ class DPOTrainer(Trainer):
         self.dataset_num_proc = args.dataset_num_proc
 
         # Dataset preparation
-        train_dataset = self._prepare_dataset(train_dataset, processing_class, args, "train")
+        train_dataset = self._prepare_dataset(train_dataset, processing_class, args, "train", ADDITIONAL_KEYS)
         if eval_dataset is not None:
             if isinstance(eval_dataset, dict):
                 eval_dataset = {key: self._prepare_dataset(dataset, processing_class, args, key) for key, dataset in eval_dataset.items()}
@@ -595,6 +595,7 @@ class DPOTrainer(Trainer):
         processing_class: Union[PreTrainedTokenizerBase, BaseImageProcessor, FeatureExtractionMixin, ProcessorMixin],
         args: DPOConfig,
         dataset_name: str,
+        remove_fields: Optional[list[str]] = None,
     ) -> Union[Dataset, IterableDataset]:
         # Build the kwargs for the `map` function
         map_kwargs = {}
@@ -618,7 +619,7 @@ class DPOTrainer(Trainer):
 
             dataset = dataset.map(
                 self.tokenize_row if not self.is_vision_model else self.process_row,
-                remove_columns=["chosen", "rejected"],
+                remove_columns=["chosen", "rejected"] + (remove_fields or []),
                 fn_kwargs={
                     "processing_class": processing_class,
                     "max_prompt_length": args.max_prompt_length,
@@ -756,10 +757,6 @@ class DPOTrainer(Trainer):
             output["audio_embed_sizes"] = processed_features["audio_embed_sizes"][0]
         if processed_features["audio_attention_mask"] is not None:
             output["audio_attention_mask"] = processed_features["audio_attention_mask"][0]
-
-        for key in ADDITIONAL_KEYS:
-            if key in features:
-                output[key] = features[key]
         return output
 
     def _set_signature_columns_if_needed(self):
