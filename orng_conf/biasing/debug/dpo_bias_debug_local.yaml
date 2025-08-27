@@ -10,7 +10,7 @@ per_device_eval_batch_size: 16
 gradient_checkpointing: True
 logging_steps: 1
 use_logits_to_keep: True
-reference_free: True
+# reference_free: True
 new_lora: True # required if not reference_free
 new_run: True
 # use_liger_loss: True

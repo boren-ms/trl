@@ -376,7 +376,7 @@ class DPOTrainer(Trainer):
 
         # Data collator
         if data_collator is None:
-            data_collator = DataCollatorForPreference(pad_token_id=self.padding_value, bf16=args.bf16)
+            data_collator = DataCollatorForPreference(pad_token_id=self.padding_value)
 
         self.generate_during_eval = args.generate_during_eval
         self.label_pad_token_id = args.label_pad_token_id
@@ -1589,7 +1589,6 @@ class DPOTrainer(Trainer):
             chosen_rewards = model_output["chosen_rewards"]
             rejected_rewards = model_output["rejected_rewards"]
         else:
-            model_output = self.concatenated_forward(model, batch)
 
             # if ref_chosen_logps and ref_rejected_logps in batch use them, otherwise use the reference model
             if "ref_chosen_logps" in batch and "ref_rejected_logps" in batch:
@@ -1600,6 +1599,8 @@ class DPOTrainer(Trainer):
                 ref_rejected_logps = torch.zeros_like(model_output["rejected_logps"])
             else:
                 ref_chosen_logps, ref_rejected_logps = self.compute_ref_log_probs(batch)
+
+            model_output = self.concatenated_forward(model, batch)
 
             # Initialize combined losses
             losses = 0
