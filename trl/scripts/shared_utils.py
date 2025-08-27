@@ -93,12 +93,13 @@ class WandbHelper:
         """Get wandb information from environment variables."""
         run_name = self._get_run_name()
         project = os.environ.get("WANDB_PROJECT", "biasing")
+        entity = os.environ.get("WANDB_ENTITY", "genai")
 
         print(f"Run name: {run_name}, Project: {project}, New run: {self.new_run}, Work dir: {self.run_info_file.parent}")
         run_info = {} if self.new_run else self._load_info()
         print("WandB Run Info:", run_info)
         return {
-            "entity": run_info.get("entity", "genai"),
+            "entity": run_info.get("entity", entity),
             "project": run_info.get("project", project),
             "name": run_name,
             "id": run_info.get("run_id", None),
