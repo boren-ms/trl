@@ -4,14 +4,16 @@ lr_scheduler_type: cosine
 output_dir: ~/outputs/debug
 # num_train_epochs: 1
 max_steps: 1000
-per_device_train_batch_size: 16
-gradient_accumulation_steps: 4
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 1
 per_device_eval_batch_size: 16
 gradient_checkpointing: True
 logging_steps: 1
 use_logits_to_keep: True
-# reference_free: True
-use_liger_loss: True
+reference_free: True
+# new_lora: True # required if not reference_free
+
+# use_liger_loss: True
 bf16: True
 # loss_type: ["sigmoid", "bco_pair", "sft"]
 # loss_weights: [0.8, 0.2, 1.0]
@@ -21,11 +23,10 @@ max_completion_length: 512
 # model_name_or_path: az://orngcresco/data/boren/data/ckp/phi4_mm_bias
 # model_name_or_path: /home/boren/data/ckp/hf_models/phi4_mm_bias
 model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
-new_lora: True
 save_steps: 50
 # beta: 0.0
-# accelerator_config:
-#     dispatch_batches: False # disable dispatch for iterable datasets, need to handle sharding by ourself.
+accelerator_config:
+    dispatch_batches: False # disable dispatch for iterable datasets, need to handle sharding by ourself.
 train_data:
     dataset_name: jsonl
     # num_egs: 5000
@@ -46,7 +47,7 @@ train_data:
         #     src_part: /root/data/
         #     dst_part: /home/boren/data/
 eval_strategy: steps
-eval_on_start: True
+eval_on_start: False
 eval_steps: 10
 eval_data:
     - nickname: clean_no
