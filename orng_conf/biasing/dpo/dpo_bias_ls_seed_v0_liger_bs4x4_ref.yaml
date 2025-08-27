@@ -30,8 +30,8 @@ model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000
 # loss_weights: [0.8, 0.2, 1.0]
 use_logits_to_keep: True
 use_liger_loss: True # liger not work with MPO
-# new_lora: True # ensure lora switch between base and trained for ref_model and training model
-reference_free: True
+new_lora: True # ensure lora switch between base and trained for ref_model and training model
+# reference_free: True
 report_to: [wandb]
 # num_train_epochs: 1 # can not use this for streaming datasets with cosine, use max steps
 max_steps: 2000 # num_egs = 1000*8*N_GPU(8) = 64k

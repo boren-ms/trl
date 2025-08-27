@@ -13,7 +13,7 @@ use_logits_to_keep: True
 # reference_free: True
 new_lora: True # required if not reference_free
 new_run: True
-# use_liger_loss: True
+use_liger_loss: True
 bf16: True
 # loss_type: ["sigmoid", "bco_pair", "sft"]
 # loss_weights: [0.8, 0.2, 1.0]

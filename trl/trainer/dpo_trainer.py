@@ -76,6 +76,7 @@ from .utils import (
     peft_module_casting_to_bf16,
     selective_log_softmax,
     rank_print,
+    has_lora_adapter,
 )
 
 
@@ -334,7 +335,7 @@ class DPOTrainer(Trainer):
         # self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
         self.is_vision_model = True
         self.is_peft_model = is_peft_available() and isinstance(model, PeftModel)
-        self.is_lora_model = args.ref_lora_name is not None
+        self.is_lora_model = has_lora_adapter(model)
         self.model_adapter_name = args.model_adapter_name
         self.ref_adapter_name = args.ref_adapter_name
         self.reference_free = args.reference_free
@@ -1154,7 +1155,6 @@ class DPOTrainer(Trainer):
             model_kwargs["audio_embed_sizes"] = concatenated_batch["audio_embed_sizes"]
             model_kwargs["audio_attention_mask"] = concatenated_batch["audio_attention_mask"]
             model_kwargs["audio_projection_mode"] = "speech"
-            unwrapped_model.set_lora_adapter("speech")
 
         prompt_attention_mask = concatenated_batch["prompt_attention_mask"]
         completion_attention_mask = concatenated_batch["completion_attention_mask"]
@@ -1272,19 +1272,6 @@ class DPOTrainer(Trainer):
             else:
                 model_kwargs["attention_mask"] = attention_mask
 
-            # Get the base model outputs (before LM head)
-            if hasattr(unwrapped_model, "get_decoder"):
-                base_model = unwrapped_model.get_decoder()
-            else:
-                base_model = getattr(unwrapped_model, self.args.base_model_attribute_name, unwrapped_model)
-
-            outputs = base_model(
-                input_ids,
-                use_cache=False,
-                **model_kwargs,
-            )
-            hidden_states = outputs.last_hidden_state[:, :-1]
-
             # Get reference hidden states if needed
             ref_hidden_states = None
             if not self.reference_free and self.ref_model is not None:
@@ -1313,6 +1300,20 @@ class DPOTrainer(Trainer):
                         **model_kwargs,
                     )
                     ref_hidden_states = ref_outputs.last_hidden_state[:, :-1]
+
+            # TODO: must after reference model forward, buggy likely.
+            # Get the base model outputs (before LM head)
+            if hasattr(unwrapped_model, "get_decoder"):
+                base_model = unwrapped_model.get_decoder()
+            else:
+                base_model = getattr(unwrapped_model, self.args.base_model_attribute_name, unwrapped_model)
+            unwrapped_model.set_lora_adapter("speech")
+            outputs = base_model(
+                input_ids,
+                use_cache=False,
+                **model_kwargs,
+            )
+            hidden_states = outputs.last_hidden_state[:, :-1]
 
             masked_input_ids = torch.where(loss_mask != 0, input_ids, self.label_pad_token_id)
             labels = masked_input_ids[:, 1:]  # Shift right for casual LM
@@ -1589,7 +1590,7 @@ class DPOTrainer(Trainer):
             chosen_rewards = model_output["chosen_rewards"]
             rejected_rewards = model_output["rejected_rewards"]
         else:
-
+            model_output = self.concatenated_forward(model, batch)
             # if ref_chosen_logps and ref_rejected_logps in batch use them, otherwise use the reference model
             if "ref_chosen_logps" in batch and "ref_rejected_logps" in batch:
                 ref_chosen_logps = batch["ref_chosen_logps"]
@@ -1599,8 +1600,6 @@ class DPOTrainer(Trainer):
                 ref_rejected_logps = torch.zeros_like(model_output["rejected_logps"])
             else:
                 ref_chosen_logps, ref_rejected_logps = self.compute_ref_log_probs(batch)
-
-            model_output = self.concatenated_forward(model, batch)
 
             # Initialize combined losses
             losses = 0
