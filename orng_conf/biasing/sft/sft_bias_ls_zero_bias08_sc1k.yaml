@@ -44,7 +44,7 @@ save_total_limit: 5
 save_on_each_node: True
 save_steps: 100
 eval_strategy: steps
-eval_on_start: True
+eval_on_start: False
 eval_steps: 200
 eval_data:
   - nickname: clean_no
