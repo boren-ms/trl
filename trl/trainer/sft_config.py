@@ -199,6 +199,10 @@ class SFTConfig(TrainingArguments):
         default=None,
         metadata={"help": "Whether to pack the eval dataset. If `None`, uses the same value as `packing`."},
     )
+    remove_unused_columns: bool = field(
+        default=False,
+        metadata={"help": "Whether or not to remove columns not required by the model when using an nlp.Dataset. " "See the documentation of `Trainer` for more information."},
+    )
 
     # Parameters that control the training
     completion_only_loss: Optional[bool] = field(

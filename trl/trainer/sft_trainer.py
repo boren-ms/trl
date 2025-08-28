@@ -48,14 +48,7 @@ from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_utils import EvalLoopOutput, has_length
 from transformers.utils import is_peft_available
 
-from ..data_utils import (
-    is_conversational,
-    is_conversational_from_value,
-    maybe_convert_to_chatml,
-    pack_dataset,
-    truncate_dataset,
-    load_audio,
-)
+from ..data_utils import is_conversational, is_conversational_from_value, maybe_convert_to_chatml, pack_dataset, sf_read
 from ..models import clone_chat_template, get_act_offloading_ctx_manager
 from .sft_config import SFTConfig
 from .utils import (
@@ -65,6 +58,7 @@ from .utils import (
     pad,
     peft_module_casting_to_bf16,
     rank_print,
+    flush_left,
 )
 
 
@@ -234,6 +228,11 @@ class DataCollatorForLanguageModeling(DataCollatorMixin):
         position_ids[batch_seq_lengths[:-1].cumsum(0)] = -(batch_seq_lengths[:-1] - 1)
         position_ids = position_ids.cumsum(0)
         return list(position_ids.split(example_lengths))
+
+
+def simple_data_collator(examples):
+    assert len(examples) == 1, "simple_data_collator only works with a single example"
+    return examples[0]
 
 
 class SFTTrainer(Trainer):
@@ -413,26 +412,9 @@ class SFTTrainer(Trainer):
 
         self.max_length = args.max_length
         self.max_completion_length = args.max_completion_length or 1024
+
         if data_collator is None:
-            # Get the pad token: if not provided, use the one from the processing class or the eos token
-            # if the processing class does not have a pad token.
-            pad_token = args.pad_token or tokenizer.pad_token or tokenizer.eos_token
-            pad_token_id = tokenizer.convert_tokens_to_ids(pad_token)
-            if pad_token_id is None:
-                raise ValueError(
-                    f"The specified `pad_token` ('{pad_token}') is not found in the vocabulary of the given "
-                    f"`processing_class` ({processing_class.__class__.__name__}). Ensure that the `pad_token` exists "
-                    "in the vocabulary before using it as a padding token."
-                )
-            data_collator = DataCollatorForLanguageModeling(
-                pad_token_id=pad_token_id,
-                completion_only_loss=self.completion_only_loss,
-                padding_free=self.padding_free,
-                # Using position_ids without flash_attn hurts the training
-                # return_position_ids=model.config._attn_implementation == "flash_attention_2",
-                return_position_ids=False,
-                pad_to_multiple_of=args.pad_to_multiple_of,
-            )
+            data_collator = simple_data_collator
 
         if args.packing and args.packing_strategy == "ffd" and model.config._attn_implementation != "flash_attention_2":
             warnings.warn(
@@ -462,13 +444,14 @@ class SFTTrainer(Trainer):
                 args.packing,
                 formatting_func,
                 "train",
+                True,
             )
             if eval_dataset is not None:
                 packing = args.packing if args.eval_packing is None else args.eval_packing
                 if isinstance(eval_dataset, dict):
-                    eval_dataset = {key: self._prepare_dataset(dataset, processing_class, args, packing, formatting_func, key) for key, dataset in eval_dataset.items()}
+                    eval_dataset = {key: self._prepare_dataset(dataset, processing_class, args, packing, formatting_func, key, False) for key, dataset in eval_dataset.items()}
                 else:
-                    eval_dataset = self._prepare_dataset(eval_dataset, processing_class, args, packing, formatting_func, "eval")
+                    eval_dataset = self._prepare_dataset(eval_dataset, processing_class, args, packing, formatting_func, "eval", False)
 
         # Initialize the metrics
         self._metrics = {"train": defaultdict(list), "eval": defaultdict(list)}
@@ -601,11 +584,13 @@ class SFTTrainer(Trainer):
         packing: bool,
         formatting_func: Optional[Callable[[dict], str]],
         dataset_name: str,
+        with_label: bool = True,
     ) -> Union[Dataset, IterableDataset]:
         # Convert the dataset to an IterableDataset if it is a ConstantLengthDataset
         if isinstance(dataset, ConstantLengthDataset):
             return dataset
         tokenizer = processing_class.tokenizer  # the processing class is a processor
+        processor = processing_class
 
         # Tabular backends like Arrow/Parquet insert `None` for mismatched keys in nested structures. Clean them from
         # sampled data.
@@ -664,28 +649,34 @@ class SFTTrainer(Trainer):
                         **map_kwargs,
                     )
 
-                def process_egs(example, processing_class):
-                    processor, tokenizer = processing_class, processing_class.tokenizer  # the processing class is a processor
+                def transform_examples(egs):
                     # processed_features = processor(images=features["images"], text=features["prompt"], add_special_tokens=False)
-                    audio = load_audio(example)
-                    features = processor(text=example["prompt"], audios=[audio], return_tensors="pt")
-                    prompt_ids = features["input_ids"][0].tolist()
-                    completion_ids = tokenizer(example["text"], add_special_tokens=False)["input_ids"] + [tokenizer.eos_token_id]
+                    audios = [sf_read(audio_path) for audio_path in egs["audio_path"]]
+                    prompts = processor(text=egs["prompt"], audios=audios, return_tensors="pt")
 
-                    n_ids = len(prompt_ids) + len(completion_ids)
-                    # disable truncate on prompt due audio token
-                    if self.max_length is not None and n_ids > self.max_length:
-                        rank_print(f"Warning: too long samples with {n_ids} > {self.max_length} tokens.")
-                    output = {
-                        "prompt_ids": prompt_ids,
-                        "completion_ids": completion_ids,
-                    }
-                    if "input_audio_embeds" in features:
-                        output["input_audio_embeds"] = features["input_audio_embeds"][0]
-                        output["audio_embed_sizes"] = features["audio_embed_sizes"][0]
-                    if features["audio_attention_mask"] is not None:
-                        output["audio_attention_mask"] = features["audio_attention_mask"][0]
-                    return output
+                    if with_label:
+                        texts = [txt + tokenizer.eos_token for txt in egs["text"]]
+                        completions = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, padding_side="right")
+                        completion_mask = torch.cat((torch.zeros_like(prompts["attention_mask"]), completions["attention_mask"]), dim=1)
+
+                        attention_mask = torch.cat([prompts["attention_mask"], completions["attention_mask"]], dim=-1)
+                        input_ids = torch.cat([prompts["input_ids"], completions["input_ids"]], dim=-1)
+                        lables = input_ids.clone()
+                        lables[completion_mask == 0] = -100
+
+                        attention_mask, input_ids, lables = flush_left(attention_mask, input_ids, lables)
+                        prompts["input_ids"] = input_ids
+                        prompts["attention_mask"] = attention_mask
+                        prompts["labels"] = lables
+
+                    else:
+                        # for evaluation
+                        for k in ADDITIONAL_KEYS:
+                            if k not in egs:
+                                continue
+                            prompts[k] = egs[k]
+
+                    return {k: [v] for k, v in prompts.items()}
 
                 def tokenize(example, processing_class, dataset_text_field, assistant_only_loss):
                     if "prompt" in example:  # prompt-completion case
@@ -738,16 +729,7 @@ class SFTTrainer(Trainer):
                             processed = {"input_ids": processing_class(text=example[dataset_text_field])["input_ids"]}
                     return processed
 
-                # Tokenize the dataset
-                if isinstance(dataset, Dataset):  # `IterableDataset.map` does not support `desc`
-                    map_kwargs["desc"] = f"Tokenizing {dataset_name} dataset"
-                dataset = dataset.map(
-                    process_egs,
-                    fn_kwargs={
-                        "processing_class": processing_class,
-                    },
-                    **map_kwargs,
-                )
+                dataset = dataset.with_transform(transform_examples, output_all_columns=True)  # on-the-fly processing
 
             # Pack or truncate
             if packing:
@@ -758,10 +740,6 @@ class SFTTrainer(Trainer):
                 dataset = dataset.select_columns("input_ids")
                 # Packing adds new column "position_ids" needed for document aware flash attention
                 dataset = pack_dataset(dataset, args.max_length, args.packing_strategy, map_kwargs)
-            elif args.max_length is not None:
-                if isinstance(dataset, Dataset):  # `IterableDataset.map` does not support `desc`
-                    map_kwargs["desc"] = f"Truncating {dataset_name} dataset"
-                dataset = truncate_dataset(dataset, args.max_length, map_kwargs)
             # For Liger kernel, ensure only input_ids is present
             if args.use_liger_kernel:
                 dataset = dataset.select_columns({"input_ids", "position_ids", "completion_mask"}.intersection(dataset.column_names))
@@ -775,13 +753,9 @@ class SFTTrainer(Trainer):
         # dataset. So we need to override the default signature columns to include "completion_mask" as well.
         if self._signature_columns is None:
             self._signature_columns = [
-                "prompt_ids",
-                "completion_ids",
+                "attention_mask",
                 "input_ids",
                 "labels",
-                "position_ids",
-                "completion_mask",
-                "assistant_masks",
                 "input_audio_embeds",
                 "audio_embed_sizes",
                 "audio_attention_mask",
@@ -872,8 +846,8 @@ class SFTTrainer(Trainer):
         metrics = {}
         for inputs in tqdm(dataloader):
             generate_ids = model.generate(
-                input_ids=inputs["prompt_input_ids"],
-                attention_mask=inputs["prompt_attention_mask"],
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
                 input_audio_embeds=inputs["input_audio_embeds"],
                 audio_attention_mask=inputs["audio_attention_mask"],
                 audio_embed_sizes=inputs["audio_embed_sizes"],
@@ -881,7 +855,7 @@ class SFTTrainer(Trainer):
                 max_new_tokens=self.max_completion_length,
                 do_sample=False,
             )
-            prompt_len = inputs["prompt_input_ids"].shape[1]
+            prompt_len = inputs["input_ids"].shape[1]
             completions = self.processing_class.batch_decode(generate_ids[:, prompt_len:], skip_special_tokens=True, clean_up_tokenization_spaces=False)
             # assume 'id' in the inputs
             for egs_idx, text, keywords, completion in zip(inputs["id"], inputs["text"], inputs["keywords"], completions):
