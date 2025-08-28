@@ -16,11 +16,11 @@ train_data:
     log_interval: 10000 # print biasing every 10000 samples
     common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     common_word_num: 1000
-  post_process:
-    streaming: True
-    do_shard: True
-accelerator_config:
-  dispatch_batches: False
+#   post_process:
+#     streaming: True
+#     do_shard: True
+# accelerator_config:
+#   dispatch_batches: False
 # dataloader_prefetch_factor: 2
 # dataloader_num_workers: 2
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
