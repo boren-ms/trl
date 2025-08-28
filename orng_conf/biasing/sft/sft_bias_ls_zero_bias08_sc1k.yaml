@@ -21,8 +21,8 @@ train_data:
     do_shard: True
 accelerator_config:
   dispatch_batches: False
-dataloader_prefetch_factor: 2
-dataloader_num_workers: 2
+# dataloader_prefetch_factor: 2
+# dataloader_num_workers: 2
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
 model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
@@ -32,9 +32,9 @@ max_steps: 2000 # num_egs = 1000*8*N_GPU(8) = 64k
 learning_rate: 1e-5
 lr_scheduler_type: cosine #cosine
 output_dir: ./output
-per_device_train_batch_size: 10
+per_device_train_batch_size: 4
 gradient_accumulation_steps: 4
-per_device_eval_batch_size: 20
+per_device_eval_batch_size: 16
 logging_steps: 10
 bf16: True
 gradient_checkpointing: True

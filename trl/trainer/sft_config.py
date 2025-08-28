@@ -158,7 +158,7 @@ class SFTConfig(TrainingArguments):
         metadata={"help": "Token used for padding. If `None`, it defaults to `processing_class.pad_token`, or if that " "is also `None`, it falls back to `processing_class.eos_token`."},
     )
     max_length: Optional[int] = field(
-        default=1024,
+        default=None,
         metadata={
             "help": "Maximum length of the tokenized sequence. Sequences longer than `max_length` are truncated from"
             "the right. If `None`, no truncation is applied. When packing is enabled, this value sets the "
