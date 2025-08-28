@@ -1,5 +1,5 @@
 [32;1mRUN: /home/boren/.openai/bin/brix ssh dev-n1-uks7 -- 'pgrep -fa /launch_'[0m
-226804 python3 ./launch_train.py orng_conf/biasing/sft/sft_bias_ls_zero_bias08_sc1k.yaml
+231775 python3 ./launch_train.py orng_conf/biasing/sft/sft_bias_ls_zero_bias08_sc1k.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh dev1-n1-wus2 -- 'pgrep -fa /launch_'[0m
 4010838 python3 ./launch_train.py orng_conf/biasing/sft/sft_bias_ls_zero_bias08_sc10k_task1.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h-n1-uks7 -- 'pgrep -fa /launch_'[0m
