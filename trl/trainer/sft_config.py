@@ -103,10 +103,7 @@ class SFTConfig(TrainingArguments):
     )
     logging_steps: float = field(
         default=10,
-        metadata={
-            "help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, "
-            "will be interpreted as ratio of total training steps."
-        },
+        metadata={"help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, " "will be interpreted as ratio of total training steps."},
     )
     bf16: Optional[bool] = field(
         default=None,
@@ -127,10 +124,7 @@ class SFTConfig(TrainingArguments):
     # Parameters that control the model
     model_init_kwargs: Optional[dict[str, Any]] = field(
         default=None,
-        metadata={
-            "help": "Keyword arguments for `AutoModelForCausalLM.from_pretrained`, used when the `model` argument of "
-            "the `SFTTrainer` is provided as a string."
-        },
+        metadata={"help": "Keyword arguments for `AutoModelForCausalLM.from_pretrained`, used when the `model` argument of " "the `SFTTrainer` is provided as a string."},
     )
     chat_template_path: Optional[str] = field(
         default=None,
@@ -149,10 +143,7 @@ class SFTConfig(TrainingArguments):
     )
     dataset_kwargs: Optional[dict[str, Any]] = field(
         default=None,
-        metadata={
-            "help": "Dictionary of optional keyword arguments for the dataset preparation. The only supported key is "
-            "`skip_prepare_dataset`."
-        },
+        metadata={"help": "Dictionary of optional keyword arguments for the dataset preparation. The only supported key is " "`skip_prepare_dataset`."},
     )
     dataset_num_proc: Optional[int] = field(
         default=None,
@@ -160,16 +151,11 @@ class SFTConfig(TrainingArguments):
     )
     eos_token: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Token used to indicate the end of a turn or sequence. If `None`, it defaults to `processing_class.eos_token`."
-        },
+        metadata={"help": "Token used to indicate the end of a turn or sequence. If `None`, it defaults to `processing_class.eos_token`."},
     )
     pad_token: Optional[str] = field(
         default=None,
-        metadata={
-            "help": "Token used for padding. If `None`, it defaults to `processing_class.pad_token`, or if that "
-            "is also `None`, it falls back to `processing_class.eos_token`."
-        },
+        metadata={"help": "Token used for padding. If `None`, it defaults to `processing_class.pad_token`, or if that " "is also `None`, it falls back to `processing_class.eos_token`."},
     )
     max_length: Optional[int] = field(
         default=1024,
@@ -179,19 +165,21 @@ class SFTConfig(TrainingArguments):
             "sequence length."
         },
     )
+    max_prompt_length: Optional[int] = field(
+        default=512,
+        metadata={"help": "Maximum length of the prompt."},
+    )
+    max_completion_length: Optional[int] = field(
+        default=None,
+        metadata={"help": "Maximum length of the completion."},
+    )
     packing: bool = field(
         default=False,
-        metadata={
-            "help": "Whether to group multiple sequences into fixed-length blocks to improve computational efficiency "
-            "and reduce padding. Uses `max_length` to define sequence length."
-        },
+        metadata={"help": "Whether to group multiple sequences into fixed-length blocks to improve computational efficiency " "and reduce padding. Uses `max_length` to define sequence length."},
     )
     packing_strategy: str = field(
         default="ffd",
-        metadata={
-            "help": "Strategy for packing sequences. Can be either `'ffd'` (first-fit decreasing, default), or "
-            "`'wrapped'`."
-        },
+        metadata={"help": "Strategy for packing sequences. Can be either `'ffd'` (first-fit decreasing, default), or " "`'wrapped'`."},
     )
     padding_free: bool = field(
         default=False,
@@ -243,9 +231,7 @@ class SFTConfig(TrainingArguments):
     # Deprecated parameters
     max_seq_length: Optional[int] = field(
         default=None,
-        metadata={
-            "help": "This parameter is deprecated and will be removed in version 0.20.0. Use `max_length` instead."
-        },
+        metadata={"help": "This parameter is deprecated and will be removed in version 0.20.0. Use `max_length` instead."},
     )
 
     def __post_init__(self):

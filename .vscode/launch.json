@@ -49,14 +49,18 @@
             "program": "trl/scripts/grpo_bias.py",
             "console": "integratedTerminal",
             "env": {
-                "WANDB_ENTITY": "genai",
-                "WANDB_PROJECT": "biasing_debug",
+                // "WANDB_ORGANIZATION": "https://msaip.wandb.io",
+                // "WANDB_ENTITY": "genai",
+                // "WANDB_PROJECT": "biasing_debug",
+                "WANDB_ORGANIZATION": "https://api.wandb.ai",
+                "WANDB_ENTITY": "ms-boren-microsoft",
+                "WANDB_PROJECT": "dpo-bias",
                 "RANK": "0",
                 "LOCAL_RANK": "0",
                 "WORLD_SIZE": "1",
                 "MASTER_ADDR": "localhost",
                 "MASTER_PORT": "12355",
-                "WANDB_MODE": "offline",
+                // "WANDB_MODE": "offline",
                 "TORCHDYNAMO_DISABLE": "1",
             },
             "justMyCode": false,
@@ -94,6 +98,33 @@
             "args": [
                 "--config",
                 "orng_conf/biasing/debug/dpo_bias_debug_local.yaml"
+            ]
+        },
+        {
+            "name": "sft_bias",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "trl/scripts/sft_bias.py",
+            "console": "integratedTerminal",
+            "env": {
+                // "WANDB_ORGANIZATION": "https://msaip.wandb.io",
+                // "WANDB_ENTITY": "genai",
+                // "WANDB_PROJECT": "biasing_debug",
+                "WANDB_ORGANIZATION": "https://api.wandb.ai",
+                "WANDB_ENTITY": "ms-boren-microsoft",
+                "WANDB_PROJECT": "dpo-bias",
+                "RANK": "0",
+                "LOCAL_RANK": "0",
+                "WORLD_SIZE": "1",
+                "MASTER_ADDR": "localhost",
+                "MASTER_PORT": "12355",
+                // "WANDB_MODE": "offline",
+                "TORCHDYNAMO_DISABLE": "1",
+            },
+            "justMyCode": false,
+            "args": [
+                "--config",
+                "orng_conf/biasing/debug/sft_bias_debug_local.yaml"
             ]
         },
         {
