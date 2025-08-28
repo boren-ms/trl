@@ -3,6 +3,7 @@
 import pandas as pd
 import wandb
 import fire
+from more_itertools import unique_everseen
 import os
 import urllib.parse
 from pathlib import Path
@@ -83,6 +84,8 @@ class WandbChecker:
         self.excel_dir.mkdir(parents=True, exist_ok=True)
         datestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
         name = name or "default"
+        name = name.replace(" ", "_").replace("/", "_").replace("|", "_")
+        name = "_".join(unique_everseen(name.split("_")))[:100]
         excel_path = self.excel_dir / f"{self.metric}_{datestamp}_{name}.xlsx"
         print(f"Writing {df.shape} results to {excel_path}")
         df.to_excel(excel_path, index=True)
