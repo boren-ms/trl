@@ -35,15 +35,15 @@ train_data:
     # format_preference:
     #     chosen_key: ref
     #     rejected_key: hyp
-    post_process:
-        # streaming: True
-        # do_shard: True
-        num_egs: 100
-        streaming: True
-        do_shard: True
-        # path_map:
-        #     src_part: /root/data/
-        #     dst_part: /home/boren/data/
+    # post_process:
+    #     # streaming: True
+    #     # do_shard: True
+    #     num_egs: 100
+    # streaming: True
+    # do_shard: True
+    # path_map:
+    #     src_part: /root/data/
+    #     dst_part: /home/boren/data/
 eval_strategy: steps
 eval_on_start: True
 eval_steps: 50
