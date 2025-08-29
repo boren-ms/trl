@@ -17,4 +17,4 @@
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h1-n2-wus2 -- 'pgrep -fa /launch_'[0m
 506989 python3 ./launch_train.py orng_conf/biasing/sft/sft_bias_ls_zero_bias08_sc10k_task1.yaml --seed_name sft_bias_ls_zero_bias08_sc10k_task1_G1x8
 [32;1mRUN: /home/boren/.openai/bin/brix ssh l-n2-hpe2 -- 'pgrep -fa /launch_'[0m
-exit status 1
+107560 python3 ./launch_train.py orng_conf/biasing/sft/sft_bias_ls_7bv2_bias08_sc1k_e2.yaml --acc zero3
