@@ -197,16 +197,11 @@ class DPOConfig(TrainingArguments):
     )
     logging_steps: float = field(
         default=10,
-        metadata={
-            "help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, "
-            "will be interpreted as ratio of total training steps."
-        },
+        metadata={"help": "Log every X updates steps. Should be an integer or a float in range `[0,1)`. If smaller than 1, " "will be interpreted as ratio of total training steps."},
     )
     gradient_checkpointing: bool = field(
         default=True,
-        metadata={
-            "help": "If True, use gradient checkpointing to save memory at the expense of slower backward pass."
-        },
+        metadata={"help": "If True, use gradient checkpointing to save memory at the expense of slower backward pass."},
     )
     bf16: Optional[bool] = field(
         default=None,
@@ -220,17 +215,11 @@ class DPOConfig(TrainingArguments):
     # Parameters that control the model and reference model
     model_init_kwargs: Optional[dict[str, Any]] = field(
         default=None,
-        metadata={
-            "help": "Keyword arguments for `AutoModelForCausalLM.from_pretrained`, used when the `model` argument of "
-            "the `DPOTrainer` is provided as a string."
-        },
+        metadata={"help": "Keyword arguments for `AutoModelForCausalLM.from_pretrained`, used when the `model` argument of " "the `DPOTrainer` is provided as a string."},
     )
     ref_model_init_kwargs: Optional[dict[str, Any]] = field(
         default=None,
-        metadata={
-            "help": "Keyword arguments for `AutoModelForCausalLM.from_pretrained`, used when the `ref_model` argument "
-            "of the `DPOTrainer` is provided as a string."
-        },
+        metadata={"help": "Keyword arguments for `AutoModelForCausalLM.from_pretrained`, used when the `ref_model` argument " "of the `DPOTrainer` is provided as a string."},
     )
     model_adapter_name: Optional[str] = field(
         default=None,
@@ -246,10 +235,7 @@ class DPOConfig(TrainingArguments):
     )
     force_use_ref_model: bool = field(
         default=False,
-        metadata={
-            "help": "If you provide a PEFT model as the active model and wish to use a different model for the "
-            "`ref_model`, set this flag to `True`."
-        },
+        metadata={"help": "If you provide a PEFT model as the active model and wish to use a different model for the " "`ref_model`, set this flag to `True`."},
     )
     disable_dropout: bool = field(
         default=True,
@@ -292,11 +278,15 @@ class DPOConfig(TrainingArguments):
     truncation_mode: str = field(
         default="keep_end",
         metadata={
-            "help": "Truncation mode to use when the sequence exceeds `max_length`. Possible values are `'keep_end'` "
-            "and `'keep_start'`.",
+            "help": "Truncation mode to use when the sequence exceeds `max_length`. Possible values are `'keep_end'` " "and `'keep_start'`.",
             "choices": ["keep_end", "keep_start"],
         },
     )
+    remove_unused_columns: bool = field(
+        default=False,
+        metadata={"help": "Whether or not to remove columns not required by the model when using an nlp.Dataset. " "See the documentation of `Trainer` for more information."},
+    )
+
     padding_free: bool = field(
         default=False,
         metadata={
@@ -325,10 +315,7 @@ class DPOConfig(TrainingArguments):
     )
     tools: Optional[list[Union[dict, Callable]]] = field(
         default=None,
-        metadata={
-            "help": "List of tools (callable functions) that will be accessible to the model. If the template does "
-            "not support function calling, this argument will have no effect."
-        },
+        metadata={"help": "List of tools (callable functions) that will be accessible to the model. If the template does " "not support function calling, this argument will have no effect."},
     )
 
     # Parameters that control the training
@@ -356,17 +343,11 @@ class DPOConfig(TrainingArguments):
     )
     beta: float = field(
         default=0.1,
-        metadata={
-            "help": "Parameter controlling the deviation from the reference model. "
-            "Higher β means less deviation from the reference model."
-        },
+        metadata={"help": "Parameter controlling the deviation from the reference model. " "Higher β means less deviation from the reference model."},
     )
     f_divergence_type: FDivergenceType = field(
         default=FDivergenceType.REVERSE_KL,
-        metadata={
-            "help": "Type of f-divergence regularization function to compute divergence between policy and reference "
-            "model."
-        },
+        metadata={"help": "Type of f-divergence regularization function to compute divergence between policy and reference " "model."},
     )
     f_alpha_divergence_coef: float = field(
         default=1.0,
@@ -374,17 +355,11 @@ class DPOConfig(TrainingArguments):
     )
     reference_free: bool = field(
         default=False,
-        metadata={
-            "help": "Whether to ignore the provided reference model and implicitly use a reference model that assigns "
-            "equal probability to all responses."
-        },
+        metadata={"help": "Whether to ignore the provided reference model and implicitly use a reference model that assigns " "equal probability to all responses."},
     )
     label_smoothing: float = field(
         default=0.0,
-        metadata={
-            "help": "Robust DPO label smoothing parameter from the cDPO report and Robust DPO paper that should "
-            "be between `0.0` and `0.5`."
-        },
+        metadata={"help": "Robust DPO label smoothing parameter from the cDPO report and Robust DPO paper that should " "be between `0.0` and `0.5`."},
     )
     use_weighting: bool = field(
         default=False,
@@ -408,10 +383,7 @@ class DPOConfig(TrainingArguments):
     )
     discopop_tau: float = field(
         default=0.05,
-        metadata={
-            "help": "τ/temperature parameter from the DiscoPOP paper, which controls the shape of log ratio modulated "
-            "loss. The paper recommends the default value `discopop_tau=0.05`."
-        },
+        metadata={"help": "τ/temperature parameter from the DiscoPOP paper, which controls the shape of log ratio modulated " "loss. The paper recommends the default value `discopop_tau=0.05`."},
     )
     loss_weights: Optional[list[float]] = field(
         default=None,
@@ -423,10 +395,7 @@ class DPOConfig(TrainingArguments):
     )
     sync_ref_model: bool = field(
         default=False,
-        metadata={
-            "help": "Whether to synchronize the reference model with the active model every `ref_model_sync_steps` "
-            "steps, using the `ref_model_mixup_alpha` parameter."
-        },
+        metadata={"help": "Whether to synchronize the reference model with the active model every `ref_model_sync_steps` " "steps, using the `ref_model_mixup_alpha` parameter."},
     )
     ref_model_mixup_alpha: float = field(
         default=0.6,
@@ -447,10 +416,7 @@ class DPOConfig(TrainingArguments):
     # Parameters that control the logging
     generate_during_eval: bool = field(
         default=False,
-        metadata={
-            "help": "Whether to generate and log completions from both the model and the reference model to W&B, MLFLow "
-            "or Comet during evaluation."
-        },
+        metadata={"help": "Whether to generate and log completions from both the model and the reference model to W&B, MLFLow " "or Comet during evaluation."},
     )
 
     def __post_init__(self):
@@ -464,8 +430,5 @@ class DPOConfig(TrainingArguments):
         if self.loss_weights is not None:
             loss_types = self.loss_type if isinstance(self.loss_type, list) else [self.loss_type]
             if len(self.loss_weights) != len(loss_types):
-                raise ValueError(
-                    f"Length of loss_weights list ({self.loss_weights}) must match number of loss types "
-                    f"({loss_types})."
-                )
+                raise ValueError(f"Length of loss_weights list ({self.loss_weights}) must match number of loss types " f"({loss_types}).")
         super().__post_init__()

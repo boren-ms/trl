@@ -56,7 +56,7 @@ from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_utils import EvalLoopOutput, has_length
 from transformers.utils import is_liger_kernel_available, is_peft_available
 
-from ..data_utils import maybe_apply_chat_template, maybe_extract_prompt, load_audio
+from ..data_utils import maybe_apply_chat_template, maybe_extract_prompt, sf_read
 from ..models import create_reference_model, prepare_deepspeed
 from ..models.utils import prepare_fsdp
 from .callbacks import SyncRefModelCallback
@@ -107,6 +107,11 @@ def shift_tokens_right(input_ids: torch.Tensor, decoder_start_token_id: int) -> 
 
 
 ADDITIONAL_KEYS = ["id", "text", "keywords"]
+
+
+def simple_data_collator(examples):
+    assert len(examples) == 1, "simple_data_collator only works with a single example"
+    return examples[0]
 
 
 @dataclass
@@ -295,7 +300,8 @@ class DPOTrainer(Trainer):
         # Handle the tokenizer
         if processing_class is None:
             processing_class = AutoTokenizer.from_pretrained(model_id)
-
+        tokenizer = processing_class.tokenizer
+        tokenizer.eos_token_id = tokenizer.convert_tokens_to_ids("<|end|>")  # reset eos_token
         if args.padding_value is not None:
             self.padding_value = args.padding_value
         else:
@@ -377,7 +383,7 @@ class DPOTrainer(Trainer):
 
         # Data collator
         if data_collator is None:
-            data_collator = DataCollatorForPreference(pad_token_id=self.padding_value)
+            data_collator = simple_data_collator
 
         self.generate_during_eval = args.generate_during_eval
         self.label_pad_token_id = args.label_pad_token_id
@@ -443,7 +449,7 @@ class DPOTrainer(Trainer):
         self.dataset_num_proc = args.dataset_num_proc
 
         # Dataset preparation
-        train_dataset = self._prepare_dataset(train_dataset, processing_class, args, "train", ADDITIONAL_KEYS)
+        train_dataset = self._prepare_dataset(train_dataset, processing_class, args, "train", True)
         if eval_dataset is not None:
             if isinstance(eval_dataset, dict):
                 eval_dataset = {key: self._prepare_dataset(dataset, processing_class, args, key) for key, dataset in eval_dataset.items()}
@@ -596,7 +602,7 @@ class DPOTrainer(Trainer):
         processing_class: Union[PreTrainedTokenizerBase, BaseImageProcessor, FeatureExtractionMixin, ProcessorMixin],
         args: DPOConfig,
         dataset_name: str,
-        remove_fields: Optional[list[str]] = None,
+        with_label: bool = False,
     ) -> Union[Dataset, IterableDataset]:
         # Build the kwargs for the `map` function
         map_kwargs = {}
@@ -617,20 +623,36 @@ class DPOTrainer(Trainer):
             # Tokenize the dataset
             if isinstance(dataset, Dataset):  # `IterableDataset.map` does not support `desc`
                 map_kwargs["desc"] = f"Tokenizing {dataset_name} dataset"
+            processor = processing_class
+            tokenizer = processing_class.tokenizer
 
-            dataset = dataset.map(
-                self.tokenize_row if not self.is_vision_model else self.process_row,
-                remove_columns=["chosen", "rejected"] + (remove_fields or []),
-                fn_kwargs={
-                    "processing_class": processing_class,
-                    "max_prompt_length": args.max_prompt_length,
-                    "max_completion_length": args.max_completion_length,
-                    # for enc-dec, we add the special tokens ([bos_token] + prompt + [eos_token]; completion + [eos_token])
-                    "add_special_tokens": False,
-                },
-                **map_kwargs,
-                # load_from_cache_file=False,
-            )
+            def add_eos(texts):
+                eos_token = tokenizer.eos_token
+                return [txt + eos_token for txt in texts]
+
+            def transform_examples(egs):
+                """On the fly transform examples"""
+                audios = [sf_read(audio_path) for audio_path in egs["audio_path"]]
+                output = processor(text=egs["prompt"], audios=audios, return_tensors="pt")
+                output["prompt_input_ids"] = output["input_ids"]
+                output["prompt_attention_mask"] = output["attention_mask"]
+
+                if with_label:
+                    chosens = tokenizer(add_eos(egs["chosen"]), return_tensors="pt", padding=True, truncation=True, padding_side="right")
+                    rejecteds = tokenizer(add_eos(egs["rejected"]), return_tensors="pt", padding=True, truncation=True, padding_side="right")
+                    output["chosen_input_ids"] = chosens["input_ids"]
+                    output["chosen_attention_mask"] = chosens["attention_mask"]
+                    output["rejected_input_ids"] = rejecteds["input_ids"]
+                    output["rejected_attention_mask"] = rejecteds["attention_mask"]
+                else:
+                    # for evaluation
+                    for k in ADDITIONAL_KEYS:
+                        if k not in egs:
+                            continue
+                        output[k] = egs[k]
+                return {k: [v] for k, v in output.items()}
+
+            dataset = dataset.with_transform(transform_examples, output_all_columns=True)  # on-the-fly processing
 
         return dataset
 
@@ -941,7 +963,10 @@ class DPOTrainer(Trainer):
         if "input_audio_embeds" in batch:
             output["input_audio_embeds"] = torch.cat([batch["input_audio_embeds"], batch["input_audio_embeds"]], dim=0)
             output["audio_embed_sizes"] = torch.cat([batch["audio_embed_sizes"], batch["audio_embed_sizes"]], dim=0)
-            output["audio_attention_mask"] = torch.cat([batch["audio_attention_mask"], batch["audio_attention_mask"]], dim=0)
+            if (mask := output.get("audio_attention_mask", None)) is not None:
+                output["audio_attention_mask"] = torch.cat([mask, mask], dim=0)
+            else:
+                output["audio_attention_mask"] = None
 
         # Concatenate the chosen and rejected completions
         max_completion_length = max(batch["chosen_input_ids"].shape[1], batch["rejected_input_ids"].shape[1])

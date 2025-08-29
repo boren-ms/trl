@@ -13,7 +13,7 @@ use_logits_to_keep: True
 # reference_free: True
 new_lora: True # required if not reference_free
 new_run: True
-use_liger_loss: True
+# use_liger_loss: True
 bf16: True
 # loss_type: ["sigmoid", "bco_pair", "sft"]
 # loss_weights: [0.8, 0.2, 1.0]
@@ -25,8 +25,8 @@ max_completion_length: 512
 model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 save_steps: 50
 # beta: 0.0
-accelerator_config:
-    dispatch_batches: False # disable dispatch for iterable datasets, need to handle sharding by ourself.
+# accelerator_config:
+#     dispatch_batches: False # disable dispatch for iterable datasets, need to handle sharding by ourself.
 train_data:
     dataset_name: jsonl
     # num_egs: 5000
@@ -37,15 +37,15 @@ train_data:
     format_preference:
         chosen_key: ref
         rejected_key: hyp
-    post_process:
-        # streaming: True
-        # do_shard: True
-        num_egs: 100
-        streaming: True
-        do_shard: True
-        # path_map:
-        #     src_part: /root/data/
-        #     dst_part: /home/boren/data/
+    # post_process:
+    #     # streaming: True
+    #     # do_shard: True
+    #     num_egs: 100
+    # streaming: True
+    # do_shard: True
+    # path_map:
+    #     src_part: /root/data/
+    #     dst_part: /home/boren/data/
 eval_strategy: steps
 eval_on_start: False
 eval_steps: 50
