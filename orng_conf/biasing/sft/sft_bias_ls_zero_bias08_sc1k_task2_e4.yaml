@@ -29,7 +29,8 @@ model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 report_to: [wandb]
-max_steps: 10000 # num_egs = 1000*8*N_GPU(8) = 64k
+num_train_epochs: 4
+# max_steps: 10000 # num_egs = 1000*8*N_GPU(8) = 64k
 learning_rate: 1e-5
 lr_scheduler_type: cosine #cosine
 output_dir: ./output
