@@ -10,7 +10,7 @@ train_data:
     hit_prob: 1
     miss_prob: 1
     context_prob: 1 # prob for context
-    task_info: 1 # 0 disable, 1 task token, 2 task token + hit words
+    task_info: 2 # 0 disable, 1 task token, 2 task token + hit words
     sample_range: [0, 1000] # all rare words
     sampling_version: v2
     hit_ratio: [0.0, 1.0]
@@ -29,8 +29,7 @@ model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 report_to: [wandb]
-num_train_epochs: 0.5
-# max_steps: 10000 # num_egs = 1000*8*N_GPU(8) = 64k
+max_steps: 10000 # num_egs = 1000*8*N_GPU(8) = 64k
 learning_rate: 1e-5
 lr_scheduler_type: cosine #cosine
 output_dir: ./output
