@@ -65,11 +65,20 @@ def cache_dir(remote_path, local_path=None):
     return local_path
 
 
+def cache_chkp_dir(remote_dir, local_dir=None):
+    """Sync a checkpoint directory from remote to local."""
+    local_dir = cache_dir(remote_dir, local_dir)
+    chat_template_file = Path(local_dir) / "chat_template.json"
+    # remove chat template
+    chat_template_file.unlink(missing_ok=True)
+    return local_dir
+
+
 def init_model(model_id=None, update_encoder=False, new_lora=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
-    model_id = cache_dir(model_id)
+    model_id = cache_chkp_dir(model_id)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
