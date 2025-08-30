@@ -25,7 +25,8 @@ train_data:
 # dataloader_prefetch_factor: 2
 # dataloader_num_workers: 2
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-model_name_or_path: az://${DATA_STORAGE}/data/boren/data/ckp/hf_models/Phi4-7b-ASR-2506-v2
+# model_name_or_path: az://${DATA_STORAGE}/data/boren/data/ckp/hf_models/Phi4-7b-ASR-2506-v2
+model_name_or_path: az://orngscuscresco/data/boren/outputs/sft_bias_ls_zero_bias08_sc1k_e2_G2x8/checkpoint-2190/
 # model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
