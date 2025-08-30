@@ -49,9 +49,9 @@ def cache_dir(remote_path, local_path=None):
         return remote_path
 
     if local_path is None:
-        local_path = Path.home() / Path(".blobfile", *Path(remote_path).parts[3:])
+        local_path = str(Path.home() / Path(".blobfile", *Path(remote_path).parts[3:]))
 
-    print(f"Syncing {remote_path} to local cache {local_path} ...")
+    print(f"Syncing {remote_path} to {local_path} ...")
 
     cmd = [
         "bbb",
