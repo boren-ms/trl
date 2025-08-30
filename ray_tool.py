@@ -434,6 +434,7 @@ def prepare_data(forced=False):
         "ckp/hf_models/phi4_mm_bias",
         # "ckp/hf_models/Phi4-7b-ASR-2506",
         "ckp/hf_models/libri_ft_m200_p8_bp6_new_notag_ckp5000",
+        "ckp/hf_models/phi4-7b-fast-api-s2-final-v4",
         "ckp/hf_models/Phi4-7b-ASR-2506-v2",
         "ckp/hf_models/Phi-4-multimodal-instruct",
         "tools",
