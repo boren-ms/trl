@@ -3,6 +3,7 @@
 # %%
 import re
 import os
+import subprocess
 import sys
 import json
 import wandb
@@ -32,10 +33,43 @@ def get_speech_peft_model(model, lora_name):
     return model
 
 
+def run_cmd(cmd, check=True):
+    """Run a shell command and print it."""
+    if isinstance(cmd, (list, tuple)):
+        cmd = " ".join(cmd)
+    print(f"Running: {cmd}")
+    ret = subprocess.run(cmd, shell=True, check=check)
+    print(f"Cmd: {cmd} returned: {ret.returncode}")
+    return ret
+
+
+def cache_dir(remote_path, local_path=None):
+    """Sync a directory from remote to local."""
+    if not remote_path.startswith("az://"):
+        return remote_path
+
+    if local_path is None:
+        local_path = Path.home() / Path(".blobfile", *Path(remote_path).parts[3:])
+
+    print(f"Syncing {remote_path} to local cache {local_path} ...")
+
+    cmd = [
+        "bbb",
+        "sync",
+        "--concurrency",
+        "64",
+        f"{remote_path.rstrip('/')}/",
+        f"{local_path.rstrip('/')}/",
+    ]
+    run_cmd(cmd, check=True)
+    return local_path
+
+
 def init_model(model_id=None, update_encoder=False, new_lora=None):
     """Initialize the model and processor."""
     model_id = model_id or "microsoft/Phi-4-multimodal-instruct"
     model_id = model_id.rstrip("/")  # Ensure no trailing slash
+    model_id = cache_dir(model_id)
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         trust_remote_code=True,
