@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
 from trl.scripts.audio_prompts import get_task_prompt
-from trl.scripts.chunk_dataset import generate_examples, get_chunk_manager
+from trl.scripts.chunk_dataset import generate_examples, get_chunk_manager, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
 
@@ -412,12 +412,40 @@ def post_process(ds, **kwargs):
     return ds
 
 
+def complete_prefix(ds, **kwargs):
+    """Complete the transcription for the given examples."""
+    prefix_ratio = to_list(kwargs.pop("prefix_ratio", (0, 1)))
+    log_interval = kwargs.get("log_interval", 10000)
+
+    def complete_string(egs, idx):
+        words = egs["text"].split()
+        ratio = random.uniform(prefix_ratio[0], prefix_ratio[-1])
+        n_pfx = int(len(words) * ratio)
+        prefix = " ".join(words[:n_pfx])
+        prompt = f"Transcribe the audio clip into text with the prefix [{prefix}]"
+        text = " ".join(words[n_pfx:])
+
+        if idx % log_interval == 0:
+            print(f"[{idx}], Prompt: {prompt}")
+            print(f"[{idx}], Text  : {text}")
+
+        return {
+            "text": text,
+            "prompt": prompt_format.format(prompt),
+        }
+
+    ds = ds.map(complete_string, with_indices=True)
+    return ds
+
+
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
     if filter_kwargs := kwargs.get("filter", {}):
         ds = filter_ds(ds, **filter_kwargs)
     if wer_filter_kwargs := kwargs.get("wer_filter", {}):
         ds = wer_filter_ds(ds, **wer_filter_kwargs)
+    if complete_prefix_kwargs := kwargs.get("complete_prefix", {}):
+        ds = complete_prefix(ds, **complete_prefix_kwargs)
     if biasing_kwargs := kwargs.get("biasing", {}):
         ds = bias_sampling(ds, **biasing_kwargs)
     if pref_kwargs := kwargs.get("simu_preference", {}):
