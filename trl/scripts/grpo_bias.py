@@ -89,7 +89,7 @@ def main(script_args, training_args):
         compute_metrics=eval_biasing_metrics,
     )
     print("Training...")
-    latest_chkp_dir = get_latest_valid_checkpoint(training_args.output_dir)
+    latest_chkp_dir = None if script_args.new_run else get_latest_valid_checkpoint(training_args.output_dir)
     if latest_chkp_dir:
         print("Resuming from ", latest_chkp_dir)
     trainer.train(resume_from_checkpoint=latest_chkp_dir)
