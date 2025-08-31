@@ -252,10 +252,10 @@ class Evaluation:
             contexts = x.get("history", [])
             if not contexts:
                 return prompt
-            HISTORY_PROMPT = "Please consider the following context:"
-            TAIL_STR = "<|end|><|assistant|>"
-            prefix = prompt.replace(TAIL_STR, "").strip()
-            return f"{prefix} {HISTORY_PROMPT} {contexts[-1]} {TAIL_STR}"
+            history_prompt = f"with the prefix [{contexts[-1][-1]}]"
+            tail_str = "<|end|><|assistant|>"
+            prefix = prompt.replace(tail_str, "").strip()
+            return f"{prefix} {history_prompt} {tail_str}"
 
         if self.use_vllm:
             inputs = [{"prompt": load_prompt(x), "multi_modal_data": {"audio": [load_audio(x)]}} for x in examples]
