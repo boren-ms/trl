@@ -48,7 +48,7 @@ from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_utils import EvalLoopOutput, has_length
 from transformers.utils import is_peft_available
 
-from ..data_utils import is_conversational, is_conversational_from_value, maybe_convert_to_chatml, pack_dataset, sf_read
+from ..data_utils import is_conversational, is_conversational_from_value, maybe_convert_to_chatml, pack_dataset, sf_read, load_audios
 from ..models import clone_chat_template, get_act_offloading_ctx_manager
 from .sft_config import SFTConfig
 from .utils import (
@@ -651,7 +651,8 @@ class SFTTrainer(Trainer):
 
                 def transform_examples(egs):
                     # processed_features = processor(images=features["images"], text=features["prompt"], add_special_tokens=False)
-                    audios = [sf_read(audio_path) for audio_path in egs["audio_path"]]
+                    # audios = [sf_read(audio_path) for audio_path in egs["audio_path"]]
+                    audios = load_audios(egs)
                     prompts = processor(text=egs["prompt"], audios=audios, return_tensors="pt")
 
                     if with_label:

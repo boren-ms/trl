@@ -52,6 +52,16 @@ def load_audio(x):
     raise ValueError("No audio data found in the input dictionary.")
 
 
+def load_audios(x):  # x is batched
+    if "audio" in x and "sr" in x:
+        return list(zip(x["audio"], x["sr"]))
+    elif "audio_path" in x:
+        return [sf_read(p) for p in x["audio_path"]]
+    elif "audio_chunk" in x:
+        return [load_chunk_example(p) for p in x["audio_chunk"]]
+    raise ValueError("No audio data found in the input dictionary.")
+
+
 def is_conversational(example: dict[str, Any]) -> bool:
     r"""
     Check if the example is in a conversational format.
