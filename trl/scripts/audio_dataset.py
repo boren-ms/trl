@@ -459,21 +459,22 @@ def augment(ds, **kwargs):
 
 def create_audio_dataset(dataset_name="openasr", **kwargs):
     """Create a dataset from the given split."""
-    if dataset_name == "ls_bias":
-        ds = ls_bias_dataset(**kwargs)
-    elif dataset_name == "inhouse_entity":
-        ds = entity_dataset(**kwargs)
-    elif dataset_name == "openasr":
-        ds = openasr_dataset(**kwargs)
-    elif dataset_name == "tsv":
-        ds = tsv_dataset(**kwargs)
-    elif dataset_name == "jsonl":
-        ds = jsonl_dataset(**kwargs)
-    elif dataset_name == "chunk":
-        ds = chunk_dataset(**kwargs)
-    else:
-        raise ValueError(f"Unknown dataset name: {dataset_name}")
-    ds = augment(ds, **kwargs)
+    with dist_state().main_process_first():
+        if dataset_name == "ls_bias":
+            ds = ls_bias_dataset(**kwargs)
+        elif dataset_name == "inhouse_entity":
+            ds = entity_dataset(**kwargs)
+        elif dataset_name == "openasr":
+            ds = openasr_dataset(**kwargs)
+        elif dataset_name == "tsv":
+            ds = tsv_dataset(**kwargs)
+        elif dataset_name == "jsonl":
+            ds = jsonl_dataset(**kwargs)
+        elif dataset_name == "chunk":
+            ds = chunk_dataset(**kwargs)
+        else:
+            raise ValueError(f"Unknown dataset name: {dataset_name}")
+        ds = augment(ds, **kwargs)
     return ds
 
 
