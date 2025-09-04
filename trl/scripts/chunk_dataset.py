@@ -8,9 +8,8 @@ from tqdm import tqdm
 import numpy as np
 from math import ceil
 import soundfile as sf
-from cachetools import LRUCache
+from cachetools import FIFOCache
 import blobfile as bf
-from torch.utils.data import Dataset
 import pandas as pd
 from trl.trainer.utils import rank_print
 
@@ -66,7 +65,7 @@ class ChunkManager:
         """Initialize the ChunkManager with a maximum size for the cache."""
         maxsize = maxsize or MAX_LOADERS
         rank_print(f"Initializing ChunkManager with max {maxsize} ChunkLoaders.")
-        self.chunk_loaders = LRUCache(maxsize=maxsize)
+        self.chunk_loaders = FIFOCache(maxsize=maxsize)
 
     def get(self, chunk_path, count, chunk_type=None):
         """Get the example at the specified index."""
