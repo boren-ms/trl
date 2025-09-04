@@ -1,5 +1,6 @@
 shuffle_dataset: False
 train_data:
+  cache_dir: ~/outputs/dataset_cache
   dataset_name: chunk
   max_egs: 300000
   max_chunks: 6000 # 50 egs/chunk

@@ -1,7 +1,8 @@
 shuffle_dataset: False
 train_data:
+  cache_dir: ~/outputs/dataset_cache
   dataset_name: chunk
-  max_egs: 10000
+  max_egs: 100000
   max_chunks: 6000 # 50 egs/chunk
   max_cached_chunks: 50 # 50* 8=400 for all processes.
   chunk_shuffle: True # shuffle chunks
@@ -10,6 +11,7 @@ train_data:
   specs:
     - manifest_file: az://${DATA_STORAGE}/data/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
       chunk_path: az://${DATA_STORAGE}/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
+
   context_prefix:
     log_interval: 1000
     prefix_range: [1, 50]
