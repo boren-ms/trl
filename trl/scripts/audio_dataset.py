@@ -3,6 +3,8 @@ import os
 import ast
 import urllib
 import random
+import hashlib
+import json
 import blobfile as bf
 import pandas as pd
 import numpy as np
@@ -509,24 +511,57 @@ def augment(ds, **kwargs):
     return ds
 
 
-def create_audio_dataset(dataset_name="openasr", **kwargs):
+def dict_hash(d: dict) -> str:
+    # Ensure stable ordering by sorting keys
+    dict_str = json.dumps(d, sort_keys=True)
+    return hashlib.sha256(dict_str.encode()).hexdigest()
+
+
+def cache_ds(**kwargs):
+    cache_dir = kwargs.get("cache_dir", None)
+    if not cache_dir:
+        return None, None
+    ds_name = kwargs.get("dataset_name", "unknown").lower()
+    conf_hash = dict_hash(kwargs)
+    cache_path = Path(cache_dir, f"{ds_name}_{conf_hash}")
+    try:
+        # check if cache path is a valid dataset
+        rank_print(f"Loading cached dataset from {cache_path}")
+        ds = Dataset.load_from_disk(cache_path)
+        return ds, cache_path
+    except Exception as e:
+        rank_print(f"Cache not found or invalid at {cache_path}, will create a new one. Error: {e}")
+        return None, cache_path
+
+
+def create_audio_dataset(**kwargs):
     """Create a dataset from the given split."""
+    ds_name = kwargs.get("dataset_name", "unknown").lower()
     with dist_state().local_main_process_first():
-        if dataset_name == "ls_bias":
+        ds, cache_path = cache_ds(**kwargs)
+        if ds is not None:
+            return ds
+
+        if ds_name == "ls_bias":
             ds = ls_bias_dataset(**kwargs)
-        elif dataset_name == "inhouse_entity":
+        elif ds_name == "inhouse_entity":
             ds = entity_dataset(**kwargs)
-        elif dataset_name == "openasr":
+        elif ds_name == "openasr":
             ds = openasr_dataset(**kwargs)
-        elif dataset_name == "tsv":
+        elif ds_name == "tsv":
             ds = tsv_dataset(**kwargs)
-        elif dataset_name == "jsonl":
+        elif ds_name == "jsonl":
             ds = jsonl_dataset(**kwargs)
-        elif dataset_name == "chunk":
+        elif ds_name == "chunk":
             ds = chunk_dataset(**kwargs)
         else:
-            raise ValueError(f"Unknown dataset name: {dataset_name}")
+            raise ValueError(f"Unknown dataset name: {ds_name}")
         ds = augment(ds, **kwargs)
+
+        if cache_path:
+            rank_print(f"Saving dataset to cache at {cache_path}")
+            ds.save_to_disk(cache_path)
+
     return ds
 
 
