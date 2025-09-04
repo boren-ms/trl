@@ -814,10 +814,10 @@ class SFTTrainer(Trainer):
 
         return (loss, outputs) if return_outputs else loss
 
-    def _get_train_sampler(self, train_dataset: Optional[Dataset] = None) -> Optional[torch.utils.data.Sampler]:
+    def _get_train_sampler(self) -> Optional[torch.utils.data.Sampler]:
         if not self.args.shuffle_dataset:
-            return SequentialSampler(train_dataset)
-        return super()._get_train_sampler(train_dataset)
+            return SequentialSampler(self.train_dataset)
+        return super()._get_train_sampler()
 
     # Override training step to add activation offloading context.
     def training_step(self, *args, **kwargs):
