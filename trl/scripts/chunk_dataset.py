@@ -55,7 +55,7 @@ class ChunkLoader:
         return dict(enumerate(examples))
 
 
-MAX_LOADERS = 1000
+MAX_CACHED_LOADERS = 100
 
 
 class ChunkManager:
@@ -63,7 +63,7 @@ class ChunkManager:
 
     def __init__(self, maxsize=None):
         """Initialize the ChunkManager with a maximum size for the cache."""
-        maxsize = maxsize or MAX_LOADERS
+        maxsize = maxsize or MAX_CACHED_LOADERS
         rank_print(f"Initializing ChunkManager with max {maxsize} ChunkLoaders.")
         self.chunk_loaders = FIFOCache(maxsize=maxsize)
 
@@ -75,7 +75,7 @@ class ChunkManager:
         return self.chunk_loaders[chunk_path]
 
 
-def get_chunk_manager(maxsize=MAX_LOADERS):
+def get_chunk_manager(maxsize=None):
     """Return the global singleton ChunkManager."""
     global _chunk_manager_instance
     try:
