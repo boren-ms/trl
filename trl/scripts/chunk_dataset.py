@@ -31,8 +31,7 @@ class ChunkLoader:
         self.chunk_path = chunk_path
         self.chunk_type = chunk_type
         self.count = count
-        self._examples = None  # Will be loaded on demand
-        self._unused = None
+        self._examples = {}  # Will be loaded on demand
 
     def __repr__(self):
         return f"<ChunkLoader({self.chunk_path}, {self.chunk_type}, {self.count})>"
@@ -43,30 +42,18 @@ class ChunkLoader:
 
     def get(self, i):
         """Get the example at the specified index."""
-        examples = self._get_examples()
         if i < 0 or i >= self.count:
             raise IndexError(f"Index {i} out of bounds for chunk with count {self.count}.")
-        egs = examples[i]
-        self._maybe_release(i)
+        if i not in self._examples:
+            self._examples = self._load_examples()
+        egs = self._examples.pop(i)
         return egs
 
-    def _maybe_release(self, i):
-        """Release the loaded examples."""
-        if self._unused is not None and i in self._unused:
-            self._unused.remove(i)
-        if not self._unused and self._examples is not None:
-            rank_print(f"Releasing examples for chunk {self.chunk_path}.")
-            del self._examples
-            self._examples = None
-            self._unused = None
-
-    def _get_examples(self):
+    def _load_examples(self):
         """Load examples for the given index."""
-        if self._examples is None:
-            rank_print(f"Loading all examples for chunk {self.chunk_path}.")
-            self._examples = load_data_from_chunk(self.chunk_path, self.chunk_type, self.count)
-            self._unused = list(range(self.count))
-        return self._examples
+        rank_print(f"Loading all examples for chunk {self.chunk_path}.")
+        examples = load_data_from_chunk(self.chunk_path, self.chunk_type, self.count)
+        return {i: egs for i, egs in enumerate(examples)}
 
 
 MAZ_LOADERS = 1000
