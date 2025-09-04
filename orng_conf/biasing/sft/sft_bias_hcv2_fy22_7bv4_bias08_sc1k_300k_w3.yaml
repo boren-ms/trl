@@ -1,7 +1,7 @@
 train_data:
   dataset_name: chunk
   max_egs: 300000
-  # max_chunks: 6000 # 50 egs/chunk
+  max_chunks: 6000 # 50 egs/chunk
   max_cached_chunks: 500 # 300* 8=4000 for all processes.
   chunk_shuffle: True # shuffle chunks
   chunk_types: [audio, transcription]

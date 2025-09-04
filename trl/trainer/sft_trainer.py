@@ -27,7 +27,7 @@ import torch.nn as nn
 from accelerate import PartialState
 from more_itertools import unique_everseen
 from accelerate.utils import tqdm, gather_object
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SequentialSampler
 from datasets import Dataset, IterableDataset
 from packaging import version
 from transformers import (
@@ -813,6 +813,11 @@ class SFTTrainer(Trainer):
             self._metrics[mode]["mean_token_accuracy"].append(accuracy)
 
         return (loss, outputs) if return_outputs else loss
+
+    def _get_train_sampler(self, train_dataset: Optional[Dataset] = None) -> Optional[torch.utils.data.Sampler]:
+        if not self.args.shuffle_dataset:
+            return SequentialSampler(train_dataset)
+        return super()._get_train_sampler(train_dataset)
 
     # Override training step to add activation offloading context.
     def training_step(self, *args, **kwargs):

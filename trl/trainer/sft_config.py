@@ -173,6 +173,10 @@ class SFTConfig(TrainingArguments):
         default=None,
         metadata={"help": "Maximum length of the completion."},
     )
+    shuffle_dataset: bool = field(
+        default=True,
+        metadata={"help": "Whether to shuffle the dataset."},
+    )
     packing: bool = field(
         default=False,
         metadata={"help": "Whether to group multiple sequences into fixed-length blocks to improve computational efficiency " "and reduce padding. Uses `max_length` to define sequence length."},

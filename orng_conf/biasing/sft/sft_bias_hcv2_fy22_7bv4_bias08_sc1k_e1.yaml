@@ -1,3 +1,4 @@
+shuffle_dataset: False
 train_data:
   dataset_name: chunk
   # max_egs: 300000
