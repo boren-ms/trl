@@ -11,7 +11,7 @@ train_data:
     - manifest_file: az://${DATA_STORAGE}/data/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
       chunk_path: az://${DATA_STORAGE}/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
   context_prefix:
-    log_interval: 2
+    log_interval: 1000
 
 #   post_process:
 #     streaming: True
