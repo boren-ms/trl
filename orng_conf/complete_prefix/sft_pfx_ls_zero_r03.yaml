@@ -3,7 +3,7 @@ train_data:
   # num_egs: 5000
   # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
   tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
-  complete_prefix:
+  overlap_prefix:
     prefix_ratio: [0, 0.3]
     log_interval: 2
 
@@ -42,13 +42,13 @@ eval_data:
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     data_dir: az://${DATA_STORAGE}/data/boren/data
-    complete_prefix:
+    overlap_prefix:
       prefix_ratio: [0, 0.3]
       log_interval: 2
   - nickname: other_no
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
     data_dir: az://${DATA_STORAGE}/data/boren/data
-    complete_prefix:
+    overlap_prefix:
       prefix_ratio: [0, 0.3]
       log_interval: 2

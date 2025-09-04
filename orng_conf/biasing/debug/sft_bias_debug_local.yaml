@@ -33,9 +33,12 @@ train_data:
     # streaming: True
     max_chunks: 2
     max_egs: 30
+    chunk_types: ["audio", "info", "transcription"]
     specs: [/home/boren/data/inhouse/data_spec/asr_chunk_inhouse_en_egs.json]
-    complete_prefix:
-        prefix_ratio: [0, 1]
+    # overlap_prefix:
+    #     prefix_ratio: [0, 1]
+    #     log_interval: 2
+    context_prefix:
         log_interval: 2
 
     # dataset_name: jsonl

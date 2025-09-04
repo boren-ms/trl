@@ -220,12 +220,10 @@ if __name__ == "__main__":
     #     sample = dataset[i]
     #     rank_print(f"Sample {i}: {sample}")  # Output the sample data
     # pass
-    for i, example in enumerate(generate_examples(spec_file, max_chunks=2)):
+    chunk_types = ["audio", "info", "transcription"]
+    for i, example in enumerate(generate_examples(spec_file, chunk_types=chunk_types, max_chunks=2)):
         rank_print(f"Example {i}: {example}")
-        audio, fs = example["audio"]()
-        rank_print(f"Audio shape: {audio.shape}, Sample rate: {fs}")
+        data, fs = load_chunk_example(example["audio_chunk"])
+        rank_print(f"Audio shape: {data.shape}, Sample rate: {fs}")
         if i > 52:
             break
-            # %%
-            break
-# %%

@@ -6,6 +6,7 @@ import random
 import blobfile as bf
 import pandas as pd
 import numpy as np
+import string
 from functools import partial
 from pathlib import Path
 from datasets import load_dataset, concatenate_datasets, Dataset
@@ -412,12 +413,25 @@ def post_process(ds, **kwargs):
     return ds
 
 
-def complete_prefix(ds, **kwargs):
+def trunc_left_at_punc(text: str) -> str:
+    """
+    Truncate the string from the left at the first punctuation mark.
+    Keeps the part after the punctuation, discards what’s before and including it.
+    If no punctuation is found, returns the original string.
+    """
+    words = text.split()
+    for i, word in enumerate(words):
+        if word[-1] in string.punctuation:
+            return " ".join(words[i + 1 :]).strip()  # cut at punctuation and strip leading spaces
+    return text
+
+
+def overlap_prefix(ds, **kwargs):
     """Complete the transcription for the given examples."""
     prefix_ratio = to_list(kwargs.pop("prefix_ratio", (0, 1)))
     log_interval = kwargs.get("log_interval", 10000)
 
-    def complete_string(egs, idx):
+    def add_overlap_prefix(egs, idx):
         words = egs["text"].split()
         ratio = random.uniform(prefix_ratio[0], prefix_ratio[-1])
         n_pfx = int(len(words) * ratio)
@@ -434,7 +448,43 @@ def complete_prefix(ds, **kwargs):
             "prompt": prompt_format.format(prompt),
         }
 
-    ds = ds.map(complete_string, with_indices=True)
+    ds = ds.map(add_overlap_prefix, with_indices=True)
+    return ds
+
+
+def get_value(d, key, default=None):
+    """Get a value from a nested dictionary using dot notation."""
+    keys = key.split(".")
+    for k in keys:
+        if k in d:
+            d = d[k]
+        else:
+            return default
+    return d
+
+
+def context_prefix(ds, **kwargs):
+    """Complete the transcription for the given examples."""
+    prefix_key = kwargs.get("prefix_key", "info.preceding_original_transcription")
+    root_key = prefix_key.split(".")[0]  # get the root key
+    prefix_range = to_list(kwargs.get("prefix_range", (0, 100)))
+    log_interval = kwargs.get("log_interval", 10000)
+
+    def add_context_prefix(egs, idx):
+        pfx_words = get_value(egs, prefix_key, "").strip().split()
+        n_pfx = random.randint(prefix_range[0], prefix_range[-1])
+        prefix = trunc_left_at_punc(" ".join(pfx_words[-n_pfx:]))
+        if prefix:
+            prompt = f"Transcribe the audio clip into text with the prefix: \n{prefix}\n"
+        else:
+            prompt = "Transcribe the audio clip into text."
+
+        if idx % log_interval == 0:
+            print(f"[{idx}], Prompt: {prompt}")
+            print(f"[{idx}], Text  : {egs['text']}")
+        return {"prompt": prompt_format.format(prompt)}
+
+    ds = ds.map(add_context_prefix, with_indices=True, remove_columns=[root_key])
     return ds
 
 
@@ -444,8 +494,10 @@ def augment(ds, **kwargs):
         ds = filter_ds(ds, **filter_kwargs)
     if wer_filter_kwargs := kwargs.get("wer_filter", {}):
         ds = wer_filter_ds(ds, **wer_filter_kwargs)
-    if complete_prefix_kwargs := kwargs.get("complete_prefix", {}):
-        ds = complete_prefix(ds, **complete_prefix_kwargs)
+    if overlap_prefix_kwargs := kwargs.get("overlap_prefix", {}):
+        ds = overlap_prefix(ds, **overlap_prefix_kwargs)
+    if context_prefix_kwargs := kwargs.get("context_prefix", {}):
+        ds = context_prefix(ds, **context_prefix_kwargs)
     if biasing_kwargs := kwargs.get("biasing", {}):
         ds = bias_sampling(ds, **biasing_kwargs)
     if pref_kwargs := kwargs.get("simu_preference", {}):
