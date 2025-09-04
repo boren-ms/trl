@@ -53,10 +53,10 @@ class ChunkLoader:
         """Load examples for the given index."""
         rank_print(f"Loading all examples for chunk {self.chunk_path}.")
         examples = load_data_from_chunk(self.chunk_path, self.chunk_type, self.count)
-        return {i: egs for i, egs in enumerate(examples)}
+        return dict(enumerate(examples))
 
 
-MAZ_LOADERS = 1000
+MAX_LOADERS = 1000
 
 
 class ChunkManager:
@@ -64,7 +64,7 @@ class ChunkManager:
 
     def __init__(self, maxsize=None):
         """Initialize the ChunkManager with a maximum size for the cache."""
-        maxsize = maxsize or MAZ_LOADERS
+        maxsize = maxsize or MAX_LOADERS
         rank_print(f"Initializing ChunkManager with max {maxsize} ChunkLoaders.")
         self.chunk_loaders = LRUCache(maxsize=maxsize)
 
@@ -76,7 +76,7 @@ class ChunkManager:
         return self.chunk_loaders[chunk_path]
 
 
-def get_chunk_manager(maxsize=MAZ_LOADERS):
+def get_chunk_manager(maxsize=MAX_LOADERS):
     """Return the global singleton ChunkManager."""
     global _chunk_manager_instance
     try:
