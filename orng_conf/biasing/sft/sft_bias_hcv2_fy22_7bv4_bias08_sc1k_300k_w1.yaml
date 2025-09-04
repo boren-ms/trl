@@ -4,7 +4,7 @@ train_data:
   dataset_name: chunk
   max_egs: 300000
   max_chunks: 6000 # 50 egs/chunk
-  max_cached_chunks: 50 # 50* 8=400 for all processes.
+  max_cached_chunk: 50 # 50* 8=400 for all processes.
   chunk_shuffle: True # shuffle chunks
   chunk_types: [audio, transcription]
   # specs: [az://orngwus2cresco/data/boren/data/inhouse/data_spec/human_caption_v2.json]
