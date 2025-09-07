@@ -56,8 +56,8 @@ vllm_imp_ratio_cap: 5
 #     dataset_name: cached
 #     cache_path: /home/boren/data/cache_datasets/tsv_debug_grpo
 train_data:
-    cache: True
-    cache_tag: tsv_debug_grpo
+    # cache: True
+    # cache_tag: tsv_debug_grpo
     dataset_name: tsv
     # nug_egs: 5000
     # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
@@ -73,18 +73,18 @@ train_data:
     #     buffer_size: 5000
     #     num_rejections: 8
     biasing:
-        bias_prob: 0
         hit_prob: 1
-        miss_prob: 1
-        context_prob: 1.0
+        bias_prob: 1
+        miss_prob: 0
+        context_prob: 0.0
         # task_info: 1 # 0 disable, 1 task token, 2 task token + hit words
         max_piece_len: 1
-        sample_range: [0, 300]
+        sample_range: [300, 300]
         sampling_version: v2
         hit_ratio: [1.0, 1.0]
         log_interval: 1000 # print biasing every 10000 samples
-        # common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
-        # common_word_num: 1000
+        common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
+        common_word_num: 1000
 eval_strategy: steps
 # eval_on_start: True
 eval_steps: 10
