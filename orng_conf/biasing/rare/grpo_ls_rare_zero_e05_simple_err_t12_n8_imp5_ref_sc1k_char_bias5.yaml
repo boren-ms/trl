@@ -1,5 +1,7 @@
 train_data:
   dataset_name: tsv
+  cache: True
+  cache_tag: "ls_train_rare_sc1k"
   # num_egs: 5000
   # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
   tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
@@ -31,7 +33,7 @@ model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 # job_name: phi4_mm_bias_grpo
 report_to: [wandb]
-num_train_epochs: 1
+num_train_epochs: 0.5
 learning_rate: 1e-5
 # new_lora: True
 lr_scheduler_type: cosine #cosine
@@ -72,11 +74,13 @@ per_device_eval_batch_size: 200
 num_eval_generations: 2
 eval_data:
   - nickname: clean_no
+    cache: True
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     tag: ""
     data_dir: az://${DATA_STORAGE}/data/boren/data
   - nickname: other_no
+    cache: True
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
     tag: ""
