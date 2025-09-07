@@ -40,7 +40,8 @@ train_data:
     #     log_interval: 2
     context_prefix:
         log_interval: 2
-    cache_dir: /home/boren/data/cached_datasets
+    cache: True
+    cache_tag: sft_chunk_debug
 
     # dataset_name: jsonl
     # jsonl_paths: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct/metric_vllm_ls_train_debug_biasing_smp2__results.jsonl

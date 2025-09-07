@@ -4,10 +4,10 @@ import ast
 import urllib
 import random
 import hashlib
+import socket
 import json
 import blobfile as bf
 import pandas as pd
-import numpy as np
 import string
 from functools import partial
 from pathlib import Path
@@ -518,20 +518,28 @@ def dict_hash(d: dict) -> str:
 
 
 def cache_ds(**kwargs):
-    cache_dir = kwargs.get("cache_dir", None)
-    if not cache_dir:
+    cache = kwargs.get("cache", False)
+    if not cache:
         return None, None
+    nick_name = kwargs.get("nickname", None)
     ds_name = kwargs.get("dataset_name", "unknown").lower()
-    conf_hash = dict_hash(kwargs)
-    cache_path = Path(cache_dir, f"{ds_name}_{conf_hash}")
+    cache_tag = kwargs.get("cache_tag", nick_name or ds_name)
+    cache_dir = kwargs.get("cache_dir", Path().home() / "data/cache_datasets")
+    cache_path = Path(cache_dir) / cache_tag
+    ds = load_cached_ds(cache_path)
+    return ds, cache_path
+
+
+def load_cached_ds(cache_path):
+    if not cache_path:
+        return None
     try:
-        # check if cache path is a valid dataset
         rank_print(f"Loading cached dataset from {cache_path}")
         ds = Dataset.load_from_disk(cache_path)
-        return ds, cache_path
+        return ds
     except Exception as e:
         rank_print(f"Cache not found or invalid at {cache_path}, will create a new one. Error: {e}")
-        return None, cache_path
+        return None
 
 
 def create_audio_dataset(**kwargs):
@@ -554,6 +562,9 @@ def create_audio_dataset(**kwargs):
             ds = jsonl_dataset(**kwargs)
         elif ds_name == "chunk":
             ds = chunk_dataset(**kwargs)
+        elif ds_name == "cached":
+            ds = load_cached_ds(kwargs.get("cache_path", None))
+            assert ds is not None, "Cached dataset not found."
         else:
             raise ValueError(f"Unknown dataset name: {ds_name}")
         ds = augment(ds, **kwargs)

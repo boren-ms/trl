@@ -51,7 +51,13 @@ vllm_imp_ratio_cap: 5
 #     max_chunks: 2
 #     max_egs: 30
 #     specs: [/home/boren/data/inhouse/data_spec/asr_chunk_inhouse_en_egs.json]
+
+# train_data:
+#     dataset_name: cached
+#     cache_path: /home/boren/data/cache_datasets/tsv_debug_grpo
 train_data:
+    cache: True
+    cache_tag: tsv_debug_grpo
     dataset_name: tsv
     # nug_egs: 5000
     # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
@@ -80,13 +86,15 @@ train_data:
         # common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         # common_word_num: 1000
 eval_strategy: steps
-eval_on_start: True
+# eval_on_start: True
 eval_steps: 10
 per_device_eval_batch_size: 20
 num_eval_generations: 2
 eval_data:
     - nickname: clean_no
       num_egs: 10
+      cache: True
+      cache_tag: eval_clean_no_grpo
       dataset_name: ls_bias
       jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     #   data_dir: az://orngscuscresco/data/boren/data

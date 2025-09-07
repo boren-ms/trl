@@ -17,6 +17,7 @@ from collections import defaultdict, deque
 from collections.abc import Sequence
 from itertools import takewhile
 from typing import Any, Callable, Optional, TypeVar, Union
+from cachetools import FIFOCache, cached
 
 import numpy as np
 import pyarrow as pa
@@ -31,6 +32,7 @@ from trl.scripts.chunk_dataset import load_chunk_example
 DatasetType = TypeVar("DatasetType", Dataset, DatasetDict)
 
 
+@cached(FIFOCache(maxsize=100))
 def sf_read(file_path):
     """Load audio from a file."""
     # print("Audio file:", file_path)

@@ -8,7 +8,7 @@ from tqdm import tqdm
 import numpy as np
 from math import ceil
 import soundfile as sf
-from cachetools import FIFOCache
+from cachetools import FIFOCache, cached
 import blobfile as bf
 import pandas as pd
 from trl.trainer.utils import rank_print
@@ -202,6 +202,7 @@ def generate_examples(specs, chunk_types=None, chunk_shuffle=True, max_chunks=No
         yield from load_examples(chunk, types)
 
 
+@cached(FIFOCache(maxsize=100))
 def load_chunk_example(chunk_path):
     """Load a single example from the chunk file."""
     chunk_file, chunk_count, chunk_index = chunk_path.rsplit(":", 2)  # make sure rsplit.
