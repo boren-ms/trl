@@ -10,7 +10,7 @@ conf = {
     # "max_egs": 30,
     "num_proc": 20,
     "specs": [
-        "/home/boren/data/inhouse/data_spec/asr_chunk_inhouse_en_fy22.json",
+        "/home/boren/data/inhouse/data_spec/asr_chunk_inhouse_en.json",
     ],
     "add_rare_keywords": {
         "common_file": common_file,
@@ -19,11 +19,13 @@ conf = {
     "filter_by_keywords": {
         "min_ratio": 0.1,
     },
-    "cache": True,
-    "cache_tag": "asr_chunk_inhouse_en_fy22_sc3k_0.1r",
+    "cache_name": "asr_chunk_inhouse_en_sc3k_0.1r",
 }
 
 ds = create_audio_dataset(**conf)
+print("Got dataset info")
+print(ds)
+print("dataset samples:")
 for i, egs in enumerate(ds):
     n_words = len(egs["text"].split())
     n_keywords = len(egs["keywords"])
