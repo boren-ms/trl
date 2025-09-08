@@ -1,5 +1,6 @@
 new_run: True
 shuffle_dataset: False
+project_name: biasing_entity
 train_data:
   cache_name: auto
   dataset_name: chunk
