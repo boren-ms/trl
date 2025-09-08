@@ -24,6 +24,8 @@ prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
 
 def read_words(file_path, num=None, tn_name=None):
     """Read the top N lines from a file."""
+    if file_path is None:
+        return []
     words = []
     tn_name = tn_name or "identity"
     with bf.BlobFile(file_path, "r") as f:
