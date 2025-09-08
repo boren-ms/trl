@@ -609,10 +609,9 @@ def load_cached_ds(cache_path):
     try:
         local_path = cache_dir(cache_path)
         rank_print(f"Loading cached dataset from {cache_path}[{local_path}]")
-        ds = Dataset.load_from_disk(local_path)
-        return ds
+        return Dataset.load_from_disk(local_path)
     except Exception as e:
-        rank_print(f"Cache not found or invalid at {cache_path}, will create a new one. Error: {e}")
+        rank_print(f"Cache not found or invalid at {cache_path}. Error: {e}")
         return None
 
 
