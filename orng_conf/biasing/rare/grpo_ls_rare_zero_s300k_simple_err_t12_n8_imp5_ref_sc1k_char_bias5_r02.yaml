@@ -1,7 +1,6 @@
 train_data:
   dataset_name: tsv
-  # cache: True
-  # cache_tag: "ls_train_rare_sc1k_0.5r"
+  # cache_name: auto
   # num_egs: 5000
   # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
   tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
@@ -66,15 +65,11 @@ per_device_eval_batch_size: 200
 num_eval_generations: 2
 eval_data:
   - nickname: clean_no
-    cache: True
-    cache_tag: "ls_eval_clean_no"
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     tag: ""
     data_dir: az://${DATA_STORAGE}/data/boren/data
   - nickname: other_no
-    cache: True
-    cache_tag: "ls_eval_clean_no"
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
     tag: ""
