@@ -477,7 +477,7 @@ def path_map(ds, **kwargs):
     return ds
 
 
-def post_process(ds, **kwargs):
+def process_ds(ds, **kwargs):
     """Post process the dataset."""
     num_proc = kwargs.get("num_proc", 1)
     ds = stream_shuffle(ds, **kwargs)
@@ -584,6 +584,8 @@ def context_prefix(ds, **kwargs):
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
     num_proc = kwargs.get("num_proc", 1)
+    if pre_process_kwargs := kwargs.get("pre_process", {}):
+        ds = process_ds(ds, num_proc=num_proc, **pre_process_kwargs)
     if filter_kwargs := kwargs.get("filter", {}):
         ds = filter_ds(ds, num_proc=num_proc, **filter_kwargs)
     if wer_filter_kwargs := kwargs.get("wer_filter", {}):
@@ -605,7 +607,7 @@ def augment(ds, **kwargs):
     if add_prompt_kwargs := kwargs.get("add_prompt", {}):
         ds = add_prompt(ds, num_proc=num_proc, **add_prompt_kwargs)
     if post_process_kwargs := kwargs.get("post_process", {}):
-        ds = post_process(ds, num_proc=num_proc, **post_process_kwargs)
+        ds = process_ds(ds, num_proc=num_proc, **post_process_kwargs)
     return ds
 
 

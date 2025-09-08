@@ -68,7 +68,8 @@
                 "--config",
                 // // "orng_conf/biasing/debug/grpo_ttrl_debug_local.yaml",
                 // "orng_conf/biasing/debug/grpo_rare_debug_local.yaml",
-                "orng_conf/biasing/debug/grpo_bias_vllm_colocate_debug_local.yaml",
+                "orng_conf/biasing/debug/grpo_bias_cache_local.yaml",
+                // "orng_conf/biasing/debug/grpo_bias_vllm_colocate_debug_local.yaml",
                 // "orng_conf/biasing/debug/grpo_bias_vllm_colocate_debug.yaml",
                 // "/root/code/trl/orng_conf/grpo_bias_debug.yaml",
             ]
