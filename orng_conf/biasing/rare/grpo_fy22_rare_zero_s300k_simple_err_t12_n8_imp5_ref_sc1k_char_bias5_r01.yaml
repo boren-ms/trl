@@ -12,7 +12,7 @@ train_data:
     - manifest_file: az://${DATA_STORAGE}/data/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
       chunk_path: az://${DATA_STORAGE}/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
 
-  num_proc: 20
+  num_proc: 2
   add_rare_keywords:
     common_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     common_num: 1000

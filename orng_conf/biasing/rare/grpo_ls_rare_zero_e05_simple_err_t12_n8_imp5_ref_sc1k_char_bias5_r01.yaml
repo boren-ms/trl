@@ -5,7 +5,7 @@ train_data:
   # num_egs: 5000
   # tsv_paths: az://orngwus2cresco/data/boren/data/LibriSpeech/debug.tsv
   tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
-  num_proc: 20
+  num_proc: 1
   add_rare_keywords:
     common_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     common_num: 1000
