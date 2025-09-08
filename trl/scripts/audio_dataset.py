@@ -527,6 +527,22 @@ def overlap_prefix(ds, **kwargs):
     return ds
 
 
+def add_prompt(ds, **kwargs):
+    """Add a prompt to the dataset."""
+    task = kwargs.get("task", "asr")
+    rand = kwargs.get("rand", False)
+    forced = kwargs.get("forced", False)
+
+    def add_prompt_fn(egs):
+        prompt = egs.get("prompt", None)
+        if forced or prompt is None:
+            prompt = get_task_prompt(task=task, rand=rand)
+        return {"prompt": prompt_format.format(prompt)}
+
+    ds = ds.map(add_prompt_fn, num_proc=kwargs.get("num_proc", 1))
+    return ds
+
+
 def get_value(d, key, default=None):
     """Get a value from a nested dictionary using dot notation."""
     keys = key.split(".")
@@ -584,6 +600,8 @@ def augment(ds, **kwargs):
         ds = add_rare_keywords(ds, num_proc=num_proc, **add_rare_keywords_kwargs)
     if filter_by_keywords_kwargs := kwargs.get("filter_by_keywords", {}):
         ds = filter_by_keywords(ds, num_proc=num_proc, **filter_by_keywords_kwargs)
+    if add_prompt_kwargs := kwargs.get("add_prompt", {}):
+        ds = add_prompt(ds, num_proc=num_proc, **add_prompt_kwargs)
     if post_process_kwargs := kwargs.get("post_process", {}):
         ds = post_process(ds, num_proc=num_proc, **post_process_kwargs)
     return ds
