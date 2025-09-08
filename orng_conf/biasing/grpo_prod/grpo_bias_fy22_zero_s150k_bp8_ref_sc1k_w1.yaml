@@ -3,7 +3,7 @@ project_name: biasing_entity
 train_data:
   cache_name: auto
   dataset_name: chunk
-  max_egs: 300000
+  max_egs: 150000
   max_chunks: 6000 # 50 egs/chunk
   max_cached_chunk: 50 # 50* 8=400 for all processes.
   chunk_shuffle: True # shuffle chunks
