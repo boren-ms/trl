@@ -60,34 +60,90 @@ eval_strategy: steps
 eval_on_start: False
 eval_steps: 200
 eval_data:
-  - nickname: clean_no
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    data_dir: az://${DATA_STORAGE}/data/boren/data
-  - nickname: other_no
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    data_dir: az://${DATA_STORAGE}/data/boren/data
-  - nickname: clean_100
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    data_dir: az://${DATA_STORAGE}/data/boren/data
-    bias_key: distractors # distractors
-  - nickname: other_100
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
-    bias_key: distractors # distractors
-    data_dir: az://${DATA_STORAGE}/data/boren/data
-  - nickname: clean_500
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
-    bias_key: distractors # distractors
-    data_dir: az://${DATA_STORAGE}/data/boren/data
-  - nickname: other_500
-    dataset_name: ls_bias
-    jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
-    bias_key: distractors # distractors
-    data_dir: az://${DATA_STORAGE}/data/boren/data
+  - nickname: entity_Gaming_0
+    dataset_name: inhouse_entity
+    data_dir: az://${DATA_STORAGE}/data/boren/data/
+    src_dir: /home/boren/data/
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
+    max_bias: 0
+  - nickname: entity_Gaming_100
+    dataset_name: inhouse_entity
+    data_dir: az://${DATA_STORAGE}/data/boren/data/
+    src_dir: /home/boren/data/
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
+    max_bias: 100
+  - nickname: entity_Gaming_500
+    dataset_name: inhouse_entity
+    data_dir: az://${DATA_STORAGE}/data/boren/data/
+    src_dir: /home/boren/data/
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
+    max_bias: 500
+  - nickname: entity_Insurance_0
+    dataset_name: inhouse_entity
+    data_dir: az://${DATA_STORAGE}/data/boren/data/
+    src_dir: /home/boren/data/
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
+    max_bias: 0
+  - nickname: entity_Insurance_100
+    dataset_name: inhouse_entity
+    data_dir: az://${DATA_STORAGE}/data/boren/data/
+    src_dir: /home/boren/data/
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
+    max_bias: 100
+  - nickname: entity_Insurance_500
+    dataset_name: inhouse_entity
+    data_dir: az://${DATA_STORAGE}/data/boren/data/
+    src_dir: /home/boren/data/
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
+    max_bias: 500
+  # - nickname: entity_Gaming_1000
+  #   dataset_name: inhouse_entity
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data/
+  #   src_dir: /home/boren/data/
+  #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+  #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
+  #   max_bias: 1000
+  # - nickname: entity_Insurance_1000
+  #   dataset_name: inhouse_entity
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data/
+  #   src_dir: /home/boren/data/
+  #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+  #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
+  #   max_bias: 1000
+  # - nickname: clean_no
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  # - nickname: other_no
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  # - nickname: clean_100
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  #   bias_key: distractors # distractors
+  # - nickname: other_100
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
+  #   bias_key: distractors # distractors
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  # - nickname: clean_500
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_500.jsonl
+  #   bias_key: distractors # distractors
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
+  # - nickname: other_500
+  #   dataset_name: ls_bias
+  #   jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_500.jsonl
+  #   bias_key: distractors # distractors
+  #   data_dir: az://${DATA_STORAGE}/data/boren/data
   # - nickname: clean_1000
   #   dataset_name: ls_bias
   #   jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_1000.jsonl
