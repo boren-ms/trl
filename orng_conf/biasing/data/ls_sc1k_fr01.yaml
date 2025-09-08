@@ -1,0 +1,9 @@
+train_data:
+    dataset_name: tsv
+    tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
+    add_rare_keywords:
+        common_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
+        common_num: 3000
+    filter_by_keywords:
+        min_ratio: 0.1
+    # cache_name: hcv2_en_sc3k_fr01
