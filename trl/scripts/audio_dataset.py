@@ -3,9 +3,6 @@ import os
 import ast
 import urllib
 import random
-import hashlib
-import socket
-import json
 import blobfile as bf
 import pandas as pd
 import string
@@ -14,14 +11,51 @@ from pathlib import Path
 from datasets import load_dataset, concatenate_datasets, Dataset
 from bs4 import BeautifulSoup
 from trl.scripts.error_simu import ErrorSimulator
-from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm
+from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm as biasing_text_norm
 from trl.scripts.audio_prompts import get_task_prompt
+from trl.scripts.audio_metrics import text_norm
 from trl.scripts.chunk_dataset import generate_examples, get_chunk_manager, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
 
-
 prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
+
+
+def read_words(file_path, num=None, tn_name=None):
+    """Read the top N lines from a file."""
+    words = []
+    tn_name = tn_name or "identity"
+    with bf.BlobFile(file_path, "r") as f:
+        for i, line in enumerate(f):
+            if num is not None and i >= num:
+                break
+            word = line.split()[0]
+            words.append(text_norm(word, tn_name))
+    return words
+
+
+def prefix_match(str1, str2, nd=2):
+    n = min(len(str1), len(str2))
+    m = max(len(str1), len(str2))
+    if m - n > nd:
+        return False
+    return str1[:n] == str2[:n]
+
+
+def has_digit(s):
+    return any(c.isdigit() for c in s)
+
+
+def find_rare(srcs, tgts, nd=2):
+    srcs = set(srcs) - set(tgts)
+    lefts = []
+    for src in srcs:
+        if any(prefix_match(src, tgt, nd=nd) for tgt in tgts):
+            continue
+        if has_digit(src):
+            continue
+        lefts.append(src)
+    return lefts
 
 
 def extract_entities(text):
@@ -74,7 +108,7 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
         audio_path = update_dir(example["audio_path"], src_dir="/root/data", dst_dir=data_dir)
         words = example.get("text", "").strip().split()
         gt_words = example.get("ground_truth", [])
-        words = tag_pieces(words, tag=tag, specified=gt_words, norm=text_norm)
+        words = tag_pieces(words, tag=tag, specified=gt_words, norm=biasing_text_norm)
         return {
             "prompt": prompt_format.format(f"{prompt} {bias_str}"),
             "audio_path": audio_path,
@@ -83,18 +117,8 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
             "id": example.get("id", Path(audio_path).stem),
         }
 
-    ds = ds.map(load_sample)
+    ds = ds.map(load_sample, num_proc=kwargs.get("num_proc", 1))
     return ds
-
-
-def read_words(file_path):
-    if not file_path:
-        return []
-    if not bf.exists(file_path):
-        return []
-    with bf.BlobFile(file_path, "r") as f:
-        words = [line.strip() for line in f if line.strip()]
-    return words
 
 
 def chunk_dataset(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, max_egs=None, streaming=False, max_cached_chunk=None, **kwargs):
@@ -148,10 +172,10 @@ def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=Non
             "id": utt_id,
         }
 
-    return ds.map(load_sample)
+    return ds.map(load_sample, num_proc=kwargs.get("num_proc", 1))
 
 
-def load_tsv(tsv_file):
+def load_tsv(tsv_file, **kwargs):
     """Load a TSV file into a dataset."""
     url = urllib.parse.urlparse(tsv_file)
     options = {}
@@ -175,16 +199,16 @@ def load_tsv(tsv_file):
     )
     dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
     print("DATA DIR:", dir_path)
-    ds = ds.map(lambda x: {"dir": dir_path})
+    ds = ds.map(lambda x: {"dir": dir_path}, num_proc=kwargs.get("num_proc", 1))
     return ds
 
 
 def tsv_dataset(tsv_paths, **kwargs):
     """Create a dataset from the given split."""
     if isinstance(tsv_paths, (list, tuple)):
-        ds = concatenate_datasets([load_tsv(tsv_path) for tsv_path in tsv_paths])
+        ds = concatenate_datasets([load_tsv(tsv_path, **kwargs) for tsv_path in tsv_paths])
     else:
-        ds = load_tsv(tsv_paths)
+        ds = load_tsv(tsv_paths, **kwargs)
 
     ds = stream_shuffle(ds, **kwargs)
 
@@ -202,7 +226,7 @@ def tsv_dataset(tsv_paths, **kwargs):
         }
         return x
 
-    ds = ds.map(load_sample)
+    ds = ds.map(load_sample, num_proc=kwargs.get("num_proc", 1))
     return ds
 
 
@@ -245,7 +269,7 @@ def bias_sampling(ds, **kwargs):
             "context": context,
         }
 
-    ds = ds.map(proc_sample)
+    ds = ds.map(proc_sample, num_proc=kwargs.get("num_proc", 1))
     return ds
 
 
@@ -276,7 +300,7 @@ def format_preference(ds, **kwargs):
             "rejected": sample.get(rejected_key, None),
         }
 
-    return ds.map(format_sample)
+    return ds.map(format_sample, num_proc=kwargs.get("num_proc", 1))
 
 
 def simulate_preference(ds, **kwargs):
@@ -297,10 +321,10 @@ def simulate_preference(ds, **kwargs):
             "rejected": [to_chat(x, chat) for x in rejections],
         }
 
-    return ds.map(add_preference, fn_kwargs={"error_range": error_range})
+    return ds.map(add_preference, fn_kwargs={"error_range": error_range}, num_proc=kwargs.get("num_proc", 1))
 
 
-def load_audio(ds):
+def load_audio(ds, **kwargs):
     """Post process the dataset."""
 
     def read_audio(sample):
@@ -308,7 +332,7 @@ def load_audio(ds):
         audio, sr = sf_read(sample["audio_path"])
         return {"audio": audio, "sr": sr}
 
-    ds = ds.map(read_audio)
+    ds = ds.map(read_audio, num_proc=kwargs.get("num_proc", 1))
     return ds
 
 
@@ -322,8 +346,55 @@ def filter_ds(ds, **kwargs):
             df = df[(df["WER"] >= wer_range[0]) & (df["WER"] <= wer_range[1])]
         ids = df["id"].tolist()
         n_egs = len(ds)
-        ds = ds.filter(lambda x: x["id"] in ids)
+        ds = ds.filter(lambda x: x["id"] in ids, num_proc=kwargs.get("num_proc", 1))
         print(f"Filter dataset: {n_egs} to {len(ds)}")
+    return ds
+
+
+def add_rare_keywords(ds, **kwargs):
+    tn_name = kwargs.get("tn_name", "english")
+    min_len_diff = kwargs.get("min_len_diff", 2)
+    common_file = kwargs.get("common_file", None)
+    common_num = kwargs.get("common_num", 1000)
+    assert common_file is not None, "common_file must be set"
+    common_words = read_words(common_file, num=common_num, tn_name=tn_name)
+
+    def rare_words(egs):
+        text = text_norm(egs["text"], tn_name)
+        words = set(text.split())
+        rare_words = find_rare(words, common_words, nd=min_len_diff)
+        return {
+            "keywords": list(rare_words),
+        }
+
+    ds = ds.map(rare_words, num_proc=kwargs.get("num_proc", 1))
+    return ds
+
+
+def filter_by_keywords(ds, **kwargs):
+    min_num = kwargs.get("min_num", None)
+    min_ratio = kwargs.get("min_ratio", None)
+    skip_none = kwargs.get("skip_none", True)
+    assert (min_num is not None) or (min_ratio is not None), "Either min_num or min_ratio must be set"
+
+    def is_enough_keywords(egs):
+
+        keywords = egs.get("keywords", None)
+        if keywords is None:
+            return not skip_none
+        n_keywords = len(keywords)
+        if min_num is not None and n_keywords < min_num:
+            return False
+        elif min_ratio is not None:
+            n_words = len(set(egs["text"].split()))
+            ratio = len(keywords) / (n_words + 1e-6)
+            if ratio < min_ratio:
+                return False
+        return True
+
+    n_egs = len(ds)
+    ds = ds.filter(is_enough_keywords, num_proc=kwargs.get("num_proc", 1))
+    print(f"Filtered dataset: {n_egs} to {len(ds)}")
     return ds
 
 
@@ -345,7 +416,7 @@ def wer_filter_ds(ds, **kwargs):
         return good
 
     n_egs = len(ds)
-    ds = ds.filter(wer_filter_fn, num_proc=1)
+    ds = ds.filter(wer_filter_fn, num_proc=kwargs.get("num_proc", 1))
     all_rank_print(f"Filtered dataset: {n_egs} to {len(ds)}")
     return ds
 
@@ -399,17 +470,18 @@ def path_map(ds, **kwargs):
         return x
 
     if src_part and dst_part:
-        ds = ds.map(map_fn)
+        ds = ds.map(map_fn, num_proc=kwargs.get("num_proc", 1))
     return ds
 
 
 def post_process(ds, **kwargs):
     """Post process the dataset."""
+    num_proc = kwargs.get("num_proc", 1)
     ds = stream_shuffle(ds, **kwargs)
     if path_map_kwargs := kwargs.get("path_map", {}):
-        ds = path_map(ds, **path_map_kwargs)
+        ds = path_map(ds, num_proc=num_proc, **path_map_kwargs)
     if kwargs.get("load_audio", False):
-        ds = load_audio(ds)
+        ds = load_audio(ds, num_proc=num_proc)
     if kwargs.get("do_shard", False):
         ds = shard_ds(ds, **kwargs)
     return ds
@@ -450,7 +522,7 @@ def overlap_prefix(ds, **kwargs):
             "prompt": prompt_format.format(prompt),
         }
 
-    ds = ds.map(add_overlap_prefix, with_indices=True)
+    ds = ds.map(add_overlap_prefix, with_indices=True, num_proc=kwargs.get("num_proc", 1))
     return ds
 
 
@@ -486,35 +558,34 @@ def context_prefix(ds, **kwargs):
             print(f"[{idx}], Text  : {egs['text']}")
         return {"prompt": prompt_format.format(prompt)}
 
-    ds = ds.map(add_context_prefix, with_indices=True, remove_columns=[root_key])
+    ds = ds.map(add_context_prefix, with_indices=True, remove_columns=[root_key], num_proc=kwargs.get("num_proc", 1))
     return ds
 
 
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
+    num_proc = kwargs.get("num_proc", 1)
     if filter_kwargs := kwargs.get("filter", {}):
-        ds = filter_ds(ds, **filter_kwargs)
+        ds = filter_ds(ds, num_proc=num_proc, **filter_kwargs)
     if wer_filter_kwargs := kwargs.get("wer_filter", {}):
-        ds = wer_filter_ds(ds, **wer_filter_kwargs)
+        ds = wer_filter_ds(ds, num_proc=num_proc, **wer_filter_kwargs)
     if overlap_prefix_kwargs := kwargs.get("overlap_prefix", {}):
-        ds = overlap_prefix(ds, **overlap_prefix_kwargs)
+        ds = overlap_prefix(ds, num_proc=num_proc, **overlap_prefix_kwargs)
     if context_prefix_kwargs := kwargs.get("context_prefix", {}):
-        ds = context_prefix(ds, **context_prefix_kwargs)
+        ds = context_prefix(ds, num_proc=num_proc, **context_prefix_kwargs)
     if biasing_kwargs := kwargs.get("biasing", {}):
-        ds = bias_sampling(ds, **biasing_kwargs)
+        ds = bias_sampling(ds, num_proc=num_proc, **biasing_kwargs)
     if pref_kwargs := kwargs.get("simu_preference", {}):
-        ds = simulate_preference(ds, **pref_kwargs)
+        ds = simulate_preference(ds, num_proc=num_proc, **pref_kwargs)
     if fmt_pref_kwargs := kwargs.get("format_preference", {}):
-        ds = format_preference(ds, **fmt_pref_kwargs)
+        ds = format_preference(ds, num_proc=num_proc, **fmt_pref_kwargs)
+    if add_rare_keywords_kwargs := kwargs.get("add_rare_keywords", {}):
+        ds = add_rare_keywords(ds, num_proc=num_proc, **add_rare_keywords_kwargs)
+    if filter_by_keywords_kwargs := kwargs.get("filter_by_keywords", {}):
+        ds = filter_by_keywords(ds, num_proc=num_proc, **filter_by_keywords_kwargs)
     if post_process_kwargs := kwargs.get("post_process", {}):
-        ds = post_process(ds, **post_process_kwargs)
+        ds = post_process(ds, num_proc=num_proc, **post_process_kwargs)
     return ds
-
-
-def dict_hash(d: dict) -> str:
-    # Ensure stable ordering by sorting keys
-    dict_str = json.dumps(d, sort_keys=True)
-    return hashlib.sha256(dict_str.encode()).hexdigest()
 
 
 def cache_ds(**kwargs):
@@ -549,7 +620,6 @@ def create_audio_dataset(**kwargs):
         ds, cache_path = cache_ds(**kwargs)
         if ds is not None:
             return ds
-
         if ds_name == "ls_bias":
             ds = ls_bias_dataset(**kwargs)
         elif ds_name == "inhouse_entity":
@@ -568,11 +638,9 @@ def create_audio_dataset(**kwargs):
         else:
             raise ValueError(f"Unknown dataset name: {ds_name}")
         ds = augment(ds, **kwargs)
-
         if cache_path:
             rank_print(f"Saving dataset to cache at {cache_path}")
             ds.save_to_disk(cache_path)
-
     return ds
 
 
