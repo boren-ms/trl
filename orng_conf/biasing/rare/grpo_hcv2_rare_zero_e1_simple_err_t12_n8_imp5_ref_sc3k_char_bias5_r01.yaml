@@ -3,6 +3,7 @@ train_data:
   cache_path: az://${DATA_STORAGE}/data/boren/data/cache_datasets/asr_chunk_inhouse_en_sc3k_0.1r
   post_process:
     path_map:
+      field: audio_chunk
       src_part: /datablob1/
       dst_part: az://${DATA_STORAGE}/data/speech/
 
