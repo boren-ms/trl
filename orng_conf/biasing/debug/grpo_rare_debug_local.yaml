@@ -4,15 +4,16 @@ model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 new_run: True
 reward_funcs: [reward_full_error, reward_bias_error]
 reward_func_kwargs:
-    tn: simple_with_tag
-report_to: [wandb]
+    tn: simple
+    unit: char
+report_to: [] # no wandb
 learning_rate: 1e-5
 save_only_model: True
 save_total_limit: 5
 save_on_each_node: True
 # new_lora: True
 # lr_scheduler_type: cosine
-output_dir: ~/outputs/debug
+output_dir: ~/outputs/debug_rare
 # per_device_train_batch_size: 24
 per_device_train_batch_samples: 3
 num_generations: 8
@@ -35,7 +36,8 @@ save_steps: 100
 use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
-vllm_gpu_memory_utilization: 0.35
+vllm_gpu_memory_utilization: 0.3
+vllm_imp_ratio_cap: 5
 # use_vllm_lora_update: True # not work yet
 # vllm_server_host: ${VLLM_SERVER_HOST}
 # vllm_server_host: 10.133.219.39
@@ -49,30 +51,23 @@ train_data:
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
     tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
-    # filter:
-    #     wer_file: az://orngscuscresco/data/boren/data/LibriSpeech/ls_train_bad_ids.jsonl
-    # wer_range: [0.0, 1.0]
-    biasing:
-        hit_prob: 1
-        miss_prob: 1
-        context_prob: 0.8
-        max_piece_len: 1
-        sample_range: [1, 1000] # all rare words
-        log_interval: 100 # print biasing every 10000 samples
-        # sampling_version: v0
-        # common_word_file: az://orngscuscresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
-        common_word_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
-        common_word_num: 2000
-# eval_strategy: steps
-# eval_on_start: True
-# eval_steps: 10
-# per_device_eval_batch_size: 200
-# num_eval_generations: 2
-# eval_data:
-#     - nickname: clean_no
-#       dataset_name: ls_bias
-#       jsonl_path: /home/boren/data/LibriSpeech_biasing/ref/test-clean.biasing_100.jsonl
-#       data_dir: az://orngscuscresco/data/boren/data
+    cache_name: auto
+    num_proc: 1
+    add_rare_keywords:
+        common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
+        common_num: 1000
+    filter_by_keywords:
+        min_ratio: 0.1
+eval_strategy: steps
+eval_on_start: True
+eval_steps: 10
+per_device_eval_batch_size: 200
+num_eval_generations: 2
+eval_data:
+    - nickname: clean_no
+      dataset_name: ls_bias
+      jsonl_path: /home/boren/data/LibriSpeech_biasing/ref/test-clean.biasing_100.jsonl
+    #   data_dir: az://orngscuscresco/data/boren/data
 #   bias_key: null # null
 # data_dir: az://${DATA_STORAGE}/data/boren/data
 # - nickname: other_no

@@ -1,7 +1,7 @@
 new_run: True
 shuffle_dataset: False
 train_data:
-  cache: True
+  cache_name: auto
   dataset_name: chunk
   max_egs: 300000
   max_chunks: 6000 # 50 egs/chunk

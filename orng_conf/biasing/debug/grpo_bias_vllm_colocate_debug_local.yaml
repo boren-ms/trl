@@ -56,8 +56,7 @@ vllm_imp_ratio_cap: 5
 #     dataset_name: cached
 #     cache_path: /home/boren/data/cache_datasets/tsv_debug_grpo
 train_data:
-    # cache: True
-    # cache_tag: tsv_debug_grpo
+    # cache_name: auto
     dataset_name: tsv
     # nug_egs: 5000
     # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
@@ -93,8 +92,6 @@ num_eval_generations: 2
 eval_data:
     - nickname: clean_no
       num_egs: 10
-      cache: True
-      cache_tag: eval_clean_no_grpo
       dataset_name: ls_bias
       jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     #   data_dir: az://orngscuscresco/data/boren/data

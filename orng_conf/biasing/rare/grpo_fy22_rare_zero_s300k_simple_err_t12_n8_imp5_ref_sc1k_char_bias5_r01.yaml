@@ -1,7 +1,6 @@
 shuffle_dataset: False
 train_data:
-  cache: True
-  cache_tag: "fy22_rare_sc1k_0.1r"
+  cache_name: auto
   dataset_name: chunk
   max_egs: 300000
   max_chunks: 6000 # 50 egs/chunk
@@ -73,15 +72,11 @@ per_device_eval_batch_size: 200
 num_eval_generations: 2
 eval_data:
   - nickname: clean_no
-    cache: True
-    cache_tag: "ls_eval_clean_no"
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     tag: ""
     data_dir: az://${DATA_STORAGE}/data/boren/data
   - nickname: other_no
-    cache: True
-    cache_tag: "ls_eval_clean_no"
     dataset_name: ls_bias
     jsonl_path: /root/data/librispeech_biasing/ref/test-other.biasing_100.jsonl
     tag: ""
