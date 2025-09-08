@@ -389,6 +389,7 @@ def prepare_env(forced=False):
         "torchvision",
         "torchaudio",
         "transformers==4.51.3",
+        "datasets==4.0.0",
         "trl",
         "peft",
         "tensorboardX",
