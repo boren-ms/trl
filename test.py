@@ -20,3 +20,18 @@ print("mean:", sum(y) / len(y))
 print("max:", max(y))
 print("min:", min(y))
 # %%
+ds_path = "/home/boren/data/cache_datasets/asr_chunk_inhouse_en_fy22_sc3k_0.1r"
+from datasets import load_from_disk
+
+ds = load_from_disk(ds_path)
+# %%
+for i, egs in enumerate(ds):
+    keywords = egs.get("keywords", None)
+    words = set(egs.get("text", None).split())
+    print("  keywords:", keywords)
+    print("  keywords rate:", len(keywords) / len(words) if words else 0)
+    print("  words:", words)
+    if i > 10:
+        break
+
+# %%
