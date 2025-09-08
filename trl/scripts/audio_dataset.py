@@ -14,7 +14,7 @@ from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm as biasing_text_norm
 from trl.scripts.audio_prompts import get_task_prompt
 from trl.scripts.audio_metrics import text_norm
-from trl.scripts.utils import get_config_path
+from trl.scripts.utils import get_config_path, cache_dir
 from trl.scripts.chunk_dataset import generate_examples, get_chunk_manager, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
@@ -607,8 +607,9 @@ def load_cached_ds(cache_path):
     if not cache_path:
         return None
     try:
-        rank_print(f"Loading cached dataset from {cache_path}")
-        ds = Dataset.load_from_disk(cache_path)
+        local_path = cache_dir(cache_path)
+        rank_print(f"Loading cached dataset from {cache_path}[{local_path}]")
+        ds = Dataset.load_from_disk(local_path)
         return ds
     except Exception as e:
         rank_print(f"Cache not found or invalid at {cache_path}, will create a new one. Error: {e}")

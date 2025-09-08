@@ -15,7 +15,7 @@ from accelerate import PartialState
 from contextlib import nullcontext
 from trl.trainer.utils import add_adapter_func, rank_print
 from trl.scripts.audio_dataset import create_audio_dataset
-from trl.scripts.utils import get_config_path
+from trl.scripts.utils import get_config_path, cache_dir
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 
@@ -32,38 +32,6 @@ def get_speech_peft_model(model, lora_name):
     )
     get_peft_model(model.model, lora_config, adapter_name=lora_name)
     return model
-
-
-def run_cmd(cmd, check=True):
-    """Run a shell command and print it."""
-    if isinstance(cmd, (list, tuple)):
-        cmd = " ".join(cmd)
-    print(f"Running: {cmd}")
-    ret = subprocess.run(cmd, shell=True, check=check)
-    print(f"Cmd: {cmd} returned: {ret.returncode}")
-    return ret
-
-
-def cache_dir(remote_path, local_path=None):
-    """Sync a directory from remote to local."""
-    if not remote_path.startswith("az://"):
-        return remote_path
-
-    if local_path is None:
-        local_path = str(Path.home() / Path(".blobfile", *Path(remote_path).parts[3:]))
-
-    print(f"Syncing {remote_path} to {local_path} ...")
-
-    cmd = [
-        "bbb",
-        "sync",
-        "--concurrency",
-        "64",
-        f"{remote_path.rstrip('/')}/",
-        f"{local_path.rstrip('/')}/",
-    ]
-    run_cmd(cmd, check=True)
-    return local_path
 
 
 def cache_chkp_dir(remote_dir, local_dir=None):

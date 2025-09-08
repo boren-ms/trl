@@ -279,3 +279,35 @@ def get_config_path(config_path=None):
         if config_index < len(sys.argv):
             return Path(sys.argv[config_index]).resolve()
     return None
+
+
+def run_cmd(cmd, check=True):
+    """Run a shell command and print it."""
+    if isinstance(cmd, (list, tuple)):
+        cmd = " ".join(cmd)
+    print(f"Running: {cmd}")
+    ret = subprocess.run(cmd, shell=True, check=check)
+    print(f"Cmd: {cmd} returned: {ret.returncode}")
+    return ret
+
+
+def cache_dir(remote_path, local_path=None):
+    """Sync a directory from remote to local."""
+    if not remote_path.startswith("az://"):
+        return remote_path
+
+    if local_path is None:
+        local_path = str(Path.home() / Path(".blobfile", *Path(remote_path).parts[3:]))
+
+    print(f"Syncing {remote_path} to {local_path} ...")
+
+    cmd = [
+        "bbb",
+        "sync",
+        "--concurrency",
+        "64",
+        f"{remote_path.rstrip('/')}/",
+        f"{local_path.rstrip('/')}/",
+    ]
+    run_cmd(cmd, check=True)
+    return local_path
