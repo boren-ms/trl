@@ -13,6 +13,11 @@ from trl.scripts.shared_utils import init_model, WandbHelper, create_dataset, pr
 class GRPOScriptArguments:
     """Script arguments for the GRPO training script."""
 
+    project_name: Optional[str] = field(
+        default=None,
+        metadata={"help": "The wandb project name to use for logging."},
+    )
+
     new_run: bool = field(
         default=False,
         metadata={"help": "Whether to skip to load run info."},
@@ -71,6 +76,7 @@ def main(script_args, training_args):
         WandbHelper(
             work_dir=training_args.output_dir,
             new_run=script_args.new_run,
+            project_name=script_args.project_name,
         ).init(main_only=True)
 
     lora_name = "speech" if script_args.new_lora else None

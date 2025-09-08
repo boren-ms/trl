@@ -76,9 +76,10 @@ def init_model(model_id=None, update_encoder=False, new_lora=None):
 class WandbHelper:
     """Helper class to manage wandb initialization and run info."""
 
-    def __init__(self, run_name=None, work_dir=None, new_run=False):
+    def __init__(self, run_name=None, project_name=None, work_dir=None, new_run=False):
         self.new_run = new_run
         self.run_name = run_name
+        self.project_name = project_name
         work_dir = work_dir or Path.cwd()
         self.run_info_file = Path(work_dir) / "run_info.json"
 
@@ -93,7 +94,7 @@ class WandbHelper:
     def _wandb_info(self):
         """Get wandb information from environment variables."""
         run_name = self._get_run_name()
-        project = os.environ.get("WANDB_PROJECT", "biasing")
+        project = self.project_name or os.environ.get("WANDB_PROJECT", "biasing")
         entity = os.environ.get("WANDB_ENTITY", "genai")
 
         print(f"Run name: {run_name}, Project: {project}, New run: {self.new_run}, Work dir: {self.run_info_file.parent}")
