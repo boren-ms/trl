@@ -14,7 +14,7 @@
 
 from dataclasses import dataclass, field
 from typing import Optional, Union
-
+import math
 import transformers
 from packaging import version
 from transformers import TrainingArguments
@@ -543,6 +543,10 @@ class GRPOConfig(TrainingArguments):
         default=False,
         metadata={"help": "Whether to log unique prompts in wandb. If `True`, only unique prompts are logged. If `False`, " "all prompts are logged."},
     )
+    max_samples: Optional[int] = field(
+        default=None,
+        metadata={"help": "Maximum number of samples to use from the dataset. If `None`, all samples are used."},
+    )
 
     def __post_init__(self):
         self.bf16 = not (self.fp16) if self.bf16 is None else self.bf16
@@ -563,6 +567,9 @@ class GRPOConfig(TrainingArguments):
             )
             self.per_device_train_batch_size = self.per_device_train_batch_samples * self.num_generations
 
+        if self.max_samples is not None:
+            batch_size = self.per_device_train_batch_size * self.gradient_accumulation_steps * self.world_size
+            self.max_steps = math.ceil(self.max_samples / batch_size)
         # The current default effective batch size
         if self.generation_batch_size is not None and self.steps_per_generation is not None:
             raise ValueError("'generation_batch_size' and 'steps_per_generation' can not be both configured at the same time")

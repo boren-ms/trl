@@ -1,3 +1,4 @@
+new_run: True
 shuffle_dataset: False
 train_data:
   cache_name: auto
@@ -7,7 +8,6 @@ train_data:
   max_cached_chunk: 50 # 50* 8=400 for all processes.
   chunk_shuffle: True # shuffle chunks
   chunk_types: [audio, transcription]
-  # specs: [az://orngwus2cresco/data/boren/data/inhouse/data_spec/human_caption_v2.json]
   specs:
     - manifest_file: az://${DATA_STORAGE}/data/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
       chunk_path: az://${DATA_STORAGE}/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
@@ -34,17 +34,18 @@ train_data:
 # dataloader_prefetch_factor: 2
 # dataloader_num_workers: 2
 # model_name_or_path: /root/data/ckp/hf_models/phi4_mm_bias
-model_name_or_path: /root/data/ckp/hf_models/phi4-7b-fast-api-s2-final-v4
-# model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
+# model_name_or_path: /root/data/ckp/hf_models/phi4-7b-fast-api-s2-final-v4
+model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_name_or_path: /root/data/ckp/hf_models/phi-libri_ft_m1000_p8_new-QpHq/5000_hf
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 report_to: [wandb]
-num_train_epochs: 1
-# max_steps: 10000 # num_egs = 1000*8*N_GPU(8) = 64k
+# num_train_epochs: 1
+max_samples: 150000
+# max_steps: 150000 # num_egs = 1000*8*N_GPU(8) = 64k
 learning_rate: 1e-5
 lr_scheduler_type: cosine #cosine
 output_dir: ./output
-per_device_train_batch_size: 4
+per_device_train_batch_size: 2
 gradient_accumulation_steps: 4
 per_device_eval_batch_size: 16
 logging_steps: 10

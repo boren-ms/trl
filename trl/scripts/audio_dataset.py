@@ -247,7 +247,7 @@ def openasr_dataset(**kwargs):
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
     rand_prompt = kwargs.pop("rand_prompt", False)
-
+    num_proc = kwargs.pop("num_proc", 1)
     kwargs = kwargs or {
         "bias_prob": 0.9,
         "hit_prob": 0.9,
@@ -270,7 +270,7 @@ def bias_sampling(ds, **kwargs):
             "context": context,
         }
 
-    ds = ds.map(proc_sample, num_proc=kwargs.get("num_proc", 1))
+    ds = ds.map(proc_sample, num_proc=num_proc)
     return ds
 
 

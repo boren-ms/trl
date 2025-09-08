@@ -15,6 +15,7 @@
 import warnings
 from dataclasses import dataclass, field
 from typing import Any, Optional
+import math
 
 from transformers import TrainingArguments
 
@@ -235,6 +236,10 @@ class SFTConfig(TrainingArguments):
         default=False,
         metadata={"help": "Whether to offload the activations to the CPU."},
     )
+    max_samples: Optional[int] = field(
+        default=None,
+        metadata={"help": "Maximum number of samples to use for training. If `None`, all samples in the dataset are used."},
+    )
 
     # Deprecated parameters
     max_seq_length: Optional[int] = field(
@@ -244,8 +249,11 @@ class SFTConfig(TrainingArguments):
 
     def __post_init__(self):
         self.bf16 = not (self.fp16) if self.bf16 is None else self.bf16
-
         super().__post_init__()
+
+        if self.max_samples is not None:
+            batch_size = self.per_device_train_batch_size * self.gradient_accumulation_steps * self.world_size
+            self.max_steps = math.ceil(self.max_samples / batch_size)
 
         if self.max_seq_length is not None:
             warnings.warn(
