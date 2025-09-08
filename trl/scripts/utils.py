@@ -22,7 +22,7 @@ import sys
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Optional, Union
-
+from pathlib import Path
 import yaml
 from transformers import HfArgumentParser
 from transformers.hf_argparser import DataClass, DataClassType
@@ -269,3 +269,13 @@ def get_git_commit_hash(package_name):
     except Exception as e:
         return f"Error: {str(e)}"
 
+
+def get_config_path(config_path=None):
+    """Get the config path from command line arguments or environment variables."""
+    if config_path:
+        return Path(config_path).resolve()
+    if "--config" in sys.argv:
+        config_index = sys.argv.index("--config") + 1
+        if config_index < len(sys.argv):
+            return Path(sys.argv[config_index]).resolve()
+    return None

@@ -15,6 +15,7 @@ from accelerate import PartialState
 from contextlib import nullcontext
 from trl.trainer.utils import add_adapter_func, rank_print
 from trl.scripts.audio_dataset import create_audio_dataset
+from trl.scripts.utils import get_config_path
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 
@@ -102,17 +103,6 @@ def init_model(model_id=None, update_encoder=False, new_lora=None):
         model = train_modules(model, layers)
     processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
     return model, processor
-
-
-def get_config_path(config_path=None):
-    """Get the config path from command line arguments or environment variables."""
-    if config_path:
-        return Path(config_path).resolve()
-    if "--config" in sys.argv:
-        config_index = sys.argv.index("--config") + 1
-        if config_index < len(sys.argv):
-            return Path(sys.argv[config_index]).resolve()
-    return None
 
 
 class WandbHelper:

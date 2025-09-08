@@ -51,7 +51,7 @@ train_data:
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
     tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
-    cache_name: auto
+    cache_name: auto_train
     num_proc: 1
     add_rare_keywords:
         common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
@@ -66,7 +66,7 @@ num_eval_generations: 2
 eval_data:
     - nickname: clean_no
       dataset_name: ls_bias
-      jsonl_path: /home/boren/data/LibriSpeech_biasing/ref/test-clean.biasing_100.jsonl
+      jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     #   data_dir: az://orngscuscresco/data/boren/data
 #   bias_key: null # null
 # data_dir: az://${DATA_STORAGE}/data/boren/data

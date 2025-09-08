@@ -14,7 +14,7 @@ from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm as biasing_text_norm
 from trl.scripts.audio_prompts import get_task_prompt
 from trl.scripts.audio_metrics import text_norm
-from trl.scripts.shared_utils import get_config_path
+from trl.scripts.utils import get_config_path
 from trl.scripts.chunk_dataset import generate_examples, get_chunk_manager, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
@@ -593,10 +593,10 @@ def cache_ds(**kwargs):
     cache_name = kwargs.get("cache_name", None)
     if cache_name is None:
         return None, None
-    if cache_name == "auto":
+    if cache_name.startswith("auto"):
         config_path = get_config_path()  # ensure config path is set
         assert config_path is not None, "config_path must be set for auto cache_name"
-        cache_name = Path(config_path).stem
+        cache_name = Path(config_path).stem + cache_name[4:]  # e.g. auto -> config name + rest
     cache_dir = kwargs.get("cache_dir", Path().home() / "data/cache_datasets")
     cache_path = Path(cache_dir) / cache_name
     ds = load_cached_ds(cache_path)
