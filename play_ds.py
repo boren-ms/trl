@@ -7,13 +7,12 @@ import yaml
 from pathlib import Path
 import fire
 from collections import Counter
-
-
 from trl.scripts.audio_metrics import text_norm
 
 # %%
 # conf_path = "orng_conf/biasing/data/ls_sc1k_fr01.yaml"
-conf_path = "orng_conf/biasing/data/hcv2_sc3k_fn1.yaml"
+# conf_path = "orng_conf/biasing/data/hcv2_sc3k_fn1.yaml"
+conf_path = "orng_conf/biasing/data/hcv2_fy22_info_sc3k.yaml"
 conf_path = Path(conf_path)
 conf = yaml.safe_load(conf_path.read_text())["train_data"]
 conf.pop("filter_by_keywords", None)
@@ -21,10 +20,23 @@ conf.pop("filter_by_keywords", None)
 # conf["max_chunks"] = 2
 print("Config:")
 print(yaml.dump(conf, sort_keys=False, default_flow_style=False))
+# %%
+# cache_name = "hcv2_adjust_fy22_sc3k/"
+# conf = {
+#     "dataset_name": "cached",
+#     "cache_path": f"/home/boren/data/cache_datasets/{cache_name}",
+# }
+# %%
 ds = create_audio_dataset(**conf)
 print("Got dataset info")
 print(ds)
-
+# %%
+# for i, egs in enumerate(ds):
+#     print(f"Example[{i}]:")
+#     print("transcription:", egs["text"])
+#     print("keywords:", egs.get("keywords", "N/A"))
+#     print()
+# %%
 print("Computing word counts for the dataset...")
 num_egs = len(ds)
 word_counts = Counter()
@@ -64,6 +76,3 @@ with open(info_file_path, "w", encoding="utf-8") as f:
 
 print("Dataset info written to:", info_file_path)
 print(yaml.dump(info_dict, sort_keys=False, default_flow_style=False))
-
-
-# %%

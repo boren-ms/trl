@@ -1,12 +1,13 @@
 # %%
 import os
+import re
+from collections import defaultdict
 import ast
 import urllib
 import random
 import blobfile as bf
 import pandas as pd
 import string
-from functools import partial
 from pathlib import Path
 from datasets import load_dataset, concatenate_datasets, Dataset
 from bs4 import BeautifulSoup
@@ -15,7 +16,7 @@ from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm as biasing_t
 from trl.scripts.audio_prompts import get_task_prompt
 from trl.scripts.audio_metrics import text_norm
 from trl.scripts.utils import get_config_path, cache_dir
-from trl.scripts.chunk_dataset import generate_examples, get_chunk_manager, to_list
+from trl.scripts.chunk_dataset import get_chunk_manager, create_chunk_datasets, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
 
@@ -129,18 +130,14 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
     return ds
 
 
-def chunk_dataset(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, max_egs=None, streaming=False, max_cached_chunk=None, **kwargs):
+def chunk_dataset(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, max_egs=None, max_cached_chunk=None, **kwargs):
     """Iterate over the chunk dataset based on the specification files."""
     if max_cached_chunk is not None:
         get_chunk_manager(max_cached_chunk)  # Initialize the chunk manager with a maximum size. and reuse later.
-    gen = partial(generate_examples, specs, chunk_types, chunk_shuffle, max_chunks, max_egs)
-    if streaming:
-        print("Creating streaming chunk dataset.")
-        ds = Dataset.from_generator(gen)
-    else:
-        print("Creating non-streaming chunk dataset, please be patient.")
-        ds = Dataset.from_list(list(gen()))
-        print(f"Loaded {len(ds)} examples from chunk dataset.")
+    num_proc = pop_num_proc(kwargs)
+    print(f"Creating non-streaming chunk dataset (NP={num_proc}), please be patient.")
+    ds = create_chunk_datasets(specs, chunk_types, chunk_shuffle, max_chunks, max_egs, num_proc=num_proc)
+    print(f"Loaded {len(ds)} examples from chunk dataset.")
     ds = ds.rename_column("transcription", "text")
     return ds
 
@@ -379,6 +376,31 @@ def add_rare_keywords(ds, **kwargs):
     return ds
 
 
+def extract_tags(text):
+    """Return list of {"tag": "values"} occurrences."""
+    pattern = re.compile(r"\[(\w+)\](.*?)\[/\1\]", re.DOTALL)
+    matches = pattern.findall(text)
+    results = defaultdict(list)
+    for tag, value in matches:
+        results[tag].append(value)
+    return results
+
+
+def add_tag_keywords(ds, **kwargs):
+    """Add keywords extracted from tags in the text to the dataset."""
+    src_field = kwargs.get("src_field", "info.alternative_transcription.lexical_tned_human_caption_mixed_case_GPT4o_raw")
+    tgt_field = kwargs.get("tgt_field", "keywords")
+
+    def tag_keywords(egs):
+        text = get_value(egs, src_field, "")
+        tags = extract_tags(text)
+        words = set([item for sublist in tags.values() for item in sublist])
+        return {tgt_field: words}
+
+    ds = ds.map(tag_keywords, num_proc=pop_num_proc(kwargs))
+    return ds
+
+
 def filter_by_keywords(ds, **kwargs):
     min_num = kwargs.get("min_num", None)
     min_ratio = kwargs.get("min_ratio", None)
@@ -607,6 +629,8 @@ def augment(ds, **kwargs):
         ds = format_preference(ds, num_proc=num_proc, **fmt_pref_kwargs)
     if add_rare_keywords_kwargs := kwargs.get("add_rare_keywords", {}):
         ds = add_rare_keywords(ds, num_proc=num_proc, **add_rare_keywords_kwargs)
+    if add_tag_keywords_kwargs := kwargs.get("add_tag_keywords", {}):
+        ds = add_tag_keywords(ds, num_proc=num_proc, **add_tag_keywords_kwargs)
     if filter_by_keywords_kwargs := kwargs.get("filter_by_keywords", {}):
         ds = filter_by_keywords(ds, num_proc=num_proc, **filter_by_keywords_kwargs)
     if add_prompt_kwargs := kwargs.get("add_prompt", {}):

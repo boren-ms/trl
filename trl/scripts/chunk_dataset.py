@@ -4,13 +4,15 @@
 import io
 import json
 import random
+from math import ceil
+from functools import partial
+from collections import defaultdict
 from tqdm import tqdm
 import numpy as np
-from math import ceil
 import soundfile as sf
+from datasets import Dataset
 from cachetools import FIFOCache, cached
 import blobfile as bf
-import pandas as pd
 from trl.trainer.utils import rank_print
 
 
@@ -85,24 +87,47 @@ def get_chunk_manager(maxsize=None):
         return _chunk_manager_instance
 
 
+def get_chunk_type_path(chunk, chunk_type):
+    if chunk_type in chunk:
+        return chunk[chunk_type]
+    chunk_type_path = f"{chunk_type}_path"
+    if chunk_type_path in chunk:
+        return chunk[chunk_type_path]
+    type_mapping = {
+        "transcription": "trans_path",
+    }
+    if chunk_type in type_mapping and type_mapping[chunk_type] in chunk:
+        return chunk[type_mapping[chunk_type]]
+    return chunk.get("chunk_path", None)
+
+
+def to_records(d):
+    """Convert a dict of lists to a list of dict."""
+    return [dict(zip(d.keys(), to_list(vs))) for vs in zip(*d.values())]
+
+
 def load_examples(chunk, types):
     examples = {}
-    chunk_path = chunk.get("chunk_path", None)
-    type_mapping = {"audio": "audio_path", "transcription": "trans_path"}
     count = chunk["count"]
     for chunk_type in types:
-        chunk_type_key = type_mapping.get(chunk_type, chunk_type)
-        chunk_type_path = chunk.get(chunk_type_key, chunk_path).rstrip("/")
-        # rank_print(f"Loading {chunk_type} from {chunk_type_path} for chunk {chunk_name}")
+        chunk_type_path = get_chunk_type_path(chunk, chunk_type).rstrip("/")
         chunk_file = f"{chunk_type_path}/{chunk['name']}.{chunk_type}"
         assert bf.exists(chunk_file), f"Chunk file {chunk_file} does not exist."
         if chunk_type == "audio":
             examples["audio_chunk"] = [f"{chunk_file}:{count}:{i}" for i in range(count)]
         else:
             examples[chunk_type] = load_data_from_chunk(chunk_file, chunk_type, chunk["count"])
+    return examples
 
-    df = pd.DataFrame(examples)
-    return df.to_dict(orient="records")
+
+def load_examples_from_chunks(chunks, types):
+    all_examples = defaultdict(list)
+    chunks = to_records(chunks)
+    for chunk in chunks:
+        examples = load_examples(chunk, types)
+        for key, value in examples.items():
+            all_examples[key].extend(value)
+    return all_examples
 
 
 def load_data_from_chunk(chunk_path: str, chunk_type: str, chunk_size: int):
@@ -199,7 +224,32 @@ def generate_examples(specs, chunk_types=None, chunk_shuffle=True, max_chunks=No
         random.shuffle(chunks)
     types = to_list(chunk_types or ["audio", "transcription"])
     for chunk in tqdm(chunks, desc="Loading Chunks"):
-        yield from load_examples(chunk, types)
+        examples = load_examples(chunk, types)
+        yield from to_records(examples)
+
+
+def chunks2dataset(chunks, chunk_types=None, num_proc=None):
+    """Convert a list of chunks to a Dataset object."""
+    types = to_list(chunk_types or ["audio", "transcription"])
+    ds = Dataset.from_list(chunks)
+    ds = ds.map(
+        partial(load_examples_from_chunks, types=types),
+        batched=True,
+        num_proc=num_proc,
+        remove_columns=ds.column_names,
+    )
+    return ds
+
+
+def create_chunk_datasets(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, max_egs=None, num_proc=None):
+    """Generate examples from the chunk dataset based on the specification files."""
+    chunks_per_spec = ceil(max_chunks / len(specs)) if max_chunks else None
+    chunks = load_chunks(specs, chunks_per_spec)
+    chunks = limit_chunks(chunks, max_egs, max_chunks)
+    if chunk_shuffle:
+        random.shuffle(chunks)
+    chunk_types = to_list(chunk_types or ["audio", "transcription"])
+    return chunks2dataset(chunks, chunk_types, num_proc)
 
 
 @cached(FIFOCache(maxsize=100))
