@@ -99,7 +99,7 @@ def update_dir(data_path, src_dir=None, dst_dir=None):
     return data_path.replace(src_dir, dst_dir) if data_path.startswith(src_dir) else data_path
 
 
-def get_num_proc(kwargs):
+def pop_num_proc(kwargs):
     n_cores_per_rank = int(os.cpu_count() / dist_state().num_processes)
     return kwargs.pop("num_proc", n_cores_per_rank)
 
@@ -125,7 +125,7 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
             "id": example.get("id", Path(audio_path).stem),
         }
 
-    ds = ds.map(load_sample, num_proc=get_num_proc(kwargs))
+    ds = ds.map(load_sample, num_proc=pop_num_proc(kwargs))
     return ds
 
 
@@ -180,7 +180,7 @@ def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=Non
             "id": utt_id,
         }
 
-    return ds.map(load_sample, num_proc=get_num_proc(kwargs))
+    return ds.map(load_sample, num_proc=pop_num_proc(kwargs))
 
 
 def load_tsv(tsv_file, **kwargs):
@@ -207,7 +207,7 @@ def load_tsv(tsv_file, **kwargs):
     )
     dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
     print("DATA DIR:", dir_path)
-    ds = ds.map(lambda x: {"dir": dir_path}, num_proc=get_num_proc(kwargs))
+    ds = ds.map(lambda x: {"dir": dir_path}, num_proc=pop_num_proc(kwargs))
     return ds
 
 
@@ -234,7 +234,7 @@ def tsv_dataset(tsv_paths, **kwargs):
         }
         return x
 
-    ds = ds.map(load_sample, num_proc=get_num_proc(kwargs))
+    ds = ds.map(load_sample, num_proc=pop_num_proc(kwargs))
     return ds
 
 
@@ -254,7 +254,7 @@ def openasr_dataset(**kwargs):
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
     rand_prompt = kwargs.pop("rand_prompt", False)
-    num_proc = get_num_proc(kwargs)
+    num_proc = pop_num_proc(kwargs)
     kwargs = kwargs or {
         "bias_prob": 0.9,
         "hit_prob": 0.9,
@@ -308,7 +308,7 @@ def format_preference(ds, **kwargs):
             "rejected": sample.get(rejected_key, None),
         }
 
-    return ds.map(format_sample, num_proc=get_num_proc(kwargs))
+    return ds.map(format_sample, num_proc=pop_num_proc(kwargs))
 
 
 def simulate_preference(ds, **kwargs):
@@ -329,7 +329,7 @@ def simulate_preference(ds, **kwargs):
             "rejected": [to_chat(x, chat) for x in rejections],
         }
 
-    return ds.map(add_preference, fn_kwargs={"error_range": error_range}, num_proc=get_num_proc(kwargs))
+    return ds.map(add_preference, fn_kwargs={"error_range": error_range}, num_proc=pop_num_proc(kwargs))
 
 
 def load_audio(ds, **kwargs):
@@ -340,7 +340,7 @@ def load_audio(ds, **kwargs):
         audio, sr = sf_read(sample["audio_path"])
         return {"audio": audio, "sr": sr}
 
-    ds = ds.map(read_audio, num_proc=get_num_proc(kwargs))
+    ds = ds.map(read_audio, num_proc=pop_num_proc(kwargs))
     return ds
 
 
@@ -354,7 +354,7 @@ def filter_ds(ds, **kwargs):
             df = df[(df["WER"] >= wer_range[0]) & (df["WER"] <= wer_range[1])]
         ids = df["id"].tolist()
         n_egs = len(ds)
-        ds = ds.filter(lambda x: x["id"] in ids, num_proc=get_num_proc(kwargs))
+        ds = ds.filter(lambda x: x["id"] in ids, num_proc=pop_num_proc(kwargs))
         print(f"Filter dataset: {n_egs} to {len(ds)}")
     return ds
 
@@ -375,7 +375,7 @@ def add_rare_keywords(ds, **kwargs):
             "keywords": list(rare_words),
         }
 
-    ds = ds.map(rare_words, num_proc=get_num_proc(kwargs))
+    ds = ds.map(rare_words, num_proc=pop_num_proc(kwargs))
     return ds
 
 
@@ -401,7 +401,7 @@ def filter_by_keywords(ds, **kwargs):
         return True
 
     n_egs = len(ds)
-    ds = ds.filter(is_enough_keywords, num_proc=get_num_proc(kwargs))
+    ds = ds.filter(is_enough_keywords, num_proc=pop_num_proc(kwargs))
     print(f"Filtered dataset: {n_egs} to {len(ds)}")
     return ds
 
@@ -424,7 +424,7 @@ def wer_filter_ds(ds, **kwargs):
         return good
 
     n_egs = len(ds)
-    ds = ds.filter(wer_filter_fn, num_proc=get_num_proc(kwargs))
+    ds = ds.filter(wer_filter_fn, num_proc=pop_num_proc(kwargs))
     all_rank_print(f"Filtered dataset: {n_egs} to {len(ds)}")
     return ds
 
@@ -478,13 +478,13 @@ def path_map(ds, **kwargs):
         return x
 
     if src_part and dst_part:
-        ds = ds.map(map_fn, num_proc=get_num_proc(kwargs))
+        ds = ds.map(map_fn, num_proc=pop_num_proc(kwargs))
     return ds
 
 
 def process_ds(ds, **kwargs):
     """Post process the dataset."""
-    num_proc = get_num_proc(kwargs)
+    num_proc = pop_num_proc(kwargs)
     ds = stream_shuffle(ds, **kwargs)
     if path_map_kwargs := kwargs.get("path_map", {}):
         ds = path_map(ds, num_proc=num_proc, **path_map_kwargs)
@@ -530,7 +530,7 @@ def overlap_prefix(ds, **kwargs):
             "prompt": prompt_format.format(prompt),
         }
 
-    ds = ds.map(add_overlap_prefix, with_indices=True, num_proc=get_num_proc(kwargs))
+    ds = ds.map(add_overlap_prefix, with_indices=True, num_proc=pop_num_proc(kwargs))
     return ds
 
 
@@ -546,7 +546,7 @@ def add_prompt(ds, **kwargs):
             prompt = get_task_prompt(task=task, rand=rand)
         return {"prompt": prompt_format.format(prompt)}
 
-    ds = ds.map(add_prompt_fn, num_proc=get_num_proc(kwargs))
+    ds = ds.map(add_prompt_fn, num_proc=pop_num_proc(kwargs))
     return ds
 
 
@@ -582,13 +582,13 @@ def context_prefix(ds, **kwargs):
             print(f"[{idx}], Text  : {egs['text']}")
         return {"prompt": prompt_format.format(prompt)}
 
-    ds = ds.map(add_context_prefix, with_indices=True, remove_columns=[root_key], num_proc=get_num_proc(kwargs))
+    ds = ds.map(add_context_prefix, with_indices=True, remove_columns=[root_key], num_proc=pop_num_proc(kwargs))
     return ds
 
 
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
-    num_proc = get_num_proc(kwargs)
+    num_proc = pop_num_proc(kwargs)
     if pre_process_kwargs := kwargs.get("pre_process", {}):
         ds = process_ds(ds, num_proc=num_proc, **pre_process_kwargs)
     if filter_kwargs := kwargs.get("filter", {}):
