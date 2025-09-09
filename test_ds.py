@@ -53,6 +53,7 @@ with open(keyword_cnt_path, "w", encoding="utf-8") as f:
 
 info_dict = {
     "num_egs": num_egs,
+    "num_total_words": total_words,
     "num_unique_words": num_unique_words,
     "num_unique_keywords": len(keywords),
     "avg_words_per_example": avg_words_per_example,
