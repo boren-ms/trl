@@ -3,7 +3,9 @@ train_data:
     # max_chunks: 2
     # max_egs: 30
     num_proc: 20
-    specs: [/home/boren/data/inhouse/data_spec/asr_chunk_inhouse_en_fy22.json]
+    specs:
+        - manifest_file: /home/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
+          chunk_path: /datablob1/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
     add_rare_keywords:
         common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         common_num: 3000
