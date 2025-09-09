@@ -11,7 +11,9 @@ def proc_dataset(conf_path):
     conf_path = Path(conf_path)
     conf = yaml.safe_load(conf_path.read_text())["train_data"]
     conf.update({"cache_name": conf_path.stem})
-    print("Config:\n", yaml.dump(conf, sort_keys=False, default_flow_style=False))
+
+    print("Config:")
+    print(yaml.dump(conf, sort_keys=False, default_flow_style=False))
 
     ds = create_audio_dataset(**conf)
     print("Got dataset info")
