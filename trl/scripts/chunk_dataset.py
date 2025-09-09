@@ -108,15 +108,17 @@ def to_records(d):
 
 def load_examples(chunk, types):
     examples = {}
+    chunk_files = {t: get_chunk_type_path(chunk, t).rstrip("/") + f"/{chunk['name']}.{t}" for t in types}
+    for chunk_file in chunk_files.values():
+        if not bf.exists(chunk_file):
+            rank_print(f"Skip [{chunk_file}] due to missing.")
+            return {}
     count = chunk["count"]
-    for chunk_type in types:
-        chunk_type_path = get_chunk_type_path(chunk, chunk_type).rstrip("/")
-        chunk_file = f"{chunk_type_path}/{chunk['name']}.{chunk_type}"
-        assert bf.exists(chunk_file), f"Chunk file {chunk_file} does not exist."
-        if chunk_type == "audio":
+    for t, chunk_file in chunk_files.items():
+        if t == "audio":
             examples["audio_chunk"] = [f"{chunk_file}:{count}:{i}" for i in range(count)]
         else:
-            examples[chunk_type] = load_data_from_chunk(chunk_file, chunk_type, chunk["count"])
+            examples[t] = load_data_from_chunk(chunk_file, t, count)
     return examples
 
 
