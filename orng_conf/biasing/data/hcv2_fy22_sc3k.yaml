@@ -1,0 +1,20 @@
+train_data:
+    dataset_name: chunk
+    # max_chunks: 2
+    # max_egs: 30
+    # num_proc: 20
+    specs: [/home/boren/data/inhouse/data_spec/asr_chunk_inhouse_en_fy22.json]
+    add_rare_keywords:
+        common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
+        common_num: 3000
+    # filter_by_keywords:
+    #     min_num: 1
+# Dataset({
+#     features: ['audio_chunk', 'text', 'keywords'],
+#     num_rows: 684329
+# })
+
+# dataset sample [0]:
+# text: good people who deserve the best of what life has to offer at a time when it seems like that is what they have lost.
+# keywords: ['deserve']
+# num_words: 25, num_keywords: 1, ratio: 0.040
