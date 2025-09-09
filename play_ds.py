@@ -25,6 +25,7 @@ ds = create_audio_dataset(**conf)
 print("Got dataset info")
 print(ds)
 
+print("Computing word counts for the dataset...")
 num_egs = len(ds)
 word_counts = Counter()
 total_words = 0
