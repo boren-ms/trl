@@ -1,4 +1,4 @@
-new_run: True
+# new_run: True
 shuffle_dataset: False
 train_data:
   cache_name: auto

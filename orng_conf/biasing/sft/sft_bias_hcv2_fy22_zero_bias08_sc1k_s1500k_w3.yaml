@@ -4,8 +4,8 @@ project_name: biasing_entity
 train_data:
   cache_name: auto
   dataset_name: chunk
-  max_egs: 150000
-  max_chunks: 6000 # 50 egs/chunk
+  # max_egs: 150000
+  # max_chunks: 6000 # 50 egs/chunk
   max_cached_chunk: 50 # 50* 8=400 for all processes.
   chunk_shuffle: True # shuffle chunks
   chunk_types: [audio, transcription]
@@ -15,7 +15,7 @@ train_data:
 
   biasing:
     buffer_size: 100000
-    max_piece_len: 1
+    max_piece_len: 3
     bias_prob: 0.8
     hit_prob: 1
     miss_prob: 1
@@ -41,7 +41,7 @@ model_name_or_path: /root/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_name_or_path: /datablob1/users/boren/data/hf_models/phi-libri_ft_m1000_p8_new-QpHq_v1
 report_to: [wandb]
 # num_train_epochs: 1
-max_samples: 150000
+max_samples: 1500000
 # max_steps: 150000 # num_egs = 1000*8*N_GPU(8) = 64k
 learning_rate: 1e-5
 lr_scheduler_type: cosine #cosine
