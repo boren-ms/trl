@@ -1,0 +1,9 @@
+train_data:
+    - nickname: entity_Gaming_0
+      dataset_name: inhouse_entity
+      jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+      distractor_file: /home/boren/data/librispeech_biasing/words/all_rare_words.txt
+    # - nickname: entity_Insurance_0
+    #   dataset_name: inhouse_entity
+    #   jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    #   distractor_file: /home/boren/data/librispeech_biasing/words/all_rare_words.txt

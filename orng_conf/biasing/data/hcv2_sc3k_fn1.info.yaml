@@ -1,0 +1,5 @@
+num_egs: 692399
+num_unique_words: 304439
+avg_words_per_example: 65.00683709826271
+median_words: 68
+word_count_file: orng_conf/biasing/data/hcv2_sc3k_fn1.wd_cnt.txt

@@ -1,0 +1,8 @@
+num_egs: 2227
+num_total_words: 58494
+num_unique_words: 5600
+num_unique_keywords: 1736
+avg_words_per_example: 26.265828468792098
+median_words: 26
+word_count_file: orng_conf/biasing/data/entity_set.wd_cnt.txt
+keyword_count_file: orng_conf/biasing/data/entity_set.kw_cnt.txt
