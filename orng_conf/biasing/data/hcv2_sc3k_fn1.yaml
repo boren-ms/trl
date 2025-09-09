@@ -9,4 +9,12 @@ train_data:
         common_num: 3000
     filter_by_keywords:
         min_num: 1
-    # cache_name: hcv2_en_sc3k_fn01
+# Dataset({
+#     features: ['audio_chunk', 'text', 'keywords'],
+#     num_rows: 684329
+# })
+
+# dataset sample [0]:
+# text: good people who deserve the best of what life has to offer at a time when it seems like that is what they have lost.
+# keywords: ['deserve']
+# num_words: 25, num_keywords: 1, ratio: 0.040

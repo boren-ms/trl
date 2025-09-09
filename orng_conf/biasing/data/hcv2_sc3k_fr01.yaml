@@ -9,4 +9,13 @@ train_data:
         common_num: 3000
     filter_by_keywords:
         min_ratio: 0.1
-    # cache_name: hcv2_en_sc3k_fr01
+# Got dataset info
+# Dataset({
+#     features: ['audio_chunk', 'text', 'keywords'],
+#     num_rows: 545900
+# })
+
+# dataset sample [0]:
+# text: Half a year as the only one alive who cares about any of this. This script is so long now. Will anyone make it this far? Is anyone here? Okay, snap out of it. Now in my journeys, I had learned two things about Hearne. First, his contemporaries referred to him as an 'antiquarian,' which in my head translated as old-timey for 'historian' but was actually old-timey code for 'hoarder.'
+# keywords: ['script', 'snap', 'code', 'referred', 'translated', 'contemporaries', 'antiquarian', 'okay', 'hoarder', 'historian']
+# num_words: 70, num_keywords: 10, ratio: 0.143
