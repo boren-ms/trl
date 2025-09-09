@@ -3,7 +3,7 @@ train_data:
     # max_chunks: 4
     # max_egs: 30
     # num_proc: 2
-    num_proc: 20
+    num_proc: 10
     chunk_types: [audio, info, transcription]
     specs:
         - manifest_file: /home/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
