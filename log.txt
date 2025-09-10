@@ -7,4 +7,4 @@
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h1-n2-hpe4 -- 'pgrep -fa /launch_'[0m
 6439 python3 ./launch_train.py orng_conf/biasing/rare/grpo_hcv2_rare_zero_e1_n8_bw5_ref_sc3k_r01.yaml
 [32;1mRUN: /home/boren/.openai/bin/brix ssh h1-n2-wus2 -- 'pgrep -fa /launch_'[0m
-3738374 python3 ./launch_train.py orng_conf/biasing/grpo_prod/grpo_bias_fy22_cache_zero_s600k_bp8_ref_sc1k_w3_fn1.yaml
+3830932 python3 ./launch_train.py orng_conf/biasing/grpo_prod/grpo_bias_fy22_cache_zero_s600k_bp8_ref_sc1k_w3_fn1.yaml
