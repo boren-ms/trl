@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # %%
 from trl.scripts.audio_dataset import create_audio_dataset
-from trl.scripts.audio_metrics import text_norm
 import yaml
 from pathlib import Path
 import fire
@@ -12,7 +11,7 @@ from trl.scripts.audio_metrics import text_norm
 # %%
 # conf_path = "orng_conf/biasing/data/ls_sc1k_fr01.yaml"
 # conf_path = "orng_conf/biasing/data/hcv2_sc3k_fn1.yaml"
-conf_path = "orng_conf/biasing/data/hcv2_fy22_info_sc3k.yaml"
+conf_path = "orng_conf/biasing/data/hcv2_fy22_info_tag_local.yaml"
 conf_path = Path(conf_path)
 conf = yaml.safe_load(conf_path.read_text())["train_data"]
 conf.pop("filter_by_keywords", None)

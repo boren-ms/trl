@@ -1,9 +1,9 @@
 train_data:
     dataset_name: chunk
     # max_chunks: 4
-    # max_egs: 30
+    max_egs: 30
     # num_proc: 2
-    num_proc: 4
+    num_proc: 1
     chunk_types: [audio, info, transcription]
     specs:
         - manifest_file: /home/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
@@ -11,6 +11,14 @@ train_data:
           info_path: /datablob/am_data/en/data_prep_e2e_R15/human_caption_v2/batch_gpt_post_process/FY22_AdjustBoundary_BiasLM_verbatim/ChunkFiles/
         #   info_path: az://orngwus2cresco/data/speech/am_data/en/data_prep_e2e_R15/human_caption_v2/batch_gpt_post_process/FY22_AdjustBoundary_BiasLM_verbatim/ChunkFiles/
     add_tag_keywords:
-        src_field: info.alternative_transcription.lexical_tned_human_caption_mixed_case_GPT4o_raw
+        src_field: gpt_trans
+        remove_columns: [gpt_trans]
+    pre_process:
+        rename_fields:
+            mappings:
+                - src: info.alternative_transcription.lexical_tned_human_caption_mixed_case_GPT4o_raw
+                  dst: gpt_trans
+            remove_columns: [info]
+
     # filter_by_keywords:
     #     min_num: 1

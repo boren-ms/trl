@@ -100,9 +100,21 @@ def update_dir(data_path, src_dir=None, dst_dir=None):
     return data_path.replace(src_dir, dst_dir) if data_path.startswith(src_dir) else data_path
 
 
-def pop_num_proc(kwargs):
+def pop_map_kwargs(kwargs):
     n_cores_per_rank = int(os.cpu_count() / dist_state().num_processes)
-    return kwargs.pop("num_proc", n_cores_per_rank)
+    output = {
+        "num_proc": kwargs.pop("num_proc", n_cores_per_rank),
+    }
+    if "remove_columns" in kwargs:
+        output["remove_columns"] = kwargs.pop("remove_columns")
+    return output
+
+
+def pop_filter_kwargs(kwargs):
+    n_cores_per_rank = int(os.cpu_count() / dist_state().num_processes)
+    return {
+        "num_proc": kwargs.pop("num_proc", n_cores_per_rank),
+    }
 
 
 def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs):
@@ -126,7 +138,7 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
             "id": example.get("id", Path(audio_path).stem),
         }
 
-    ds = ds.map(load_sample, num_proc=pop_num_proc(kwargs))
+    ds = ds.map(load_sample, **pop_map_kwargs(kwargs))
     return ds
 
 
@@ -134,7 +146,7 @@ def chunk_dataset(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, 
     """Iterate over the chunk dataset based on the specification files."""
     if max_cached_chunk is not None:
         get_chunk_manager(max_cached_chunk)  # Initialize the chunk manager with a maximum size. and reuse later.
-    num_proc = pop_num_proc(kwargs)
+    num_proc = pop_map_kwargs(kwargs).get("num_proc", None)
     print(f"Creating non-streaming chunk dataset (NP={num_proc}), please be patient.")
     ds = create_chunk_datasets(specs, chunk_types, chunk_shuffle, max_chunks, max_egs, num_proc=num_proc)
     print(f"Loaded {len(ds)} examples from chunk dataset.")
@@ -177,7 +189,7 @@ def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=Non
             "id": utt_id,
         }
 
-    return ds.map(load_sample, num_proc=pop_num_proc(kwargs))
+    return ds.map(load_sample, **pop_map_kwargs(kwargs))
 
 
 def load_tsv(tsv_file, **kwargs):
@@ -204,7 +216,7 @@ def load_tsv(tsv_file, **kwargs):
     )
     dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
     print("DATA DIR:", dir_path)
-    ds = ds.map(lambda x: {"dir": dir_path}, num_proc=pop_num_proc(kwargs))
+    ds = ds.map(lambda x: {"dir": dir_path}, **pop_map_kwargs(kwargs))
     return ds
 
 
@@ -231,7 +243,7 @@ def tsv_dataset(tsv_paths, **kwargs):
         }
         return x
 
-    ds = ds.map(load_sample, num_proc=pop_num_proc(kwargs))
+    ds = ds.map(load_sample, **pop_map_kwargs(kwargs))
     return ds
 
 
@@ -251,7 +263,7 @@ def openasr_dataset(**kwargs):
 def bias_sampling(ds, **kwargs):
     """Apply bias sampling to the dataset."""
     rand_prompt = kwargs.pop("rand_prompt", False)
-    num_proc = pop_num_proc(kwargs)
+    map_kwargs = pop_map_kwargs(kwargs)
     kwargs = kwargs or {
         "bias_prob": 0.9,
         "hit_prob": 0.9,
@@ -274,7 +286,7 @@ def bias_sampling(ds, **kwargs):
             "context": context,
         }
 
-    ds = ds.map(proc_sample, num_proc=num_proc)
+    ds = ds.map(proc_sample, **map_kwargs)
     return ds
 
 
@@ -305,7 +317,7 @@ def format_preference(ds, **kwargs):
             "rejected": sample.get(rejected_key, None),
         }
 
-    return ds.map(format_sample, num_proc=pop_num_proc(kwargs))
+    return ds.map(format_sample, **pop_map_kwargs(kwargs))
 
 
 def simulate_preference(ds, **kwargs):
@@ -326,7 +338,7 @@ def simulate_preference(ds, **kwargs):
             "rejected": [to_chat(x, chat) for x in rejections],
         }
 
-    return ds.map(add_preference, fn_kwargs={"error_range": error_range}, num_proc=pop_num_proc(kwargs))
+    return ds.map(add_preference, fn_kwargs={"error_range": error_range}, **pop_map_kwargs(kwargs))
 
 
 def load_audio(ds, **kwargs):
@@ -337,7 +349,7 @@ def load_audio(ds, **kwargs):
         audio, sr = sf_read(sample["audio_path"])
         return {"audio": audio, "sr": sr}
 
-    ds = ds.map(read_audio, num_proc=pop_num_proc(kwargs))
+    ds = ds.map(read_audio, **pop_map_kwargs(kwargs))
     return ds
 
 
@@ -351,7 +363,7 @@ def filter_ds(ds, **kwargs):
             df = df[(df["WER"] >= wer_range[0]) & (df["WER"] <= wer_range[1])]
         ids = df["id"].tolist()
         n_egs = len(ds)
-        ds = ds.filter(lambda x: x["id"] in ids, num_proc=pop_num_proc(kwargs))
+        ds = ds.filter(lambda x: x["id"] in ids, **pop_filter_kwargs(kwargs))
         print(f"Filter dataset: {n_egs} to {len(ds)}")
     return ds
 
@@ -372,7 +384,7 @@ def add_rare_keywords(ds, **kwargs):
             "keywords": list(rare_words),
         }
 
-    ds = ds.map(rare_words, num_proc=pop_num_proc(kwargs))
+    ds = ds.map(rare_words, **pop_map_kwargs(kwargs))
     return ds
 
 
@@ -397,7 +409,7 @@ def add_tag_keywords(ds, **kwargs):
         words = set([item for sublist in tags.values() for item in sublist])
         return {tgt_field: words}
 
-    ds = ds.map(tag_keywords, num_proc=pop_num_proc(kwargs))
+    ds = ds.map(tag_keywords, **pop_map_kwargs(kwargs))
     return ds
 
 
@@ -423,7 +435,7 @@ def filter_by_keywords(ds, **kwargs):
         return True
 
     n_egs = len(ds)
-    ds = ds.filter(is_enough_keywords, num_proc=pop_num_proc(kwargs))
+    ds = ds.filter(is_enough_keywords, **pop_filter_kwargs(kwargs))
     print(f"Filtered dataset: {n_egs} to {len(ds)}")
     return ds
 
@@ -446,7 +458,7 @@ def wer_filter_ds(ds, **kwargs):
         return good
 
     n_egs = len(ds)
-    ds = ds.filter(wer_filter_fn, num_proc=pop_num_proc(kwargs))
+    ds = ds.filter(wer_filter_fn, **pop_filter_kwargs(kwargs))
     all_rank_print(f"Filtered dataset: {n_egs} to {len(ds)}")
     return ds
 
@@ -500,20 +512,44 @@ def path_map(ds, **kwargs):
         return x
 
     if src_part and dst_part:
-        ds = ds.map(map_fn, num_proc=pop_num_proc(kwargs))
+        ds = ds.map(map_fn, **pop_map_kwargs(kwargs))
     return ds
+
+
+def rename_fields(ds, **kwargs):
+    """Map the dataset fields."""
+    mappings = kwargs.get("mappings", ())
+
+    def rename_fn(egs):
+        output = {}
+        for fields in mappings:
+            output[fields["dst"]] = get_value(egs, fields["src"], None)
+        return output
+
+    ds = ds.map(rename_fn, **pop_map_kwargs(kwargs))
+    return ds
+
+
+def merge_kwargs(*args):
+    """Merge two dictionaries, with overrides taking precedence."""
+    merged = {}
+    for d in args:
+        merged.update(d)
+    return merged
 
 
 def process_ds(ds, **kwargs):
     """Post process the dataset."""
-    num_proc = pop_num_proc(kwargs)
+    map_kwargs = pop_map_kwargs(kwargs)
     ds = stream_shuffle(ds, **kwargs)
     if path_map_kwargs := kwargs.get("path_map", {}):
-        ds = path_map(ds, num_proc=num_proc, **path_map_kwargs)
+        ds = path_map(ds, **merge_kwargs(map_kwargs, path_map_kwargs))
+    if rename_fields_kwargs := kwargs.get("rename_fields", {}):
+        ds = rename_fields(ds, **merge_kwargs(map_kwargs, rename_fields_kwargs))
     if kwargs.get("load_audio", False):
-        ds = load_audio(ds, num_proc=num_proc)
+        ds = load_audio(ds, **map_kwargs)
     if kwargs.get("do_shard", False):
-        ds = shard_ds(ds, **kwargs)
+        ds = shard_ds(ds, **map_kwargs)
     return ds
 
 
@@ -552,7 +588,7 @@ def overlap_prefix(ds, **kwargs):
             "prompt": prompt_format.format(prompt),
         }
 
-    ds = ds.map(add_overlap_prefix, with_indices=True, num_proc=pop_num_proc(kwargs))
+    ds = ds.map(add_overlap_prefix, with_indices=True, **pop_map_kwargs(kwargs))
     return ds
 
 
@@ -568,7 +604,7 @@ def add_prompt(ds, **kwargs):
             prompt = get_task_prompt(task=task, rand=rand)
         return {"prompt": prompt_format.format(prompt)}
 
-    ds = ds.map(add_prompt_fn, num_proc=pop_num_proc(kwargs))
+    ds = ds.map(add_prompt_fn, **pop_map_kwargs(kwargs))
     return ds
 
 
@@ -586,7 +622,6 @@ def get_value(d, key, default=None):
 def context_prefix(ds, **kwargs):
     """Complete the transcription for the given examples."""
     prefix_key = kwargs.get("prefix_key", "info.preceding_original_transcription")
-    root_key = prefix_key.split(".")[0]  # get the root key
     prefix_range = to_list(kwargs.get("prefix_range", (0, 100)))
     log_interval = kwargs.get("log_interval", 10000)
 
@@ -604,39 +639,39 @@ def context_prefix(ds, **kwargs):
             print(f"[{idx}], Text  : {egs['text']}")
         return {"prompt": prompt_format.format(prompt)}
 
-    ds = ds.map(add_context_prefix, with_indices=True, remove_columns=[root_key], num_proc=pop_num_proc(kwargs))
+    ds = ds.map(add_context_prefix, with_indices=True, **pop_map_kwargs(kwargs))
     return ds
 
 
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
-    num_proc = pop_num_proc(kwargs)
+    map_kwargs = pop_map_kwargs(kwargs)
     if pre_process_kwargs := kwargs.get("pre_process", {}):
-        ds = process_ds(ds, num_proc=num_proc, **pre_process_kwargs)
+        ds = process_ds(ds, **merge_kwargs(map_kwargs, pre_process_kwargs))
     if filter_kwargs := kwargs.get("filter", {}):
-        ds = filter_ds(ds, num_proc=num_proc, **filter_kwargs)
+        ds = filter_ds(ds, **merge_kwargs(map_kwargs, filter_kwargs))
     if wer_filter_kwargs := kwargs.get("wer_filter", {}):
-        ds = wer_filter_ds(ds, num_proc=num_proc, **wer_filter_kwargs)
+        ds = wer_filter_ds(ds, **merge_kwargs(map_kwargs, wer_filter_kwargs))
     if overlap_prefix_kwargs := kwargs.get("overlap_prefix", {}):
-        ds = overlap_prefix(ds, num_proc=num_proc, **overlap_prefix_kwargs)
+        ds = overlap_prefix(ds, **merge_kwargs(map_kwargs, overlap_prefix_kwargs))
     if context_prefix_kwargs := kwargs.get("context_prefix", {}):
-        ds = context_prefix(ds, num_proc=num_proc, **context_prefix_kwargs)
+        ds = context_prefix(ds, **merge_kwargs(map_kwargs, context_prefix_kwargs))
     if biasing_kwargs := kwargs.get("biasing", {}):
-        ds = bias_sampling(ds, num_proc=num_proc, **biasing_kwargs)
+        ds = bias_sampling(ds, **merge_kwargs(map_kwargs, biasing_kwargs))
     if pref_kwargs := kwargs.get("simu_preference", {}):
-        ds = simulate_preference(ds, num_proc=num_proc, **pref_kwargs)
+        ds = simulate_preference(ds, **merge_kwargs(map_kwargs, pref_kwargs))
     if fmt_pref_kwargs := kwargs.get("format_preference", {}):
-        ds = format_preference(ds, num_proc=num_proc, **fmt_pref_kwargs)
+        ds = format_preference(ds, **merge_kwargs(map_kwargs, fmt_pref_kwargs))
     if add_rare_keywords_kwargs := kwargs.get("add_rare_keywords", {}):
-        ds = add_rare_keywords(ds, num_proc=num_proc, **add_rare_keywords_kwargs)
+        ds = add_rare_keywords(ds, **merge_kwargs(map_kwargs, add_rare_keywords_kwargs))
     if add_tag_keywords_kwargs := kwargs.get("add_tag_keywords", {}):
-        ds = add_tag_keywords(ds, num_proc=num_proc, **add_tag_keywords_kwargs)
+        ds = add_tag_keywords(ds, **merge_kwargs(map_kwargs, add_tag_keywords_kwargs))
     if filter_by_keywords_kwargs := kwargs.get("filter_by_keywords", {}):
-        ds = filter_by_keywords(ds, num_proc=num_proc, **filter_by_keywords_kwargs)
+        ds = filter_by_keywords(ds, **merge_kwargs(map_kwargs, filter_by_keywords_kwargs))
     if add_prompt_kwargs := kwargs.get("add_prompt", {}):
-        ds = add_prompt(ds, num_proc=num_proc, **add_prompt_kwargs)
+        ds = add_prompt(ds, **merge_kwargs(map_kwargs, add_prompt_kwargs))
     if post_process_kwargs := kwargs.get("post_process", {}):
-        ds = process_ds(ds, num_proc=num_proc, **post_process_kwargs)
+        ds = process_ds(ds, **merge_kwargs(map_kwargs, post_process_kwargs))
     return ds
 
 

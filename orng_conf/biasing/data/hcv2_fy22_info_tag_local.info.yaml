@@ -1,0 +1,5 @@
+num_egs: 200
+num_unique_words: 2985
+avg_words_per_example: 69.835
+median_words: 71
+word_count_file: orng_conf/biasing/data/hcv2_fy22_info_tag_local.wd_cnt.txt
