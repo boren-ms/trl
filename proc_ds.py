@@ -22,7 +22,7 @@ def proc_dataset(conf_path):
     print()
     cache_path = f"~/data/cache_datasets/{conf_path.stem}"
     print(f"Syncing dataset [{cache_path}] to remote storage...")
-    sync_remote_dir(ds, cache_path)
+    sync_remote_dir(cache_path, True)
     print("dataset sample [0]:")
     egs = ds[0]
     n_words = len(egs["text"].split())
