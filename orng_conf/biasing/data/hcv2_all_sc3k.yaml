@@ -1,0 +1,28 @@
+train_data:
+    dataset_name: chunk
+    # max_chunks: 2 # orginal 26256 chunks, 5251078 examples
+    # max_egs: 30
+    num_proc: 20
+    specs:
+        - manifest_file: az://orngwus2cresco/data/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
+          chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
+    add_rare_keywords:
+        common_num: 3000
+        common_file: az://orngwus2cresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
+    # specs:
+    #     - manifest_file: /home/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
+    #       chunk_path: /datablob1/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
+    # add_rare_keywords:
+    #     common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
+    #     common_num: 3000
+    # filter_by_keywords:
+    #     min_num: 1
+# Dataset({
+#     features: ['audio_chunk', 'text', 'keywords'],
+#     num_rows: 684329
+# })
+
+# dataset sample [0]:
+# text: good people who deserve the best of what life has to offer at a time when it seems like that is what they have lost.
+# keywords: ['deserve']
+# num_words: 25, num_keywords: 1, ratio: 0.040
