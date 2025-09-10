@@ -4,20 +4,20 @@ train_data:
     # max_egs: 30
     # num_proc: 2
     num_proc: 20
-    chunk_types: [audio, info, transcription]
+    chunk_types:
+        [
+            audio,
+            info.alternative_transcription.lexical_tned_human_caption_mixed_case_GPT4o_raw,
+            transcription,
+        ]
     specs:
         - manifest_file: az://orngwus2cresco/data/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
           chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
           info_path: az://orngwus2cresco/data/speech/am_data/en/data_prep_e2e_R15/human_caption_v2/batch_gpt_post_process/FY22_AdjustBoundary_BiasLM_verbatim/ChunkFiles/
-    pre_process:
-        rename_fields:
-            mappings:
-                - src: info.alternative_transcription.lexical_tned_human_caption_mixed_case_GPT4o_raw
-                  dst: gpt_trans
-            remove_columns: [info]
     add_tag_keywords:
-        src_field: gpt_trans
-        remove_columns: [gpt_trans]
+        src_field: info.alternative_transcription.lexical_tned_human_caption_mixed_case_GPT4o_raw
+        remove_columns:
+            - info.alternative_transcription.lexical_tned_human_caption_mixed_case_GPT4o_raw
 
     # filter_by_keywords:
     #     min_num: 1

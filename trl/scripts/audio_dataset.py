@@ -15,7 +15,7 @@ from trl.scripts.error_simu import ErrorSimulator
 from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm as biasing_text_norm
 from trl.scripts.audio_prompts import get_task_prompt
 from trl.scripts.audio_metrics import text_norm
-from trl.scripts.utils import get_config_path, cache_dir
+from trl.scripts.utils import get_config_path, cache_dir, get_value
 from trl.scripts.chunk_dataset import get_chunk_manager, create_chunk_datasets, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
@@ -606,17 +606,6 @@ def add_prompt(ds, **kwargs):
 
     ds = ds.map(add_prompt_fn, **pop_map_kwargs(kwargs))
     return ds
-
-
-def get_value(d, key, default=None):
-    """Get a value from a nested dictionary using dot notation."""
-    keys = key.split(".")
-    for k in keys:
-        if k in d:
-            d = d[k]
-        else:
-            return default
-    return d
 
 
 def context_prefix(ds, **kwargs):

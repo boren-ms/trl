@@ -14,6 +14,7 @@ from datasets import Dataset
 from cachetools import FIFOCache, cached
 import blobfile as bf
 from trl.trainer.utils import rank_print
+from trl.scripts.utils import get_values
 
 
 def parse_data(data, data_type, **kwargs):
@@ -106,19 +107,24 @@ def to_records(d):
     return [dict(zip(d.keys(), to_list(vs))) for vs in zip(*d.values())]
 
 
-def load_examples(chunk, types):
+def load_examples(chunk, fields):
     examples = {}
-    chunk_files = {t: get_chunk_type_path(chunk, t).rstrip("/") + f"/{chunk['name']}.{t}" for t in types}
-    for chunk_file in chunk_files.values():
+    count = chunk["count"]
+    for field in fields:
+        parts = field.split(".")
+        chunk_type = parts[0]
+        chunk_file = get_chunk_type_path(chunk, chunk_type).rstrip("/") + f"/{chunk['name']}.{chunk_type}"
         if not bf.exists(chunk_file):
             rank_print(f"Skip [{chunk_file}] due to missing.")
             return {}
-    count = chunk["count"]
-    for t, chunk_file in chunk_files.items():
-        if t == "audio":
+        if field == "audio":
             examples["audio_chunk"] = [f"{chunk_file}:{count}:{i}" for i in range(count)]
         else:
-            examples[t] = load_data_from_chunk(chunk_file, t, count)
+            data_list = load_data_from_chunk(chunk_file, chunk_type, count)
+            if sub_field := ".".join(parts[1:]):
+                data_list = get_values(data_list, sub_field)
+            examples[field] = data_list
+
     return examples
 
 

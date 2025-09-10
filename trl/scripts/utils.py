@@ -311,3 +311,21 @@ def cache_dir(remote_path, local_path=None):
     ]
     run_cmd(cmd, check=True)
     return local_path
+
+
+def get_value(d, key, default=None):
+    """Get a value from a nested dictionary using dot notation."""
+    if key in d:
+        return d[key]
+    keys = key.split(".")
+    for k in keys:
+        if k in d:
+            d = d[k]
+        else:
+            return default
+    return d
+
+
+def get_values(lst, key, default=None):
+    """Get a list of values from a list of dictionaries using dot notation."""
+    return [get_value(d, key, default) for d in lst]
