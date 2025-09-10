@@ -10,7 +10,8 @@ train_data:
       dst_part: "az://${DATA_STORAGE}/"
   filter_by_keywords:
     min_num: 1
-
+  add_prompt:
+    task: asr
 reward_funcs: [reward_full_error, reward_bias_error]
 reward_func_kwargs:
   tn: simple
