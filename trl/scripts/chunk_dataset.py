@@ -237,6 +237,7 @@ def chunks2dataset(chunks, chunk_types=None, num_proc=None):
     ds = ds.map(
         partial(load_examples_from_chunks, types=types),
         batched=True,
+        batch_size=10,
         num_proc=num_proc,
         remove_columns=ds.column_names,
     )
