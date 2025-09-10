@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from trl.scripts.audio_dataset import create_audio_dataset
+from ray_tool import sync_remote_dir
 import yaml
 from pathlib import Path
 import fire
@@ -19,6 +20,9 @@ def proc_dataset(conf_path):
     print("Got dataset info")
     print(ds)
     print()
+    cache_path = f"~/data/cache_datasets/{conf_path.stem}"
+    print(f"Syncing dataset [{cache_path}] to remote storage...")
+    sync_remote_dir(ds, cache_path)
     print("dataset sample [0]:")
     egs = ds[0]
     n_words = len(egs["text"].split())
