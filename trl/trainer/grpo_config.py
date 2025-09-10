@@ -569,7 +569,8 @@ class GRPOConfig(TrainingArguments):
 
         if self.max_samples is not None:
             batch_size = self.per_device_train_batch_size * self.gradient_accumulation_steps * self.world_size
-            self.max_steps = math.ceil(self.max_samples / batch_size / self.num_iterations)
+            batch_sample_size = batch_size / self.num_generations
+            self.max_steps = math.ceil(self.max_samples / batch_sample_size)
             print(f"Setting max_steps to {self.max_steps} to limit the number of training samples to {self.max_samples}.")
         # The current default effective batch size
         if self.generation_batch_size is not None and self.steps_per_generation is not None:
