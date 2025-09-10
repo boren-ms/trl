@@ -1,6 +1,6 @@
 train_data:
     dataset_name: chunk
-    # max_chunks: 2 # orginal 26256 chunks
+    # max_chunks: 2 # orginal 26256 chunks, 5251078 examples
     # max_egs: 30
     num_proc: 20
     specs:
