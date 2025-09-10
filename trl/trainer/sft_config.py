@@ -254,6 +254,7 @@ class SFTConfig(TrainingArguments):
         if self.max_samples is not None:
             batch_size = self.per_device_train_batch_size * self.gradient_accumulation_steps * self.world_size
             self.max_steps = math.ceil(self.max_samples / batch_size)
+            print(f"Setting max_steps to {self.max_steps} to limit the number of training samples to {self.max_samples}.")
 
         if self.max_seq_length is not None:
             warnings.warn(
