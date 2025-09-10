@@ -4,11 +4,17 @@ train_data:
     # max_egs: 30
     num_proc: 20
     specs:
-        - manifest_file: /home/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
-          chunk_path: /datablob1/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
+        - manifest_file: az://orngwus2cresco/data/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
+          chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
     add_rare_keywords:
-        common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         common_num: 3000
+        common_file: az://orngwus2cresco/data/boren/data/librispeech_biasing/words/all_words.count.txt
+    # specs:
+    #     - manifest_file: /home/boren/data/inhouse/human_caption_v2/file_sets/FY22_AdjustBoundary_BiasLM_verbatim.json
+    #       chunk_path: /datablob1/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles
+    # add_rare_keywords:
+    #     common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
+    #     common_num: 3000
     # filter_by_keywords:
     #     min_num: 1
 # Dataset({
