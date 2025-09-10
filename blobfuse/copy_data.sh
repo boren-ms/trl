@@ -6,7 +6,7 @@ get_sas() {
     local yaml_file=/home/boren/blobfuse/$1.yaml
     if [[ -f "$cfg_file" ]]; then
         grep sasToken "$cfg_file" | awk '{print $2}'
-    elif [[ -f "$yaml_file" ]]; then
+        elif [[ -f "$yaml_file" ]]; then
         grep "sas: " "$yaml_file" | awk '{print $2}'
     else
         echo "File not found: $cfg_file"
@@ -15,7 +15,7 @@ get_sas() {
 
 # src_storage=stdstoragetts01wus2
 # src_storage=tsstd01wus2
-src_storage=tsstd01uks
+src_storage=tsstd01wus2
 src_blob=data
 
 dst_storage=tsstd01uks
@@ -31,26 +31,26 @@ dst_sas=$(get_sas ${dst_storage}_${dst_blob})
 # # export src_rel_path=v-litfen/customer/extractdata
 # # export dst_rel_path=users/boren/text/tts/extractdata
 
-    # https://tsstd01uks.blob.core.windows.net/amulet/projects/phimm/amlt-results/7261045517.23695-d19a1453-dea3-4d4b-9e82-a60db2f8ce1d/540000/
+# https://tsstd01uks.blob.core.windows.net/amulet/projects/phimm/amlt-results/7261045517.23695-d19a1453-dea3-4d4b-9e82-a60db2f8ce1d/540000/
 
-src_rel_path=~/data/ckp/hf_models/Phi4-7b-ASR-2506-v2
+src_rel_path=am_data/en/data_prep_e2e_R15/human_caption_v2/batch_gpt_post_process/FY22_AdjustBoundary_BiasLM_verbatim/ChunkFiles/
 # src_rel_path=users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv
-dst_rel_path=users/boren/data/hf_models/Phi4-7b-ASR-2506-v2
+dst_rel_path=~/data/am_data/en/data_prep_e2e_R15/human_caption_v2/batch_gpt_post_process/FY22_AdjustBoundary_BiasLM_verbatim/ChunkFiles/
 #train-other-500
 
 
 #     # "https://${src_storage}.blob.core.windows.net/${src_blob}/${src_rel_path}?${src_sas}" \
 
-azcopy cp --recursive=true --overwrite=false \
-    "${src_rel_path}/*" \
-    "https://${dst_storage}.blob.core.windows.net/${dst_blob}/${dst_rel_path}?${dst_sas}" 
-
 # azcopy cp --recursive=true --overwrite=false \
-#     "https://${src_storage}.blob.core.windows.net/${src_blob}/${src_rel_path}?${src_sas}" \
-#     ${dst_rel_path} 
+# "${src_rel_path}/*" \
+# "https://${dst_storage}.blob.core.windows.net/${dst_blob}/${dst_rel_path}?${dst_sas}"
+
+azcopy cp --recursive=true --overwrite=false \
+"https://${src_storage}.blob.core.windows.net/${src_blob}/${src_rel_path}?${src_sas}" \
+${dst_rel_path}
 
 
-    # /home/boren/
+# /home/boren/
 
 # azcopy cp --recursive=true --overwrite=true \
 #     "https://${src_storage}.blob.core.windows.net/${src_blob}/${src_rel_path}/*?${src_sas}" \
@@ -67,4 +67,4 @@ azcopy cp --recursive=true --overwrite=false \
 # src_path=/home/boren/Phi-4-multimodal-instruct
 # dst_rel_path=users/boren/data/hf_models
 # azcopy cp --recursive=true --overwrite=true $src_path/ \
-#     "https://${dst_storage}.blob.core.windows.net/${dst_blob}/${dst_rel_path}/?${dst_sas}" 
+#     "https://${dst_storage}.blob.core.windows.net/${dst_blob}/${dst_rel_path}/?${dst_sas}"
