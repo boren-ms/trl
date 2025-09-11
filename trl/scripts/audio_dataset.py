@@ -101,12 +101,13 @@ def update_dir(data_path, src_dir=None, dst_dir=None):
 
 
 def pop_map_kwargs(kwargs):
-    n_cores_per_rank = int(os.cpu_count() / dist_state().num_processes)
-    output = {
-        "num_proc": kwargs.pop("num_proc", n_cores_per_rank),
-    }
-    if "remove_columns" in kwargs:
-        output["remove_columns"] = kwargs.pop("remove_columns")
+    output = {}
+    if num_proc := kwargs.pop("num_proc", None):
+        if num_proc == "auto":
+            num_proc = int(os.cpu_count() / dist_state().num_processes)
+        output["num_proc"] = num_proc
+    if remove_columns := kwargs.pop("remove_columns", None):
+        output["remove_columns"] = remove_columns
     return output
 
 
@@ -142,14 +143,14 @@ def ls_bias_dataset(jsonl_path, bias_key=None, tag="*", data_dir=None, **kwargs)
     return ds
 
 
-def chunk_dataset(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, max_egs=None, max_cached_chunk=None, **kwargs):
+def chunk_dataset(specs, max_cached_chunk=None, **kwargs):
     """Iterate over the chunk dataset based on the specification files."""
     if max_cached_chunk is not None:
         get_chunk_manager(max_cached_chunk)  # Initialize the chunk manager with a maximum size. and reuse later.
-    num_proc = pop_map_kwargs(kwargs).get("num_proc", None)
-    print(f"Creating non-streaming chunk dataset (NP={num_proc}), please be patient.")
-    ds = create_chunk_datasets(specs, chunk_types, chunk_shuffle, max_chunks, max_egs, num_proc=num_proc)
-    print(f"Loaded {len(ds)} examples from chunk dataset.")
+    print("Creating chunk dataset, please be patient.")
+    ds = create_chunk_datasets(specs, **kwargs)
+    if isinstance(ds, Dataset):
+        print(f"Loaded {len(ds)} examples from chunk dataset.")
     ds = ds.rename_column("transcription", "text")
     return ds
 

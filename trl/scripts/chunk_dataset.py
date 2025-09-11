@@ -236,21 +236,37 @@ def generate_examples(specs, chunk_types=None, chunk_shuffle=True, max_chunks=No
         yield from to_records(examples)
 
 
-def chunks2dataset(chunks, chunk_types=None, num_proc=None):
+def chunks2dataset(chunks, chunk_types=None, num_proc=None, streaming=False):
     """Convert a list of chunks to a Dataset object."""
     types = to_list(chunk_types or ["audio", "transcription"])
     ds = Dataset.from_list(chunks)
+    map_kwargs = {
+        "batched": True,
+        "batch_size": 10,
+        "num_proc": num_proc,
+        "remove_columns": ds.column_names,
+    }
+    if streaming:
+        ds = ds.to_iterable_dataset()
+        map_kwargs.pop("num_proc", None)
+
     ds = ds.map(
         partial(load_examples_from_chunks, types=types),
-        batched=True,
-        batch_size=10,
-        num_proc=num_proc,
-        remove_columns=ds.column_names,
+        **map_kwargs,
     )
     return ds
 
 
-def create_chunk_datasets(specs, chunk_types=None, chunk_shuffle=True, max_chunks=None, max_egs=None, num_proc=None):
+def create_chunk_datasets(
+    specs,
+    chunk_types=None,
+    chunk_shuffle=True,
+    max_chunks=None,
+    max_egs=None,
+    streaming=False,
+    num_proc=None,
+    **kwargs,
+):
     """Generate examples from the chunk dataset based on the specification files."""
     chunks_per_spec = ceil(max_chunks / len(specs)) if max_chunks else None
     chunks = load_chunks(specs, chunks_per_spec)
@@ -258,7 +274,7 @@ def create_chunk_datasets(specs, chunk_types=None, chunk_shuffle=True, max_chunk
     if chunk_shuffle:
         random.shuffle(chunks)
     chunk_types = to_list(chunk_types or ["audio", "transcription"])
-    return chunks2dataset(chunks, chunk_types, num_proc)
+    return chunks2dataset(chunks, chunk_types, num_proc, streaming)
 
 
 @cached(FIFOCache(maxsize=100))

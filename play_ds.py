@@ -37,11 +37,12 @@ print(ds)
 #     print()
 # %%
 print("Computing word counts for the dataset...")
-num_egs = len(ds)
 word_counts = Counter()
 total_words = 0
 word_counts_per_example = []
 
+# num_egs = len(ds) if ds._length is not None else 0
+num_egs = 0
 for egs in ds:
     # You may need to adjust 'transcript' to match your dataset's field name
     text = text_norm(egs.get("text", ""))
@@ -49,6 +50,7 @@ for egs in ds:
     word_counts.update(words)
     total_words += len(words)
     word_counts_per_example.append(len(words))
+    num_egs += 1
 
 num_unique_words = len(word_counts)
 avg_words_per_example = total_words / num_egs if num_egs else 0
