@@ -51,15 +51,19 @@ train_data:
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
     # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
     tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
-    cache_name: auto_train
+    # cache_name: auto_train
     num_proc: 1
     add_rare_keywords:
         common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         common_num: 1000
     filter_by_keywords:
-        min_ratio: 0.1
+        min_num: 1
+    add_prompt:
+        task: rare_asr
+        forced: True
+
 eval_strategy: steps
-eval_on_start: True
+eval_on_start: False
 eval_steps: 10
 per_device_eval_batch_size: 200
 num_eval_generations: 2

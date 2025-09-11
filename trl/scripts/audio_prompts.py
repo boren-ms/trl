@@ -16,6 +16,9 @@ def get_task_prompt(task="asr", rand=False):
     """Get the prompt for the specified task."""
     if task == "asr":
         return rand_prompt(ASR_PROMPTS, rand=rand)
+    elif task == "rare_asr":
+        prompt = rand_prompt(ASR_PROMPTS, rand=rand)
+        return f"{prompt} Pay extra attention to rare words."
     elif task == "biasing":
         return rand_prompt(BIASING_PROMPTS, rand=rand)
     else:
