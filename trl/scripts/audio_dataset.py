@@ -102,7 +102,8 @@ def update_dir(data_path, src_dir=None, dst_dir=None):
 
 def pop_map_kwargs(kwargs):
     output = {}
-    if num_proc := kwargs.pop("num_proc", None):
+    streaming = kwargs.get("streaming", False)
+    if num_proc := kwargs.pop("num_proc", None) and not streaming:
         if num_proc == "auto":
             num_proc = int(os.cpu_count() / dist_state().num_processes)
         output["num_proc"] = num_proc
@@ -147,7 +148,9 @@ def chunk_dataset(specs, max_cached_chunk=None, **kwargs):
     """Iterate over the chunk dataset based on the specification files."""
     if max_cached_chunk is not None:
         get_chunk_manager(max_cached_chunk)  # Initialize the chunk manager with a maximum size. and reuse later.
-    print("Creating chunk dataset, please be patient.")
+    np = kwargs.get("num_proc", None)
+    streaming = kwargs.get("streaming", False)
+    print(f"Creating chunk {'streaming' if streaming else 'non-streaming'} dataset (NP={np}), please be patient.")
     ds = create_chunk_datasets(specs, **kwargs)
     if isinstance(ds, Dataset):
         print(f"Loaded {len(ds)} examples from chunk dataset.")

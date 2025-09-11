@@ -3,6 +3,7 @@ train_data:
     # max_chunks: 4
     max_egs: 30
     # num_proc: 2
+    streaming: True
     num_proc: 1
     chunk_types:
         [
