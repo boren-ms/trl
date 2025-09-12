@@ -1,0 +1,42 @@
+# - dataset_spec:
+#     - /datablob1/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc_fy24_400k.json  # 389955.90 hours, number of examples: 54.547M, average duration: 25.74s
+#     - /datablob1/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_ht.json            # 210169.48 hours, number of examples: 153.532M, average duration: 4.93s
+#     - /datablob1/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc.json            # 627088.36 hours, number of examples: 87.773M, average duration: 25.72s
+# filter_options:
+#     trans_key_in_info:
+#     alternative_transcription: "display_human_caption_adjusted"
+
+# from the below file
+#     - /datablob1/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc.json            # 627088.36 hours, number of examples: 87.773M, average duration: 25.72s
+
+data:
+    - manifest_file: /datablob1/am_data/en/human_caption/Alignment/FY22_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+      chunk_path: /datablob1/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles/
+    - manifest_file: /datablob1/am_data/en/human_caption/Alignment/FY23Q2_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+      chunk_path: /datablob1/am_data/en/human_caption_v2/FY23Q2_AdjustBoundary_BiasLM/ChunkFiles/
+    - manifest_file: /datablob1/am_data/en/human_caption/Alignment/FY23Q3Part1_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+      chunk_path: /datablob1/am_data/en/human_caption_v2/FY23Q3Part1_AdjustBoundary_BiasLM/ChunkFiles/
+    - manifest_file: /datablob1/am_data/en/human_caption/Alignment/FY23Q3Part2_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+      chunk_path: /datablob1/am_data/en/human_caption_v2/FY23Q3Part2_AdjustBoundary_BiasLM/ChunkFiles/
+    - manifest_file: /datablob1/am_data/en/human_caption/Alignment/FY23Q3Part3_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+      chunk_path: /datablob1/am_data/en/human_caption_v2/FY23Q3Part3_AdjustBoundary_BiasLM/ChunkFiles/
+    - manifest_file: /datablob1/am_data/en/human_caption/Alignment/FY23Q3Part4_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+      chunk_path: /datablob1/am_data/en/human_caption_v2/FY23Q3Part4_AdjustBoundary_BiasLM/ChunkFiles/
+    - manifest_file: /datablob1/am_data/en/human_caption/Alignment/FY23Q3Part5_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+      chunk_path: /datablob1/am_data/en/human_caption_v2/FY23Q3Part5_AdjustBoundary_BiasLM/ChunkFiles/
+    - manifest_file: /datablob1/am_data/en/human_caption/train_delivery1_delivery2_w20_json_real/Earnings_delivery1_fix/Earnings_delivery1_fix_setup1_Word20_AlignwithTN_L2_.json
+      chunk_path: /datablob1/am_data/en/human_caption/earnings_call/Earnings_delivery1_fix/setup1_Word20_AlignwithTN_L2/
+    - manifest_file: /datablob1/am_data/en/human_caption/train_delivery1_delivery2_w20_json_real/Earnings_delivery1_fix/Earnings_delivery1_fix_setup2_Word20_AlignwithTN_L1_.json
+      chunk_path: /datablob1/am_data/en/human_caption/earnings_call/Earnings_delivery1_fix/setup2_Word20_AlignwithTN_L1/
+    - manifest_file: /datablob1/am_data/en/human_caption/train_delivery1_delivery2_w20_json_real/Earnings_delivery1_fix/Earnings_delivery1_fix_setup2_Word20_AlignwithTN_L2_.json
+      chunk_path: /datablob1/am_data/en/human_caption/earnings_call/Earnings_delivery1_fix/setup2_Word20_AlignwithTN_L2/
+    - manifest_file: /datablob1/am_data/en/human_caption/train_delivery1_delivery2_w20_json_real/Earnings_delivery1_fix/Earnings_delivery1_fix_setup1_Word20_AlignwithTN_L1_.json
+      chunk_path: /datablob1/am_data/en/human_caption/earnings_call/Earnings_delivery1_fix/setup1_Word20_AlignwithTN_L1/
+    - manifest_file: /datablob1/am_data/en/human_caption/train_delivery1_delivery2_w20_json_real/Earnings_delivery2_fix/Earnings_delivery2_fix_setup1_Word20_AlignwithTN_L1_.json
+      chunk_path: /datablob1/am_data/en/human_caption/earnings_call/Earnings_delivery2_fix/setup1_Word20_AlignwithTN_L1/
+    - manifest_file: /datablob1/am_data/en/human_caption/train_delivery1_delivery2_w20_json_real/Earnings_delivery2_fix/Earnings_delivery2_fix_setup1_Word20_AlignwithTN_L2_.json
+      chunk_path: /datablob1/am_data/en/human_caption/earnings_call/Earnings_delivery2_fix/setup1_Word20_AlignwithTN_L2/
+    - manifest_file: /datablob1/am_data/en/human_caption/train_delivery1_delivery2_w20_json_real/Earnings_delivery2_fix/Earnings_delivery2_fix_setup2_Word20_AlignwithTN_L1_.json
+      chunk_path: /datablob1/am_data/en/human_caption/earnings_call/Earnings_delivery2_fix/setup2_Word20_AlignwithTN_L1/
+    - manifest_file: /datablob1/am_data/en/human_caption/train_delivery1_delivery2_w20_json_real/Earnings_delivery2_fix/Earnings_delivery2_fix_setup2_Word20_AlignwithTN_L2_.json
+      chunk_path: /datablob1/am_data/en/human_caption/earnings_call/Earnings_delivery2_fix/setup2_Word20_AlignwithTN_L2/

@@ -438,6 +438,7 @@ def prepare_data(forced=False):
         # "ckp/hf_models/phi4-7b-fast-api-s2-final-v4",
         # "ckp/hf_models/Phi4-7b-ASR-2506-v2",
         "ckp/hf_models/Phi-4-multimodal-instruct",
+        "ckp/hf_models/roberta-large-ner-english",  # to tag entities
         "tools",
         # "Evaluation/InhouseASR/EWER/en-US-entity-v3",
         "librispeech_biasing/words",
