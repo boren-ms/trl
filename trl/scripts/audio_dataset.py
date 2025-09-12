@@ -655,7 +655,7 @@ def tag_entity(ds, **kwargs):
     model = AutoModelForTokenClassification.from_pretrained(model_path)
 
     def extract_entities(egs, rank):
-        device = f"cuda:{(rank or 0) % torch.cuda.device_count()}"
+        device = f"cuda:{(rank or 0) % n_gpu}"
         model.to(device)
         ner = pipeline("ner", model=model, tokenizer=tokenizer, aggregation_strategy="simple")
         texts = get_value(egs, src_field, ())
