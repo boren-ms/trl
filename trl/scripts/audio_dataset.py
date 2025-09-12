@@ -676,7 +676,7 @@ def tag_entity(ds, **kwargs):
             entities_list.append(entities)
         return {tgt_field: entities_list}
 
-    ds = ds.map(extract_entities, with_indices=True, batched=True, batch_size=32, **pop_map_kwargs(kwargs))
+    ds = ds.map(extract_entities, with_indices=True, batched=True, **pop_map_kwargs(kwargs))
     return ds
 
 
