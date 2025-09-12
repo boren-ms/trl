@@ -641,31 +641,42 @@ def context_prefix(ds, **kwargs):
     return ds
 
 
+def get_gpu_number():
+    import torch
+
+    if torch.cuda.is_available():
+        return torch.cuda.device_count()
+    return 0
+
+
 def tag_entity(ds, **kwargs):
     """Tag named entities in the transcription."""
     src_field = kwargs.get("src_field", "text")
     tgt_field = kwargs.get("tgt_field", "keywords")
     model_path = kwargs.get("model_path", "roberta-large-ner-english")
-    ner = pipeline("ner", model=model_path, aggregation_strategy="simple")
+    n_gpu = get_gpu_number()
 
-    def extract_entities(egs):
-        text = get_value(egs, src_field, "")
+    def extract_entities(egs, idxs):
+        batch_idx = int(idxs[0] / len(idxs))
+        device = batch_idx % n_gpu if n_gpu > 0 else -1
+        ner = pipeline("ner", model=model_path, aggregation_strategy="simple", device=device)
+        texts = get_value(egs, src_field, ())
+        entities_list = []
+        for text, results in zip(texts, ner(texts)):
+            entities = [""]
+            last_e = 0
+            for res in results:
+                s, e = res["start"], res["end"]
+                if not text[last_e:s].strip():
+                    entities[-1] += text[last_e:e]
+                else:
+                    entities.append(text[s:e])
+                last_e = e
+            entities = list(set([w.strip() for w in entities if len(w.strip()) > 1]))  # remove empty and single char
+            entities_list.append(entities)
+        return {tgt_field: entities_list}
 
-        entities = [""]
-        last_e = 0
-        for res in ner(text):
-            s, e = res["start"], res["end"]
-            if not text[last_e:s].strip():
-                entities[-1] += text[last_e:e]
-            else:
-                entities.append(text[s:e])
-            last_e = e
-
-        entities = set([w.strip() for w in entities if len(w.strip()) > 1])  # remove empty and single char
-
-        return {tgt_field: list(entities)}
-
-    ds = ds.map(extract_entities, **pop_map_kwargs(kwargs))
+    ds = ds.map(extract_entities, with_indices=True, batched=True, batch_size=32, **pop_map_kwargs(kwargs))
     return ds
 
 

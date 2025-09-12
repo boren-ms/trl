@@ -3,7 +3,7 @@ train_data:
   max_chunks: 4
   # max_egs: 30
   # num_proc: 2
-  # num_proc: "auto"
+  num_proc: 2
   chunk_types:
     [audio, info.alternative_transcription.display_human_caption_adjusted]
   specs:
