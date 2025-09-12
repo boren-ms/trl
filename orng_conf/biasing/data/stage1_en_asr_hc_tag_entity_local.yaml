@@ -3,8 +3,9 @@ train_data:
   max_chunks: 4
   # max_egs: 30
   # num_proc: 2
-  num_proc: "auto"
-  chunk_types: [audio, info.display_human_caption_adjusted]
+  # num_proc: "auto"
+  chunk_types:
+    [audio, info.alternative_transcription.display_human_caption_adjusted]
   specs:
     - manifest_file: /datablob1/am_data/en/human_caption/Alignment/FY22_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
       chunk_path: /datablob1/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles/
@@ -23,11 +24,11 @@ train_data:
   pre_process:
     rename_fields:
       mappings:
-        src: info.display_human_caption_adjusted
-        dst: text
+        text: info.alternative_transcription.display_human_caption_adjusted
+
   tag_entity:
     src_field: text
-    tgt_field: entity
+    tgt_field: keywords
     model_path: /home/boren/data/ckp/hf_models/roberta-large-ner-english
   filter_by_keywords:
     min_num: 1

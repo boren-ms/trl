@@ -123,6 +123,9 @@ def load_examples(chunk, fields):
             data_list = load_data_from_chunk(chunk_file, chunk_type, count)
             if sub_field := ".".join(parts[1:]):
                 data_list = get_values(data_list, sub_field)
+            if any(v is None for v in data_list):
+                rank_print(f"Skip [{chunk_file}] due to missing field {field}.")
+                return {}
             examples[field] = data_list
 
     return examples

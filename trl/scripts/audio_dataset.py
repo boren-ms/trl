@@ -104,7 +104,7 @@ def update_dir(data_path, src_dir=None, dst_dir=None):
 def pop_map_kwargs(kwargs):
     output = {}
     streaming = kwargs.get("streaming", False)
-    if num_proc := kwargs.pop("num_proc", None) and not streaming:
+    if (num_proc := kwargs.pop("num_proc", None)) and not streaming:
         if num_proc == "auto":
             num_proc = int(os.cpu_count() / dist_state().num_processes)
         output["num_proc"] = num_proc
@@ -149,13 +149,15 @@ def chunk_dataset(specs, max_cached_chunk=None, **kwargs):
     """Iterate over the chunk dataset based on the specification files."""
     if max_cached_chunk is not None:
         get_chunk_manager(max_cached_chunk)  # Initialize the chunk manager with a maximum size. and reuse later.
-    np = kwargs.get("num_proc", None)
+    map_kwargs = pop_map_kwargs(kwargs)
+    np = map_kwargs.get("num_proc", None)
     streaming = kwargs.get("streaming", False)
     print(f"Creating chunk {'streaming' if streaming else 'non-streaming'} dataset (NP={np}), please be patient.")
-    ds = create_chunk_datasets(specs, **kwargs)
+    ds = create_chunk_datasets(specs, **map_kwargs, **kwargs)
     if isinstance(ds, Dataset):
         print(f"Loaded {len(ds)} examples from chunk dataset.")
-    ds = ds.rename_column("transcription", "text")
+    if "transcription" in ds.column_names:
+        ds = ds.rename_column("transcription", "text")
     return ds
 
 
@@ -420,13 +422,13 @@ def add_tag_keywords(ds, **kwargs):
 
 def filter_by_keywords(ds, **kwargs):
     min_num = kwargs.get("min_num", None)
+    field = kwargs.get("field", "keywords")
     min_ratio = kwargs.get("min_ratio", None)
     skip_none = kwargs.get("skip_none", True)
     assert (min_num is not None) or (min_ratio is not None), "Either min_num or min_ratio must be set"
 
     def is_enough_keywords(egs):
-
-        keywords = egs.get("keywords", None)
+        keywords = egs.get(field, None)
         if keywords is None:
             return not skip_none
         n_keywords = len(keywords)
@@ -523,15 +525,17 @@ def path_map(ds, **kwargs):
 
 def rename_fields(ds, **kwargs):
     """Map the dataset fields."""
-    mappings = kwargs.get("mappings", ())
+    mappings = kwargs.get("mappings", {})
 
     def rename_fn(egs):
         output = {}
-        for fields in mappings:
-            output[fields["dst"]] = get_value(egs, fields["src"], None)
+        for src, dst in mappings.items():
+            output[src] = get_value(egs, dst, None)
         return output
 
-    ds = ds.map(rename_fn, **pop_map_kwargs(kwargs))
+    map_kwargs = pop_map_kwargs(kwargs)
+    map_kwargs["remove_columns"] = list(set(mappings.values()))
+    ds = ds.map(rename_fn, **map_kwargs)
     return ds
 
 
