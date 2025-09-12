@@ -538,7 +538,7 @@ def rename_fields(ds, **kwargs):
 
     map_kwargs = pop_map_kwargs(kwargs)
     map_kwargs["remove_columns"] = list(set(mappings.values()))
-    ds = ds.map(rename_fn, **map_kwargs)
+    ds = ds.map(rename_fn, **map_kwargs, desc="Renaming fields")
     return ds
 
 
@@ -657,12 +657,14 @@ def tag_entity(ds, **kwargs):
     """Tag named entities in the transcription."""
     src_field = kwargs.get("src_field", "text")
     tgt_field = kwargs.get("tgt_field", "keywords")
-    model_path = kwargs.get("model_path", "roberta-large-ner-english")
+    model_path = kwargs.get("model_path", None)
+    assert model_path is not None, "model_path must be set for NER model"
     map_kwargs = pop_map_kwargs(kwargs)
     num_actors = map_kwargs.get("num_proc", None) or num_gpus()
-    map_kwargs["num_proc"] = 1  # force single process for model loading
-    bs = kwargs.get("batch_size", 1000)
+    map_kwargs["num_proc"] = 1  # single in map, use multiple actors in Ray
+    bs = map_kwargs.get("batch_size", 1000)
     map_kwargs["batch_size"] = bs * num_actors
+    print(f"Using NER model: {model_path} with {num_actors} actors, {map_kwargs['batch_size']} batch size")
 
     def extract_entities(egs):
         texts = get_value(egs, src_field, ())
@@ -672,7 +674,7 @@ def tag_entity(ds, **kwargs):
         return {tgt_field: entities_list}
 
     map_kwargs["num_proc"] = 1
-    ds = ds.map(extract_entities, batched=True, **map_kwargs)
+    ds = ds.map(extract_entities, batched=True, **map_kwargs, desc="Tagging entities")
     return ds
 
 

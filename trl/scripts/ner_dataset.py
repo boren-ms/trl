@@ -3,7 +3,6 @@ import ray
 import torch
 from itertools import chain
 from more_itertools import divide
-from typing import List, Dict, Any
 from transformers import pipeline
 from datasets import load_dataset
 
@@ -24,29 +23,35 @@ def join_entities(outputs, text):
 
 @ray.remote(num_gpus=1)
 class NERActor:
-    def __init__(self, model_id):
-        idx = 0 if torch.cuda.is_available() else -1
-        self.pipe = pipeline("ner", model=model_id, aggregation_strategy="simple", device=idx)
+    def __init__(self, model_id, device=0):
+        self.pipe = pipeline(
+            "ner",
+            model=model_id,
+            aggregation_strategy="simple",
+            device=device,
+            model_kwargs={"torch_dtype": torch.bfloat16},
+        )
 
-    def infer_batch(self, texts: List[str]) -> List[List[Dict[str, Any]]]:
-        return [join_entities(outputs, text) for text, outputs in zip(texts, self.pipe(texts))]
+    def infer_batch(self, texts):
+        return [join_entities(outputs, text) for text, outputs in zip(texts, self.pipe(texts, batch_size=len(texts)))]
 
 
-_POOL = None
 _ACTORS = None
 
 
 def _get_actors(model_id, num_actors=0):
-    global _POOL, _ACTORS
+    global _ACTORS
     if not ray.is_initialized():
         ray.init(ignore_reinit_error=True, include_dashboard=False)
     if _ACTORS is None:
-        n_gpus = ray.available_resources().get("GPU", 1)
+        n_gpus = int(ray.available_resources().get("GPU", 1))
+        print(f"Ray detected {n_gpus} GPUs")
         if num_actors <= 0:
             num_actors = n_gpus
         gpu_per_actor = max(min(1.0, n_gpus / num_actors), 0.1)
         task = NERActor.options(num_gpus=gpu_per_actor)
-        _ACTORS = [task.remote(model_id) for _ in range(num_actors)]
+        print(f"Creating {num_actors} NER actors on {n_gpus} GPUs, {gpu_per_actor} GPU per actor")
+        _ACTORS = [task.remote(model_id, i % n_gpus) for i in range(num_actors)]
     return _ACTORS
 
 
