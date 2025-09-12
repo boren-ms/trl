@@ -7,6 +7,7 @@ from more_itertools import divide
 from transformers import pipeline
 from transformers.pipelines.pt_utils import KeyDataset
 from datasets import load_dataset
+from tqdm import tqdm
 
 
 def join_entities(outputs, text):
@@ -26,6 +27,7 @@ def join_entities(outputs, text):
 @ray.remote(num_gpus=1)
 class NERActor:
     def __init__(self, model_id, device=0):
+        self.device = device
         self.pipe = pipeline(
             "ner",
             model=model_id,
@@ -37,8 +39,9 @@ class NERActor:
     def infer_batch(self, ds, bs=8, key="text"):
         outputs = []
         ds = KeyDataset(ds, key)
-        for i, output in enumerate(self.pipe(ds, batch_size=bs)):
-            entities = [x["word"] for x in output]
+        for i, output in enumerate(tqdm(self.pipe(ds, batch_size=bs), total=len(ds), desc=f"Actor-{self.device}")):
+            text = ds[i]
+            entities = join_entities(output, text)
             outputs.append(entities)
         return outputs
 

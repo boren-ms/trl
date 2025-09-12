@@ -29,6 +29,9 @@ print(yaml.dump(conf, sort_keys=False, default_flow_style=False))
 ds = create_audio_dataset(**conf)
 print("Got dataset info")
 print(ds)
+print("First 3 examples:")
+print(ds[:3])
+
 # %%
 # for i, egs in enumerate(ds):
 #     print(f"Example[{i}]:")
