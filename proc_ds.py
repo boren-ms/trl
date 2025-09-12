@@ -8,7 +8,7 @@ from pathlib import Path
 import fire
 
 
-def proc_dataset(conf_path):
+def proc_dataset(conf_path, push_remote=False):
     conf_path = Path(conf_path)
     conf = yaml.safe_load(conf_path.read_text())["train_data"]
     conf.update({"cache_name": conf_path.stem})
@@ -21,8 +21,9 @@ def proc_dataset(conf_path):
     print(ds)
     print()
     cache_path = f"~/data/cache_datasets/{conf_path.stem}"
-    print(f"Syncing dataset [{cache_path}] to remote storage...")
-    sync_remote_dir(cache_path, True)
+    if push_remote:
+        print(f"Syncing dataset [{cache_path}] to remote storage...")
+        sync_remote_dir(cache_path, True)
     print("dataset sample [0]:")
     egs = ds[0]
     n_words = len(egs["text"].split())
@@ -33,6 +34,9 @@ def proc_dataset(conf_path):
 
 
 if __name__ == "__main__":
+    import multiprocessing as mp
+
+    mp.set_start_method("spawn", force=True)  # 强制使用 spawn
     fire.Fire(proc_dataset)
     # conf_path = "orng_conf/biasing/data/ls_sc1k_fr01.yaml"
     # proc_dataset(conf_path)

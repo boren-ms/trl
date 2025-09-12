@@ -259,7 +259,9 @@ class UserStorage:
     def __init__(self, region=None):
         """Initialize the UserStorage with the specified region."""
         self.region = region or get_region()
-        assert self.region, "Region must be specified or set in RCALL_KUBE_CLUSTER environment variable"
+        if not self.region:
+            self.region = "westus2"
+            print("Warning: RCALL_KUBE_CLUSTER not set, defaulting region to westus2")
         self.region_storage = REGION_STORAGES.get(self.region, "orngscuscresco")
         self.user = os.environ.get("OPENAI_USER", "boren")
 
