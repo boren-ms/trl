@@ -17,7 +17,7 @@ from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm as biasing_t
 from trl.scripts.audio_prompts import get_task_prompt
 from trl.scripts.audio_metrics import text_norm
 from trl.scripts.utils import get_config_path, cache_dir, get_value
-from trl.scripts.ner_dataset import ray_ner
+from trl.scripts.ner_dataset import ner_ds
 from trl.scripts.chunk_dataset import get_chunk_manager, create_chunk_datasets, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
@@ -659,22 +659,17 @@ def tag_entity(ds, **kwargs):
     tgt_field = kwargs.get("tgt_field", "keywords")
     model_path = kwargs.get("model_path", None)
     assert model_path is not None, "model_path must be set for NER model"
-    map_kwargs = pop_map_kwargs(kwargs)
-    num_actors = map_kwargs.get("num_proc", None) or num_gpus()
-    map_kwargs["num_proc"] = 1  # single in map, use multiple actors in Ray
-    bs = map_kwargs.get("batch_size", 1000)
-    map_kwargs["batch_size"] = bs * num_actors
-    print(f"Using NER model: {model_path} with {num_actors} actors, {map_kwargs['batch_size']} batch size")
-
-    def extract_entities(egs):
-        texts = get_value(egs, src_field, ())
-        if not texts:
-            return {tgt_field: []}
-        entities_list = ray_ner(texts, model_path, num_actors=num_actors)
-        return {tgt_field: entities_list}
-
-    map_kwargs["num_proc"] = 1
-    ds = ds.map(extract_entities, batched=True, **map_kwargs, desc="Tagging entities")
+    num_actors = kwargs.get("num_proc", None) or num_gpus()
+    bs = kwargs.get("batch_size", 1000)
+    print(f"Using NER model: {model_path} with {num_actors} actors, {bs} batch size")
+    ds = ner_ds(
+        ds=ds,
+        model_id=model_path,
+        src_field=src_field,
+        tgt_field=tgt_field,
+        bs=bs,
+        n_actors=num_actors,
+    )
     return ds
 
 
