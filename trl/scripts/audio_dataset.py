@@ -8,6 +8,7 @@ import random
 import blobfile as bf
 import pandas as pd
 import string
+from transformers import pipeline
 from pathlib import Path
 from datasets import load_dataset, concatenate_datasets, Dataset
 from bs4 import BeautifulSoup
@@ -636,6 +637,34 @@ def context_prefix(ds, **kwargs):
     return ds
 
 
+def tag_entity(ds, **kwargs):
+    """Tag named entities in the transcription."""
+    src_field = kwargs.get("src_field", "text")
+    tgt_field = kwargs.get("tgt_field", "keywords")
+    model_path = kwargs.get("model_path", "roberta-large-ner-english")
+    ner = pipeline("ner", model=model_path, aggregation_strategy="simple")
+
+    def extract_entities(egs):
+        text = get_value(egs, src_field, "")
+
+        entities = [""]
+        last_e = 0
+        for res in ner(text):
+            s, e = res["start"], res["end"]
+            if not text[last_e:s].strip():
+                entities[-1] += text[last_e:e]
+            else:
+                entities.append(text[s:e])
+            last_e = e
+
+        entities = set([w.strip() for w in entities if len(w.strip()) > 1])  # remove empty and single char
+
+        return {tgt_field: list(entities)}
+
+    ds = ds.map(extract_entities, **pop_map_kwargs(kwargs))
+    return ds
+
+
 def augment(ds, **kwargs):
     """Augment the dataset with additional information."""
     map_kwargs = pop_map_kwargs(kwargs)
@@ -659,6 +688,8 @@ def augment(ds, **kwargs):
         ds = add_rare_keywords(ds, **merge_kwargs(map_kwargs, add_rare_keywords_kwargs))
     if add_tag_keywords_kwargs := kwargs.get("add_tag_keywords", {}):
         ds = add_tag_keywords(ds, **merge_kwargs(map_kwargs, add_tag_keywords_kwargs))
+    if tag_entity_kwargs := kwargs.get("tag_entity", {}):
+        ds = tag_entity(ds, **merge_kwargs(map_kwargs, tag_entity_kwargs))
     if filter_by_keywords_kwargs := kwargs.get("filter_by_keywords", {}):
         ds = filter_by_keywords(ds, **merge_kwargs(map_kwargs, filter_by_keywords_kwargs))
     if add_prompt_kwargs := kwargs.get("add_prompt", {}):
