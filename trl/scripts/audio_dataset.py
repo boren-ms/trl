@@ -17,6 +17,7 @@ from trl.scripts.biasing import PieceSampler, tag_pieces, text_norm as biasing_t
 from trl.scripts.audio_prompts import get_task_prompt
 from trl.scripts.audio_metrics import text_norm
 from trl.scripts.utils import get_config_path, cache_dir, get_value
+from trl.scripts.ner_dataset import ray_ner
 from trl.scripts.chunk_dataset import get_chunk_manager, create_chunk_datasets, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
@@ -110,6 +111,8 @@ def pop_map_kwargs(kwargs):
         output["num_proc"] = num_proc
     if remove_columns := kwargs.pop("remove_columns", None):
         output["remove_columns"] = remove_columns
+    if batch_size := kwargs.pop("batch_size", None):
+        output["batch_size"] = batch_size
     return output
 
 
@@ -641,41 +644,35 @@ def context_prefix(ds, **kwargs):
     return ds
 
 
+def num_gpus():
+    import torch
+
+    if torch.cuda.is_available():
+        return torch.cuda.device_count()
+    else:
+        return 1
+
+
 def tag_entity(ds, **kwargs):
     """Tag named entities in the transcription."""
     src_field = kwargs.get("src_field", "text")
     tgt_field = kwargs.get("tgt_field", "keywords")
     model_path = kwargs.get("model_path", "roberta-large-ner-english")
-    import torch
-    from transformers import AutoTokenizer, AutoModelForTokenClassification
+    map_kwargs = pop_map_kwargs(kwargs)
+    num_actors = map_kwargs.get("num_proc", None) or num_gpus()
+    map_kwargs["num_proc"] = 1  # force single process for model loading
+    bs = kwargs.get("batch_size", 1000)
+    map_kwargs["batch_size"] = bs * num_actors
 
-    n_gpu = torch.cuda.device_count()
-
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model = AutoModelForTokenClassification.from_pretrained(model_path)
-
-    def extract_entities(egs, rank):
-        device = f"cuda:{(rank or 0) % n_gpu}"
-        model.to(device)
-        ner = pipeline("ner", model=model, tokenizer=tokenizer, aggregation_strategy="simple")
+    def extract_entities(egs):
         texts = get_value(egs, src_field, ())
-        entities_list = []
-        for text, results in zip(texts, ner(texts)):
-            entities = [""]
-            last_e = 0
-            for res in results:
-                s, e = res["start"], res["end"]
-                if not text[last_e:s].strip():
-                    entities[-1] += text[last_e:e]
-                else:
-                    entities.append(text[s:e])
-                last_e = e
-            entities = list(set([w.strip() for w in entities if len(w.strip()) > 1]))  # remove empty and single char
-            entities_list.append(entities)
+        if not texts:
+            return {tgt_field: []}
+        entities_list = ray_ner(texts, model_path, num_actors=num_actors)
         return {tgt_field: entities_list}
 
-    batch_size = kwargs.get("batch_size", 1000)
-    ds = ds.map(extract_entities, with_rank=True, batched=True, batch_size=batch_size, **pop_map_kwargs(kwargs))
+    map_kwargs["num_proc"] = 1
+    ds = ds.map(extract_entities, batched=True, **map_kwargs)
     return ds
 
 

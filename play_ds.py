@@ -39,6 +39,8 @@ print(ds)
 print("Computing word counts for the dataset...")
 word_counts = Counter()
 total_words = 0
+keywords_counts = Counter()
+total_keywords = 0
 word_counts_per_example = []
 
 # num_egs = len(ds) if ds._length is not None else 0
@@ -50,6 +52,10 @@ for egs in ds:
     word_counts.update(words)
     total_words += len(words)
     word_counts_per_example.append(len(words))
+    keywords = egs.get("keywords", [])
+    keywords = [kw for kw in keywords if kw]
+    keywords_counts.update(keywords)
+    total_keywords += len(keywords)
     num_egs += 1
 
 num_unique_words = len(word_counts)
