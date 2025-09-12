@@ -30,7 +30,7 @@ train_data:
     src_field: text
     tgt_field: keywords
     model_path: /root/data/ckp/hf_models/roberta-large-ner-english
-    num_proc: 20
-    batch_size: 16000
+    # num_proc: 20
+    # batch_size: 16000
   filter_by_keywords:
     min_num: 1
