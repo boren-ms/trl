@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+import multiprocessing as mp
 
+mp.set_start_method("spawn", force=True)
 from trl.scripts.audio_dataset import create_audio_dataset
 from ray_tool import sync_remote_dir
 import yaml
@@ -34,9 +36,7 @@ def proc_dataset(conf_path, push_remote=False):
 
 
 if __name__ == "__main__":
-    import multiprocessing as mp
 
-    mp.set_start_method("spawn", force=True)  # 强制使用 spawn
     fire.Fire(proc_dataset)
     # conf_path = "orng_conf/biasing/data/ls_sc1k_fr01.yaml"
     # proc_dataset(conf_path)

@@ -641,25 +641,23 @@ def context_prefix(ds, **kwargs):
     return ds
 
 
-def get_gpu_number():
-    import torch
-
-    if torch.cuda.is_available():
-        return torch.cuda.device_count()
-    return 0
-
-
 def tag_entity(ds, **kwargs):
     """Tag named entities in the transcription."""
     src_field = kwargs.get("src_field", "text")
     tgt_field = kwargs.get("tgt_field", "keywords")
     model_path = kwargs.get("model_path", "roberta-large-ner-english")
-    n_gpu = get_gpu_number()
+    import torch
+    from transformers import AutoTokenizer, AutoModelForTokenClassification
 
-    def extract_entities(egs, idxs):
-        batch_idx = int(idxs[0] / len(idxs))
-        device = batch_idx % n_gpu if n_gpu > 0 else -1
-        ner = pipeline("ner", model=model_path, aggregation_strategy="simple", device=device)
+    n_gpu = torch.cuda.device_count()
+
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    model = AutoModelForTokenClassification.from_pretrained(model_path)
+
+    def extract_entities(egs, rank):
+        device = f"cuda:{(rank or 0) % torch.cuda.device_count()}"
+        model.to(device)
+        ner = pipeline("ner", model=model, tokenizer=tokenizer, aggregation_strategy="simple")
         texts = get_value(egs, src_field, ())
         entities_list = []
         for text, results in zip(texts, ner(texts)):
@@ -676,7 +674,7 @@ def tag_entity(ds, **kwargs):
             entities_list.append(entities)
         return {tgt_field: entities_list}
 
-    ds = ds.map(extract_entities, with_indices=True, batched=True, **pop_map_kwargs(kwargs))
+    ds = ds.map(extract_entities, with_rank=True, batched=True, **pop_map_kwargs(kwargs))
     return ds
 
 
