@@ -21,16 +21,16 @@ train_data:
     #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q3Part4_AdjustBoundary_BiasLM/ChunkFiles/
     # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q3Part5_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
     #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q3Part5_AdjustBoundary_BiasLM/ChunkFiles/
-  pre_process:
+  post_process:
     rename_fields:
       mappings:
         text: info.alternative_transcription.display_human_caption_adjusted
 
   tag_entity:
-    src_field: text
+    src_field: info.alternative_transcription.display_human_caption_adjusted
     tgt_field: keywords
     model_path: /root/data/ckp/hf_models/roberta-large-ner-english
-    num_proc: 8
-    batch_size: 4000 # good for 80G A100
+    num_proc: 32
+    batch_size: 1000 # good for 80G A100
   filter_by_keywords:
     min_num: 1
