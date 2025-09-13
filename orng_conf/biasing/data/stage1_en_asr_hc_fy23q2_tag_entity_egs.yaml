@@ -9,8 +9,8 @@ train_data:
   specs:
     # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY22_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
     #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles/
-    - manifest_file: az://orngcresco/data/speech/am_data/en/human_caption/Alignment/FY23Q2_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
-      chunk_path: az://orngcresco/data/speech/am_data/en/human_caption_v2/FY23Q2_AdjustBoundary_BiasLM/ChunkFiles/
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q2_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q2_AdjustBoundary_BiasLM/ChunkFiles/
     # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q3Part1_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
     #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q3Part1_AdjustBoundary_BiasLM/ChunkFiles/
     # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q3Part2_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
@@ -29,7 +29,7 @@ train_data:
   tag_entity:
     src_field: info.alternative_transcription.display_human_caption_adjusted
     tgt_field: keywords
-    model_path: /root/data/ckp/hf_models/roberta-large-ner-english
+    model_path: az://orngwus2cresco/data/boren/data/ckp/hf_models/roberta-large-ner-english
     num_proc: 32
     batch_size: 1000 # good for 80G A100
   filter_by_keywords:

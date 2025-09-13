@@ -8,7 +8,6 @@ import random
 import blobfile as bf
 import pandas as pd
 import string
-from transformers import pipeline
 from pathlib import Path
 from datasets import load_dataset, concatenate_datasets, Dataset
 from bs4 import BeautifulSoup
@@ -644,10 +643,11 @@ def tag_entity(ds, **kwargs):
     assert model_path is not None, "model_path must be set for NER model"
     num_actors = kwargs.get("num_proc", None) or num_gpus()
     bs = kwargs.get("batch_size", 1000)
-    print(f"Using NER model: {model_path} with {num_actors} actors, {bs} batch size")
+    local_model_path = cache_dir(model_path)
+    print(f"Using NER model: {model_path} [{local_model_path}] with {num_actors} actors, {bs} batch size")
     ds = ner_ds(
         ds=ds,
-        model_id=model_path,
+        model_id=local_model_path,
         src_field=src_field,
         tgt_field=tgt_field,
         bs=bs,
