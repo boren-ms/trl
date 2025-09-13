@@ -27,8 +27,11 @@ def storage_account(region=None):
 
 
 @cached(cache=FIFOCache(maxsize=100))
-def azure_storage_options(account=None, region=None):
-    account = account or storage_account(region)
+def azure_storage_options(account=None):
+    default_account = storage_account()
+    account = account or default_account
+    if account != default_account:
+        print(f"Warning: Using different storage account [{account}] than cluster account [{default_account}].")
     client_id = os.getenv("AZURE_CLIENT_ID")
     client_secret = os.getenv("AZURE_CLIENT_SECRET")
     tenant_id = os.getenv("AZURE_TENANT_ID")
@@ -43,17 +46,27 @@ def azure_storage_options(account=None, region=None):
 
 
 @cached(cache=FIFOCache(maxsize=100))
-def azure_fs(account=None, region=None):
-    options = azure_storage_options(account=account, region=region)
+def azure_fs(account=None):
+    options = azure_storage_options(account=account)
     return fsspec.filesystem("az", **options)
 
 
-def get_fs_path(path, account=None, region=None):
+def get_fs_path(path, account=None):
     url = urllib.parse.urlparse(path)
     if url.scheme != "az":
         return fsspec.filesystem("file"), path
-    fs = azure_fs(account=account, region=region)
+    account = account or url.netloc
+    fs = azure_fs(account=account)
     return fs, url.path
+
+
+def get_path_with_options(path, account=None):
+    url = urllib.parse.urlparse(path)
+    if url.scheme != "az":
+        return path, None
+    account = account or url.netloc
+    options = azure_storage_options(account=account)
+    return url.path, options
 
 
 # %%
@@ -64,7 +77,9 @@ if __name__ == "__main__":
     print(fs.exists(path))
     print(fs.ls(path))
     # %%
-    ds_path = "az://data/boren/data/cache_datasets/hcv2_sc3k_fn1/"
+    ds_path = "az://orngwus2cresco/data/boren/data/cache_datasets/hcv2_sc3k_fn1/"
+
     from datasets import load_from_disk
 
-    ds = load_from_disk(ds_path, storage_options=azure_storage_options())
+    relpath, options = get_path_with_options(ds_path)
+    ds = load_from_disk(relpath, storage_options=options)
