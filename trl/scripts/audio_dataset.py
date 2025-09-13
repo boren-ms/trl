@@ -21,6 +21,7 @@ from trl.scripts.ner_dataset import ner_ds
 from trl.scripts.chunk_dataset import get_chunk_manager, create_chunk_datasets, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
+from storage_utils import get_path_with_options
 
 prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
 
@@ -76,18 +77,10 @@ def jsonl_dataset(jsonl_paths, **kwargs):
     """Load a JSONL dataset from the specified paths."""
 
     data_files = [jsonl_paths] if isinstance(jsonl_paths, str) else jsonl_paths
-    data_files = [str(file_path) for file_path in data_files]
-    options = {}
-    url = urllib.parse.urlparse(data_files[0])
-    if url.scheme == "az":  # blobfile
-        account_name = url.netloc
-        options = {
-            "account_name": account_name,
-            "tenant_id": os.environ.get("AZURE_TENANT_ID"),
-            "client_id": os.environ.get("AZURE_CLIENT_ID"),
-            "client_secret": os.environ.get("AZURE_CLIENT_SECRET"),
-        }
-        data_files = [file.replace(f"{account_name}/", "") for file in data_files]
+    data_files = [get_path_with_options(str(file_path)) for file_path in data_files]
+
+    options = data_files[0][1]
+    data_files = [file[0] for file in data_files]
     ds = load_dataset("json", data_files=data_files, split="train", storage_options=options)
     ds = stream_shuffle(ds, **kwargs)
     return ds
@@ -204,27 +197,17 @@ def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=Non
 
 def load_tsv(tsv_file, **kwargs):
     """Load a TSV file into a dataset."""
-    url = urllib.parse.urlparse(tsv_file)
-    options = {}
-    if url.scheme == "az":  # blobfile
-        options = {
-            "account_name": url.netloc,
-            "tenant_id": os.environ.get("AZURE_TENANT_ID"),
-            "client_id": os.environ.get("AZURE_CLIENT_ID"),
-            "client_secret": os.environ.get("AZURE_CLIENT_SECRET"),
-        }
-        # update remote path
-        tsv_file = f"{url.scheme}:/{url.path}"
-
+    relpath, options = get_path_with_options(tsv_file)
     ds = load_dataset(
         "csv",
-        data_files=tsv_file,
+        data_files=relpath,
         split="train",
         delimiter="\t",
         column_names=["id", "paths", "msgs"],
         storage_options=options,
     )
-    dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
+    # dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
+    dir_path = None  # TODO: may introduce bugs, fix it later
     print("DATA DIR:", dir_path)
     ds = ds.map(lambda x: {"dir": dir_path}, **pop_map_kwargs(kwargs))
     return ds
@@ -725,12 +708,21 @@ def load_cached_ds(cache_path):
     if not cache_path:
         return None
     try:
-        local_path = cache_dir(str(cache_path))
-        rank_print(f"Loading cached dataset from {cache_path}[{local_path}]")
-        return Dataset.load_from_disk(local_path)
+        # local_path = cache_dir(str(cache_path))
+        rel_path, options = get_path_with_options(str(cache_path))
+        rank_print(f"Loading cached dataset from {cache_path}")
+        return Dataset.load_from_disk(rel_path, storage_options=options)
     except Exception as e:
         rank_print(f"Cache not found or invalid at {cache_path}. Error: {e}")
         return None
+
+
+def save_cached_ds(ds, cache_path):
+    if not cache_path:
+        return
+    rank_print(f"Saving dataset to cache at {cache_path}")
+    rel_path, options = get_path_with_options(str(cache_path))
+    ds.save_to_disk(rel_path, storage_options=options)
 
 
 def create_audio_dataset(**kwargs):
@@ -758,9 +750,7 @@ def create_audio_dataset(**kwargs):
         else:
             raise ValueError(f"Unknown dataset name: {ds_name}")
         ds = augment(ds, **kwargs)
-        if cache_path:
-            rank_print(f"Saving dataset to cache at {cache_path}")
-            ds.save_to_disk(cache_path)
+        save_cached_ds(ds, cache_path)
     return ds
 
 
