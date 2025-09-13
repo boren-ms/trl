@@ -20,7 +20,7 @@ from trl.scripts.ner_dataset import ner_ds
 from trl.scripts.chunk_dataset import get_chunk_manager, create_chunk_datasets, to_list
 from trl.data_utils import sf_read
 from trl.trainer.utils import rank_print
-from storage_utils import get_path_with_options
+from trl.scripts.storage_utils import get_path_with_options
 
 prompt_format = "<|user|><|audio_1|>{}<|end|><|assistant|>"
 
