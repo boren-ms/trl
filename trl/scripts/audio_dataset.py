@@ -79,8 +79,8 @@ def jsonl_dataset(jsonl_paths, **kwargs):
     data_files = [get_path_with_options(str(file_path)) for file_path in data_files]
 
     options = data_files[0][1]
-    data_files = [file[0] for file in data_files]
-    ds = load_dataset("json", data_files=data_files, split="train", storage_options=options)
+    fs_files = [file[0] for file in data_files]
+    ds = load_dataset("json", data_files=fs_files, split="train", storage_options=options)
     ds = stream_shuffle(ds, **kwargs)
     return ds
 
@@ -196,19 +196,17 @@ def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=Non
 
 def load_tsv(tsv_file, **kwargs):
     """Load a TSV file into a dataset."""
-    relpath, options = get_path_with_options(tsv_file)
+    fs_path, options = get_path_with_options(tsv_file)
     ds = load_dataset(
         "csv",
-        data_files=relpath,
+        data_files=fs_path,
         split="train",
         delimiter="\t",
         column_names=["id", "paths", "msgs"],
         storage_options=options,
     )
     # dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
-    dir_path = None  # TODO: may introduce bugs, fix it later
-    print("DATA DIR:", dir_path)
-    ds = ds.map(lambda x: {"dir": dir_path}, **pop_map_kwargs(kwargs))
+    ds = ds.map(lambda x: {"dir": str(Path(tsv_file).parent)}, **pop_map_kwargs(kwargs))
     return ds
 
 
@@ -709,9 +707,9 @@ def load_cached_ds(cache_path):
         return None
     try:
         # local_path = cache_dir(str(cache_path))
-        rel_path, options = get_path_with_options(str(cache_path))
+        fs_path, options = get_path_with_options(str(cache_path))
         rank_print(f"Loading cached dataset from {cache_path}")
-        return Dataset.load_from_disk(rel_path, storage_options=options)
+        return Dataset.load_from_disk(fs_path, storage_options=options)
     except Exception as e:
         rank_print(f"Cache not found or invalid at {cache_path}. Error: {e}")
         return None
