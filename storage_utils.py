@@ -27,7 +27,7 @@ def storage_account(region=None):
 
 
 @cached(cache=FIFOCache(maxsize=100))
-def storage_options(account=None, region=None):
+def azure_storage_options(account=None, region=None):
     account = account or storage_account(region)
     client_id = os.getenv("AZURE_CLIENT_ID")
     client_secret = os.getenv("AZURE_CLIENT_SECRET")
@@ -44,7 +44,7 @@ def storage_options(account=None, region=None):
 
 @cached(cache=FIFOCache(maxsize=100))
 def azure_fs(account=None, region=None):
-    options = storage_options(account=account, region=region)
+    options = azure_storage_options(account=account, region=region)
     return fsspec.filesystem("az", **options)
 
 
@@ -63,4 +63,8 @@ if __name__ == "__main__":
     fs, path = get_fs_path(az_file)
     print(fs.exists(path))
     print(fs.ls(path))
-# %%
+    # %%
+    ds_path = "az://data/boren/data/cache_datasets/hcv2_sc3k_fn1/"
+    from datasets import load_from_disk
+
+    ds = load_from_disk(ds_path, storage_options=azure_storage_options())
