@@ -65,7 +65,8 @@ def get_path_with_options(path, account=None):
         return path, None
     account = account or url.netloc
     options = azure_storage_options(account=account)
-    return url.path, options
+    fs_path = f"{url.scheme}://{url.path.lstrip('/')}"
+    return fs_path, options
 
 
 # %%
