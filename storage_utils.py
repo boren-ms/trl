@@ -28,17 +28,16 @@ def storage_account(region=None):
 
 @cached(cache=FIFOCache(maxsize=100))
 def azure_storage_options(account=None):
-    default_account = storage_account()
-    account = account or default_account
-    if account != default_account:
-        print(f"Warning: Using different storage account [{account}] than cluster account [{default_account}].")
+    cluster_account = storage_account()
+    if account != cluster_account:
+        print(f"Warning: Using cluster account [{cluster_account}], rather than provided account [{account}]")
     client_id = os.getenv("AZURE_CLIENT_ID")
     client_secret = os.getenv("AZURE_CLIENT_SECRET")
     tenant_id = os.getenv("AZURE_TENANT_ID")
     if client_id is None or client_secret is None or tenant_id is None:
         raise ValueError("AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID must be set in environment variables.")
     return {
-        "account_name": account,
+        "account_name": cluster_account,
         "client_id": client_id,
         "client_secret": client_secret,
         "tenant_id": tenant_id,
