@@ -9,18 +9,18 @@ train_data:
   specs:
     - manifest_file: /datablob1/am_data/en/human_caption/Alignment/FY22_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
       chunk_path: /datablob1/am_data/en/human_caption_v2/FY22_AdjustBoundary_BiasLM/ChunkFiles/
-    # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q2_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
-    #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q2_AdjustBoundary_BiasLM/ChunkFiles/
-    # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q3Part1_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
-    #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q3Part1_AdjustBoundary_BiasLM/ChunkFiles/
-    # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q3Part2_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
-    #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q3Part2_AdjustBoundary_BiasLM/ChunkFiles/
-    # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q3Part3_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
-    #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q3Part3_AdjustBoundary_BiasLM/ChunkFiles/
-    # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q3Part4_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
-    #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q3Part4_AdjustBoundary_BiasLM/ChunkFiles/
-    # - manifest_file: az://orngwus2cresco/data/speech/am_data/en/human_caption/Alignment/FY23Q3Part5_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
-    #   chunk_path: az://orngwus2cresco/data/speech/am_data/en/human_caption_v2/FY23Q3Part5_AdjustBoundary_BiasLM/ChunkFiles/
+    # - manifest_file: az://data/speech/am_data/en/human_caption/Alignment/FY23Q2_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+    #   chunk_path: az://data/speech/am_data/en/human_caption_v2/FY23Q2_AdjustBoundary_BiasLM/ChunkFiles/
+    # - manifest_file: az://data/speech/am_data/en/human_caption/Alignment/FY23Q3Part1_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+    #   chunk_path: az://data/speech/am_data/en/human_caption_v2/FY23Q3Part1_AdjustBoundary_BiasLM/ChunkFiles/
+    # - manifest_file: az://data/speech/am_data/en/human_caption/Alignment/FY23Q3Part2_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+    #   chunk_path: az://data/speech/am_data/en/human_caption_v2/FY23Q3Part2_AdjustBoundary_BiasLM/ChunkFiles/
+    # - manifest_file: az://data/speech/am_data/en/human_caption/Alignment/FY23Q3Part3_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+    #   chunk_path: az://data/speech/am_data/en/human_caption_v2/FY23Q3Part3_AdjustBoundary_BiasLM/ChunkFiles/
+    # - manifest_file: az://data/speech/am_data/en/human_caption/Alignment/FY23Q3Part4_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+    #   chunk_path: az://data/speech/am_data/en/human_caption_v2/FY23Q3Part4_AdjustBoundary_BiasLM/ChunkFiles/
+    # - manifest_file: az://data/speech/am_data/en/human_caption/Alignment/FY23Q3Part5_AdjustBoundary_BiasLM_alignment/file_set_with_hc_v2_verbatim_topic.json
+    #   chunk_path: az://data/speech/am_data/en/human_caption_v2/FY23Q3Part5_AdjustBoundary_BiasLM/ChunkFiles/
   pre_process:
     rename_fields:
       mappings:
