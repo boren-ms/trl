@@ -23,6 +23,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Optional, Union
 from pathlib import Path
+from functools import lru_cache
 import yaml
 from transformers import HfArgumentParser
 from transformers.hf_argparser import DataClass, DataClassType
@@ -291,6 +292,7 @@ def run_cmd(cmd, check=True):
     return ret
 
 
+@lru_cache(maxsize=None)
 def cache_dir(remote_path, local_path=None):
     """Sync a directory from remote to local."""
     if not remote_path.startswith("az://"):
