@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# report_gpu.py
 import torch
 import time
 import fire
@@ -30,6 +33,9 @@ def main(interval=3600, count=10000):
     while True:
         print(f"\n--- GPU Info Report at {time.strftime('%Y-%m-%d %H:%M:%S')} ---")
         gpu_info()
+        if not torch.cuda.is_available():
+            print("Exiting since no GPU is available.")
+            break
         print(f"Running {count} linear ops...")
         run_linear(count)
         print(f"Done. Sleeping for {interval} seconds.\n")
