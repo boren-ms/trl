@@ -205,8 +205,8 @@ def load_tsv(tsv_file, **kwargs):
         column_names=["id", "paths", "msgs"],
         storage_options=options,
     )
-    data_dir = fs_path.rsplit("/", 1)[0]  # get the directory of the tsv file, do not use os.path
-    ds = ds.map(lambda x: {"dir": data_dir}, **pop_map_kwargs(kwargs))
+    tsv_dir = tsv_file.rsplit("/", 1)[0]  # get the directory of the tsv file, do not use os.path
+    ds = ds.map(lambda x: {"dir": tsv_dir}, **pop_map_kwargs(kwargs))
     return ds
 
 
