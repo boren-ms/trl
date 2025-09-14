@@ -2,7 +2,8 @@ project_name: biasing_entity
 train_data:
   dataset_name: cached
   cache_path: az://${DATA_STORAGE}/data/boren/data/cache_datasets/stage1_en_asr_hc_tag_entity/
-  num_proc: "auto"
+  num_proc: auto
+  cache_name: auto
   pre_process:
     # num_egs: 300000
     path_map:
