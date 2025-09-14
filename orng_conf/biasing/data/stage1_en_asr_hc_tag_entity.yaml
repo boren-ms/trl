@@ -34,3 +34,9 @@ train_data:
     batch_size: 1000 # good for 80G A100
   # filter_by_keywords:
   #   min_num: 1
+# Dataset({
+#     features: ['audio_chunk', 'text', 'keywords'],
+#     num_rows: 85045981
+# })
+# total 85045981
+# 85.04M
