@@ -16,7 +16,8 @@ save_on_each_node: True
 output_dir: ~/outputs/debug_rare
 # per_device_train_batch_size: 24
 per_device_train_batch_samples: 3
-num_generations: 8
+num_generations: 4
+inject_reference: True
 token_entropy_percentile_threshold: 0.8
 # dataloader_drop_last: True
 

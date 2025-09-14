@@ -1139,7 +1139,7 @@ class GRPOTrainer(Trainer):
             reference = [x["text"]]
             seen_completions = []
             for j, completion in enumerate(x_completions):
-                if completion not in seen_completions:
+                if completion not in seen_completions and j < n_gen - 1:  # not last and not seen
                     seen_completions.append(completion)
                     continue
                 if not reference:
