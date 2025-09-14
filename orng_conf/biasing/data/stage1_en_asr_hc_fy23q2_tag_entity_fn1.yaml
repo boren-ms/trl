@@ -34,3 +34,4 @@ train_data:
     batch_size: 1000 # good for 80G A100
   filter_by_keywords:
     min_num: 1
+# total 14109558 -> 8,241,652 (58%) left.

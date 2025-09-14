@@ -4,3 +4,4 @@ train_data:
     num_proc: 20
     filter_by_keywords:
         min_num: 1
+# total 5221278 -> 3,451,807 (66%) left.
