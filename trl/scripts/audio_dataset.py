@@ -425,7 +425,7 @@ def filter_by_keywords(ds, **kwargs):
         return True
 
     n_egs = len(ds)
-    ds = ds.filter(is_enough_keywords, **pop_filter_kwargs(kwargs))
+    ds = ds.filter(is_enough_keywords, **pop_filter_kwargs(kwargs), desc="Filtering keywords")
     print(f"Filtered dataset: {n_egs} to {len(ds)}")
     return ds
 
