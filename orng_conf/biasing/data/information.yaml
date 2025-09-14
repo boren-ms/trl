@@ -5,3 +5,11 @@ orng_conf/biasing/data/hcv2_fy22_info_tag_fn1.yaml
 orng_conf/biasing/data/stage1_en_asr_hc_fy23q2_tag_entity_fn1.yaml
 # total 14109558 -> 8,241,652 (58%) left.
 # 8.24M left.
+
+stage1: 
+https://dev.azure.com/SpeechLM/MoE/_git/PhiSilicaSpeech?path=/scripts/train/configs/phi3_audio/cascade_encoder_stage1/phi-omni-9L-s1-main-run.yaml
+dataset_spec: 
+    - /datablob1/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc.json            # 627088.36 hours, number of examples: 87.773M, average duration: 25.72s
+    - /datablob1/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc_fy24_400k.json  # 389955.90 hours, number of examples: 54.547M, average duration: 25.74s
+    - /datablob1/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_ht.json            # 210169.48 hours, number of examples: 153.532M, average duration: 4.93s
+    - az://orngwus2cresco/data/speech/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_ht.json
