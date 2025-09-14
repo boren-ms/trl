@@ -38,7 +38,7 @@ train_data:
     src_field: text
     tgt_field: keywords
     model_path: az://orngwus2cresco/data/boren/data/ckp/hf_models/roberta-large-ner-english
-    num_proc: 16
+    num_proc: 8
     batch_size: 1000 # good for 80G A100
   # filter_by_keywords:
   #   min_num: 1
