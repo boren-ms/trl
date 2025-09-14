@@ -205,8 +205,8 @@ def load_tsv(tsv_file, **kwargs):
         column_names=["id", "paths", "msgs"],
         storage_options=options,
     )
-    # dir_path = url._replace(path=str(Path(url.path).parent)).geturl() if url.scheme == "az" else None
-    ds = ds.map(lambda x: {"dir": str(Path(tsv_file).parent)}, **pop_map_kwargs(kwargs))
+    data_dir = fs_path.rsplit("/", 1)[0]  # get the directory of the tsv file, do not use os.path
+    ds = ds.map(lambda x: {"dir": data_dir}, **pop_map_kwargs(kwargs))
     return ds
 
 
