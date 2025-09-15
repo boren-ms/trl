@@ -1,5 +1,4 @@
 # pip install ray[default] transformers datasets torch
-from attrs import field
 import ray
 import torch
 from itertools import chain
@@ -102,16 +101,16 @@ def ner_map(batch, **kwargs):
 if __name__ == "__main__":
     # Example: load your HF dataset
     model_path = "/home/boren/data/ckp/hf_models/roberta-large-ner-english/"
+    # %%
+    pipe = pipeline("ner", model=model_path, aggregation_strategy="simple", device=0, model_kwargs={"torch_dtype": torch.bfloat16})
+    text = "Hugging Face Inc. is a company based in New York City. Its headquarters are in DUMBO, therefore very close to the Manhattan Bridge."
+    outputs = pipe(text)
+    print(outputs)
+    print(join_entities(outputs, text))
+    # %%
     n_actors = 2
     ds = load_dataset("fka/awesome-chatgpt-prompts", split="train")
     ds2 = ner_ds(ds, model_path, n_actors, key="prompt")
-    # ds2 = ds.map(
-    #     ner_map,
-    #     fn_kwargs={"model_path": model_path, "num_actors": n_actors},
-    #     batched=True,
-    #     num_proc=1,
-    #     desc="NER via Ray RPC",
-    # )
     print(ds2)
     print(ds2[0])
 

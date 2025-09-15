@@ -33,11 +33,11 @@ print("First 3 examples:")
 print(ds[:3])
 
 # %%
-# for i, egs in enumerate(ds):
-#     print(f"Example[{i}]:")
-#     print("transcription:", egs["text"])
-#     print("keywords:", egs.get("keywords", "N/A"))
-#     print()
+for i, egs in enumerate(ds):
+    print(f"Example[{i}]:")
+    print("transcription:", egs["text"])
+    print("keywords:", egs.get("keywords", "N/A"))
+    print()
 # %%
 print("Computing word counts for the dataset...")
 word_counts = Counter()
