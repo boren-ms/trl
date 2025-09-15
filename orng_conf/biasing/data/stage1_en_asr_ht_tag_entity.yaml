@@ -3,10 +3,8 @@ train_data:
   # max_chunks: 2
   # max_egs: 30
   # num_proc: 2
-  num_proc: "auto"
-  chunk_types:
-    # [audio info.alternative_transcription.display_human_caption_adjusted]
-    [audio transcription]
+  num_proc: auto
+  chunk_types: [audio, transcription]
   specs:
     # - az://orngwus2cresco/data/speech/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc.json # 627088.36 hours number of examples: 87.773M average duration: 25.72s
     # - az://orngwus2cresco/data/speech/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc_fy24_400k.json # 389955.90 hours number of examples: 54.547M average duration: 25.74s
