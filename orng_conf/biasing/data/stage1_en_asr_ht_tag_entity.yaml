@@ -5,557 +5,557 @@ train_data:
   # num_proc: 2
   num_proc: "auto"
   chunk_types:
-    # [audio, info.alternative_transcription.display_human_caption_adjusted]
-    [audio, transcription]
+    # [audio info.alternative_transcription.display_human_caption_adjusted]
+    [audio transcription]
   specs:
-    # - az://orngwus2cresco/data/speech/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc.json # 627088.36 hours, number of examples: 87.773M, average duration: 25.72s
-    # - az://orngwus2cresco/data/speech/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc_fy24_400k.json # 389955.90 hours, number of examples: 54.547M, average duration: 25.74s
-    # - az://orngwus2cresco/data/speech/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_ht.json # 210169.48 hours, number of examples: 153.532M, average duration: 4.93s
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/EN-IN_LS4M/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/EN-IN_LS4M/,
+    # - az://orngwus2cresco/data/speech/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc.json # 627088.36 hours number of examples: 87.773M average duration: 25.72s
+    # - az://orngwus2cresco/data/speech/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_hc_fy24_400k.json # 389955.90 hours number of examples: 54.547M average duration: 25.74s
+    # - az://orngwus2cresco/data/speech/users/ruchaofan/DataSpecs/mlang_asr_data_2503/en_asr_ht.json # 210169.48 hours number of examples: 153.532M average duration: 4.93s
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/EN-IN_LS4M/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/EN-IN_LS4M/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/EN-IN_LS4M/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-AU/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/en-AU/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-AU/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/en-AU/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-AU/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/LibriSpeech_ASR_CommonVoice/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/LibriSpeech_ASR_CommonVoice/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/LibriSpeech_ASR_CommonVoice/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/LibriSpeech_ASR_CommonVoice/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/LibriSpeech_ASR_CommonVoice/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Xbox_Live/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Xbox_Live/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Xbox_Live/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Xbox_Live/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Xbox_Live/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-NZ/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/en-NZ/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-NZ/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/en-NZ/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-NZ/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Other_Locale/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Other_Locale/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Other_Locale/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Other_Locale/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Other_Locale/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Engineer_Telephony_8kHz/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r8/Engineer_Telephony_8kHz/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Engineer_Telephony_8kHz/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r8/Engineer_Telephony_8kHz/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Engineer_Telephony_8kHz/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/SwitchBoard_Fisher_8kHz/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r8/SwitchBoard_Fisher_8kHz/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/SwitchBoard_Fisher_8kHz/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r8/SwitchBoard_Fisher_8kHz/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/SwitchBoard_Fisher_8kHz/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/SpeechOceanCar/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/SpeechOceanCar/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/SpeechOceanCar/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/SpeechOceanCar/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/SpeechOceanCar/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/EU_80hr/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/EU_80hr/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/EU_80hr/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/EU_80hr/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/EU_80hr/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Engineer_Telephony_EVM_6kHz/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Engineer_Telephony_EVM_6kHz/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Engineer_Telephony_EVM_6kHz/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Engineer_Telephony_EVM_6kHz/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Engineer_Telephony_EVM_6kHz/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Lynda_data/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Lynda_data/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Lynda_data/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Lynda_data/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Lynda_data/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Video_Index/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Video_Index/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Video_Index/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Video_Index/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Video_Index/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/King-ASR-Accents-27/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/King-ASR-Accents-27/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/King-ASR-Accents-27/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/King-ASR-Accents-27/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/King-ASR-Accents-27/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-GB/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/en-GB/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-GB/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/en-GB/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-GB/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Live_accent_data_EN-ZH/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Live_accent_data_EN-ZH/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Live_accent_data_EN-ZH/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Live_accent_data_EN-ZH/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Live_accent_data_EN-ZH/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/HK_Speaker_Live/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/HK_Speaker_Live/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/HK_Speaker_Live/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/HK_Speaker_Live/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/HK_Speaker_Live/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-CA/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/en-CA/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-CA/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/en-CA/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/en-CA/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/MSIT_call_center/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/MSIT_call_center/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/MSIT_call_center/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/MSIT_call_center/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/MSIT_call_center/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Princeton_CT_FF/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Princeton_CT_FF/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Princeton_CT_FF/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Princeton_CT_FF/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Princeton_CT_FF/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Online_Meeting_Training_3_Corpus/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Online_Meeting_Training_3_Corpus/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Online_Meeting_Training_3_Corpus/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/Online_Meeting_Training_3_Corpus/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/Online_Meeting_Training_3_Corpus/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/2000_Connected_Car/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/2000_Connected_Car/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/2000_Connected_Car/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r8/2000_Connected_Car/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r8/2000_Connected_Car/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r9/Videoindex_IS_FY20/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r9/Videoindex_IS_FY20/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r9/Videoindex_IS_FY20/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r9/Videoindex_IS_FY20/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r9/Videoindex_IS_FY20/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-US-8kHZ_en-US_TRAIN/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r9/Apptek-en-US-8kHZ_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-US-8kHZ_en-US_TRAIN/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r9/Apptek-en-US-8kHZ_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-US-8kHZ_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enUS_Train_data_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Txflow_enUS_Train_data_en-US_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enUS_Train_data_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Txflow_enUS_Train_data_en-US_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enUS_Train_data_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enAU_Train_data_en-AU_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Txflow_enAU_Train_data_en-AU_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enAU_Train_data_en-AU_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Txflow_enAU_Train_data_en-AU_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enAU_Train_data_en-AU_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/en-IN_en-IN_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/en-IN_en-IN_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/en-IN_en-IN_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/en-IN_en-IN_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/en-IN_en-IN_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enCA_Train_data_en-CA_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Txflow_enCA_Train_data_en-CA_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enCA_Train_data_en-CA_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Txflow_enCA_Train_data_en-CA_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enCA_Train_data_en-CA_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enGB_Train_data_en-GB_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Txflow_enGB_Train_data_en-GB_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enGB_Train_data_en-GB_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Txflow_enGB_Train_data_en-GB_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Txflow_enGB_Train_data_en-GB_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-US-16kHZ_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Apptek-en-US-16kHZ_en-US_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-US-16kHZ_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r9/Apptek-en-US-16kHZ_en-US_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r9/Apptek-en-US-16kHZ_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Engineer_Telephony_8kHz/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r8/Engineer_Telephony_8kHz/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Engineer_Telephony_8kHz/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r8/Engineer_Telephony_8kHz/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Engineer_Telephony_8kHz/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/SwitchBoard_Fisher_8kHz/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r8/SwitchBoard_Fisher_8kHz/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/SwitchBoard_Fisher_8kHz/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r8/SwitchBoard_Fisher_8kHz/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/SwitchBoard_Fisher_8kHz/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/EN-IN_LS4M/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/EN-IN_LS4M/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/EN-IN_LS4M/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/EN-IN_LS4M/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/EN-IN_LS4M/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-AU/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/en-AU/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-AU/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/en-AU/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-AU/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/LibriSpeech_ASR_CommonVoice/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/LibriSpeech_ASR_CommonVoice/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/LibriSpeech_ASR_CommonVoice/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/LibriSpeech_ASR_CommonVoice/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/LibriSpeech_ASR_CommonVoice/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Xbox_Live/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Xbox_Live/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Xbox_Live/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Xbox_Live/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Xbox_Live/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-NZ/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/en-NZ/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-NZ/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/en-NZ/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-NZ/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/TED_ResNet_Youtube_Channel9_Live_16kHz/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Other_Locale/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Other_Locale/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Other_Locale/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Other_Locale/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Other_Locale/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Cortana10k_Desktop_Mobile_Holographic_IOS_SMD_VS/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/SpeechOceanCar/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/SpeechOceanCar/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/SpeechOceanCar/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/SpeechOceanCar/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/SpeechOceanCar/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/EU_80hr/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/EU_80hr/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/EU_80hr/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/EU_80hr/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/EU_80hr/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Engineer_Telephony_EVM_6kHz/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Engineer_Telephony_EVM_6kHz/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Engineer_Telephony_EVM_6kHz/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Engineer_Telephony_EVM_6kHz/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Engineer_Telephony_EVM_6kHz/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Lynda_data/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Lynda_data/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Lynda_data/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Lynda_data/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Lynda_data/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Video_Index/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Video_Index/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Video_Index/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Video_Index/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Video_Index/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/King-ASR-Accents-27/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/King-ASR-Accents-27/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/King-ASR-Accents-27/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/King-ASR-Accents-27/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/King-ASR-Accents-27/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-GB/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/en-GB/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-GB/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/en-GB/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-GB/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Live_accent_data_EN-ZH/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Live_accent_data_EN-ZH/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Live_accent_data_EN-ZH/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Live_accent_data_EN-ZH/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Live_accent_data_EN-ZH/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/HK_Speaker_Live/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/HK_Speaker_Live/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/HK_Speaker_Live/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/HK_Speaker_Live/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/HK_Speaker_Live/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-CA/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/en-CA/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-CA/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/en-CA/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/en-CA/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/MSIT_call_center/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/MSIT_call_center/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/MSIT_call_center/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/MSIT_call_center/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/MSIT_call_center/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Princeton_CT_FF/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Princeton_CT_FF/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Princeton_CT_FF/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Princeton_CT_FF/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Princeton_CT_FF/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Online_Meeting_Training_3_Corpus/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Online_Meeting_Training_3_Corpus/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Online_Meeting_Training_3_Corpus/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/Online_Meeting_Training_3_Corpus/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/Online_Meeting_Training_3_Corpus/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/2000_Connected_Car/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/2000_Connected_Car/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/2000_Connected_Car/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r8/2000_Connected_Car/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r8/2000_Connected_Car/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r9/Videoindex_IS_FY20/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r9/Videoindex_IS_FY20/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r9/Videoindex_IS_FY20/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r9/Videoindex_IS_FY20/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r9/Videoindex_IS_FY20/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-GB-8kHZ_en-GB_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-US-8kHZ_en-US_TRAIN/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r9/Apptek-en-US-8kHZ_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-US-8kHZ_en-US_TRAIN/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r9/Apptek-en-US-8kHZ_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-US-8kHZ_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enUS_Train_OOCL_CallCenter_FY20Q2-8KHZ_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enUS_Train_data_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Txflow_enUS_Train_data_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enUS_Train_data_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Txflow_enUS_Train_data_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enUS_Train_data_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enAU_Train_data_en-AU_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Txflow_enAU_Train_data_en-AU_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enAU_Train_data_en-AU_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Txflow_enAU_Train_data_en-AU_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enAU_Train_data_en-AU_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/en-IN_en-IN_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/en-IN_en-IN_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/en-IN_en-IN_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/en-IN_en-IN_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/en-IN_en-IN_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-GB-16kHZ_en-GB_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enCA-Videoindex_PT_FY20_en-CA_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enCA_Train_data_en-CA_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Txflow_enCA_Train_data_en-CA_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enCA_Train_data_en-CA_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Txflow_enCA_Train_data_en-CA_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enCA_Train_data_en-CA_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enAU-Videoindex_PT_FY20_en-AU_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enGB_Train_data_en-GB_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Txflow_enGB_Train_data_en-GB_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enGB_Train_data_en-GB_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Txflow_enGB_Train_data_en-GB_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Txflow_enGB_Train_data_en-GB_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enUS-Videoindex_PT_FY20_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/enGB-Videoindex_PT_FY20_en-GB_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/FY21_en-US_MusicBackGround_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-US-16kHZ_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Apptek-en-US-16kHZ_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-US-16kHZ_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r9/Apptek-en-US-16kHZ_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r9/Apptek-en-US-16kHZ_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/Videoindex_IS_FY21_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r10/Videoindex_IS_FY21_en-US_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/Videoindex_IS_FY21_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r10/Videoindex_IS_FY21_en-US_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/Videoindex_IS_FY21_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/TEDLIUM_release_3_16k_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r10/TEDLIUM_release_3_16k_en-US_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/TEDLIUM_release_3_16k_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r10/TEDLIUM_release_3_16k_en-US_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/TEDLIUM_release_3_16k_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_16k/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_16k/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/Apptek_telephony_FY22_8k_en-CN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_16k/r10/Apptek_telephony_FY22_8k_en-CN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/Apptek_telephony_FY22_8k_en-CN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_16k/r10/Apptek_telephony_FY22_8k_en-CN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/Apptek_telephony_FY22_8k_en-CN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/Apptek_telephony_FY22_8k_en-SG/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_16k/r10/Apptek_telephony_FY22_8k_en-SG/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/Apptek_telephony_FY22_8k_en-SG/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_16k/r10/Apptek_telephony_FY22_8k_en-SG/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/Apptek_telephony_FY22_8k_en-SG/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/CommonVoiceCorpus7/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/CommonVoiceCorpus7/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/CommonVoiceCorpus7/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/CommonVoiceCorpus7/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/CommonVoiceCorpus7/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/Vystadial_Voip_16k/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/Vystadial_Voip_16k/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/Vystadial_Voip_16k/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/Vystadial_Voip_16k/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/Vystadial_Voip_16k/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/Videoindex_PT_FY21_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/Videoindex_PT_FY21_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/Videoindex_PT_FY21_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/Videoindex_PT_FY21_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/Videoindex_PT_FY21_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/VoxForge_8k_v2/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r10/VoxForge_8k_v2/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/VoxForge_8k_v2/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_16k/r10/VoxForge_8k_v2/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/VoxForge_8k_v2/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/VoxForge_16k_v3_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/VoxForge_16k_v3_en-US_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/VoxForge_16k_v3_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/VoxForge_16k_v3_en-US_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/VoxForge_16k_v3_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/AAL_region_FY21_en-US_16k_short/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/AAL_region_FY21_en-US_16k_short/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/AAL_region_FY21_en-US_16k_short/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/AAL_region_FY21_en-US_16k_short/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/AAL_region_FY21_en-US_16k_short/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_King-ASR-733_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_King-ASR-733_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_King-ASR-733_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_King-ASR-733_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_King-ASR-733_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_AppTek_FY22H2_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_AppTek_FY22H2_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_King-ASR-680_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_King-ASR-680_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_King-ASR-680_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_King-ASR-680_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_King-ASR-680_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/long_form_disfluency_v2/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-SG_DT_APY200331002_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-SG_DT_APY200331002_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-SG_DT_APY200331002_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-SG_DT_APY200331002_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-SG_DT_APY200331002_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-CN_DT_APY161101010_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-CN_DT_APY161101010_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-CN_DT_APY161101010_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-CN_DT_APY161101010_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-CN_DT_APY161101010_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_DT_Children_APY161101039_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_DT_Children_APY161101039_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_DT_Children_APY161101039_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_DT_Children_APY161101039_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_DT_Children_APY161101039_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_DT_Latin_APY190704001_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_DT_Latin_APY190704001_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_DT_Latin_APY190704001_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_DT_Latin_APY190704001_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_DT_Latin_APY190704001_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-CA_Videoindex_PT_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-CA_Videoindex_PT_FY22_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-CA_Videoindex_PT_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-CA_Videoindex_PT_FY22_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-CA_Videoindex_PT_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-AU_Videoindex_PT_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-AU_Videoindex_PT_FY22_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-AU_Videoindex_PT_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-AU_Videoindex_PT_FY22_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-AU_Videoindex_PT_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-GB_DT_Children_APY161101023_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-GB_DT_Children_APY161101023_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-GB_DT_Children_APY161101023_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-GB_DT_Children_APY161101023_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-GB_DT_Children_APY161101023_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_v3/short_form_fix_disfluency_v2/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/Videoindex_IS_FY21_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r10/Videoindex_IS_FY21_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/Videoindex_IS_FY21_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r10/Videoindex_IS_FY21_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/Videoindex_IS_FY21_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/AppTek_BroadcastEntertainment_FY21_16k_en-UK_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/TEDLIUM_release_3_16k_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r10/TEDLIUM_release_3_16k_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/TEDLIUM_release_3_16k_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r10/TEDLIUM_release_3_16k_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/TEDLIUM_release_3_16k_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/AAL_region_FY21_en-US_16k_long_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_16k/noise_rir/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_16k/noise_rir/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/AppTek_ConversationalCallCenter_FY21_8k_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/Apptek_telephony_FY22_8k_en-CN/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_16k/noise_rir/r10/Apptek_telephony_FY22_8k_en-CN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/Apptek_telephony_FY22_8k_en-CN/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_16k/noise_rir/r10/Apptek_telephony_FY22_8k_en-CN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/Apptek_telephony_FY22_8k_en-CN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/Apptek_telephony_FY22_8k_en-SG/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_16k/noise_rir/r10/Apptek_telephony_FY22_8k_en-SG/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/Apptek_telephony_FY22_8k_en-SG/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_16k/noise_rir/r10/Apptek_telephony_FY22_8k_en-SG/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r10/Apptek_telephony_FY22_8k_en-SG/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/CommonVoiceCorpus7/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/CommonVoiceCorpus7/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/CommonVoiceCorpus7/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/CommonVoiceCorpus7/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/CommonVoiceCorpus7/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/Vystadial_Voip_16k/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/Vystadial_Voip_16k/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/Vystadial_Voip_16k/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/Vystadial_Voip_16k/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/Vystadial_Voip_16k/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/Videoindex_PT_FY21_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/Videoindex_PT_FY21_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/Videoindex_PT_FY21_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/Videoindex_PT_FY21_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/Videoindex_PT_FY21_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/VoxForge_8k_v2/sanity_checked_file_set_16k/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r10/VoxForge_8k_v2/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/VoxForge_8k_v2/sanity_checked_file_set_16k/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_16k/noise_rir/r10/VoxForge_8k_v2/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/VoxForge_8k_v2/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/VoxForge_16k_v3_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/VoxForge_16k_v3_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/VoxForge_16k_v3_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/VoxForge_16k_v3_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/VoxForge_16k_v3_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/AAL_region_FY21_en-US_16k_short/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/AAL_region_FY21_en-US_16k_short/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/AAL_region_FY21_en-US_16k_short/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/AAL_region_FY21_en-US_16k_short/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/AAL_region_FY21_en-US_16k_short/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r10/Edu_KidsDataCollection_16k_en-US_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/Videoindex_IS_FY22_en-US_TRAIN_NONJSON-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_King-ASR-733_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_King-ASR-733_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_King-ASR-733_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_King-ASR-733_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_King-ASR-733_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/Videoindex_IS_FY22_en-GB_TRAIN_NONJSON-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_Public_OnlineMeeting_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_Videoindex_IS_Musicbackground_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Videoindex_IS_Podcast_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_King-ASR-680_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_King-ASR-680_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_King-ASR-680_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_King-ASR-680_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_King-ASR-680_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-AU_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-IN_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-PH_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Public_OnlineMeeting_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_DAI_single-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-US_Videoindex_IS_LiveGaming_FY22_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-AU_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-GB_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-PH_DAI_multiple-speaker-spontaneous_FY22Q4_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form/noise_rir/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/long_form_disfluency_v2/noise_rir/r12/en-CA_AppTek_FY22H2_TRAIN-withseg/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-AU_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-SG_DT_APY200331002_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-SG_DT_APY200331002_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-SG_DT_APY200331002_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-SG_DT_APY200331002_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-SG_DT_APY200331002_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-GB_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-CN_DT_APY161101010_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-CN_DT_APY161101010_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-CN_DT_APY161101010_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-CN_DT_APY161101010_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-CN_DT_APY161101010_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_DT_Children_APY161101039_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_DT_Children_APY161101039_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_DT_Children_APY161101039_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_DT_Children_APY161101039_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_DT_Children_APY161101039_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-AU_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_DT_Latin_APY190704001_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_DT_Latin_APY190704001_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_DT_Latin_APY190704001_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_DT_Latin_APY190704001_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_DT_Latin_APY190704001_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_DAI_single-speaker-scripted_FY22Q4_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-CA_Videoindex_PT_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-CA_Videoindex_PT_FY22_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-CA_Videoindex_PT_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-CA_Videoindex_PT_FY22_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-CA_Videoindex_PT_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-AU_Videoindex_PT_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-AU_Videoindex_PT_FY22_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-AU_Videoindex_PT_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-AU_Videoindex_PT_FY22_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-AU_Videoindex_PT_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_Videoindex_PT_Earningscall_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-US_Videoindex_PT_Podcast_FY22_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-GB_DT_Children_APY161101023_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-GB_DT_Children_APY161101023_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-GB_DT_Children_APY161101023_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-GB_DT_Children_APY161101023_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-GB_DT_Children_APY161101023_TRAIN/ChunkFiles/
-    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json,
-      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/,
+    - manifest_file: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/sanity_checked_file_set/file_set.json
+      chunk_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix/noise_rir/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/
       trans_path: az://orngwus2cresco/data/speech/am_data/en/display_data_prep_aug_v3/short_form_fix_disfluency_v2/noise_rir/r12/en-CA_Videoindex_PT_Musicbackground_FY22_TRAIN/ChunkFiles/
 
   # pre_process:
