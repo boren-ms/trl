@@ -12,10 +12,11 @@
             "justMyCode": false,
             "console": "integratedTerminal",
             "args": [
-                "--metric",
-                "metric_vllm",
-                "search",
-                "grpo_ls_m1000_p9_n10_seed_e2_t12_simple_err_lora",
+                "orng_conf/biasing/data/stage1_en_asr_hc_tag_entity_local.yaml"
+                // "--metric",
+                // "metric_vllm",
+                // "search",
+                // "grpo_ls_m1000_p9_n10_seed_e2_t12_simple_err_lora",
             ]
         },
         {

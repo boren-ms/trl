@@ -1,9 +1,10 @@
 train_data:
   dataset_name: chunk
-  max_chunks: 40
+  max_chunks: 2
   # max_egs: 30
   # num_proc: 2
-  num_proc: 2
+  num_proc: 4
+  cache_name: "stage1_en_asr_hc_tag_entity_local"
   chunk_types:
     [audio, info.alternative_transcription.display_human_caption_adjusted]
   specs:
