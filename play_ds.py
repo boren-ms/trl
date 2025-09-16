@@ -12,9 +12,10 @@ from trl.scripts.audio_metrics import text_norm
 # conf_path = "orng_conf/biasing/data/ls_sc1k_fr01.yaml"
 # conf_path = "orng_conf/biasing/data/hcv2_sc3k_fn1.yaml"
 conf_path = "orng_conf/biasing/data/stage1_en_asr_hc_tag_entity_local.yaml"
+# conf_path = "orng_conf/biasing/rare/grpo_rare_hc_tag_entity_cache_zero_e1_bp8_ref_fn1.yaml"
 conf_path = Path(conf_path)
 conf = yaml.safe_load(conf_path.read_text())["train_data"]
-conf.pop("filter_by_keywords", None)
+# conf.pop("filter_by_keywords", None)
 # conf["max_egs"] = 1000
 # conf["max_chunks"] = 2
 print("Config:")
@@ -31,13 +32,7 @@ print("Got dataset info")
 print(ds)
 print("First 3 examples:")
 print(ds[:3])
-
 # %%
-for i, egs in enumerate(ds):
-    print(f"Example[{i}]:")
-    print("transcription:", egs["text"])
-    print("keywords:", egs.get("keywords", "N/A"))
-    print()
 # %%
 print("Computing word counts for the dataset...")
 word_counts = Counter()
@@ -45,7 +40,6 @@ total_words = 0
 keywords_counts = Counter()
 total_keywords = 0
 word_counts_per_example = []
-
 # num_egs = len(ds) if ds._length is not None else 0
 num_egs = 0
 for egs in ds:
@@ -61,9 +55,6 @@ for egs in ds:
     total_keywords += len(keywords)
     num_egs += 1
 
-num_unique_words = len(word_counts)
-avg_words_per_example = total_words / num_egs if num_egs else 0
-# %%
 sorted_counts = sorted(word_counts_per_example)
 n = len(sorted_counts)
 median_words = sorted_counts[n // 2]
@@ -72,12 +63,24 @@ with open(word_cnt_path, "w", encoding="utf-8") as f:
     for word, count in word_counts.most_common():
         f.write(f"{word} {count}\n")
 
+keyword_cnt_path = conf_path.with_suffix(".kwd_cnt.txt")
+with open(keyword_cnt_path, "w", encoding="utf-8") as f:
+    for word, count in keywords_counts.most_common():
+        f.write(f"{word} {count}\n")
+
 info_dict = {
     "num_egs": num_egs,
-    "num_unique_words": num_unique_words,
-    "avg_words_per_example": avg_words_per_example,
+    "total_words": total_words,
+    "num_unique_words": len(word_counts),
+    "avg_words_per_example": total_words / num_egs if num_egs else 0,
     "median_words": median_words,
     "word_count_file": str(word_cnt_path),
+    "total_keywords": total_keywords,
+    "num_unique_keywords": len(keywords_counts),
+    "avg_keywords_per_example": total_keywords / num_egs if num_egs else 0,
+    "keyword_count_file": str(keyword_cnt_path),
+    "dataset_info": str(ds),
+    "ds_first_3_examples": str(ds[:3]),
 }
 
 info_file_path = conf_path.with_suffix(".info.yaml")
