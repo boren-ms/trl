@@ -445,8 +445,8 @@ def prepare_data(forced=False):
         # "Evaluation/InhouseASR/EWER/en-US-entity-v3",
         "librispeech_biasing/words",
         "librispeech_biasing/ref",
-        # "LibriSpeech/test-clean",
-        # "LibriSpeech/test-other",
+        "LibriSpeech/test-clean",
+        "LibriSpeech/test-other",
         # "LibriSpeech/train-clean-360/115/122944",
     ]
 
