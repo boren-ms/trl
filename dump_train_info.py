@@ -12,15 +12,16 @@ def yaml_print(data, **kwargs):
     print(yaml.dump(data, sort_keys=False, default_flow_style=False), **kwargs)
 
 
-def load_train_ds(conf_path):
+def load_train_ds(conf_path, cache_name=None):
     with open(conf_path, "r", encoding="utf-8") as f:
         conf = yaml.safe_load(f)
     tr_conf = conf.get("train_data", {})
+    if cache_name:
+        tr_conf["cache_name"] = cache_name
     print("Train Config:")
     yaml_print(tr_conf)
     ds = create_audio_dataset(**tr_conf)
-    print("Got dataset info")
-    yaml_print(ds)
+    print(str(ds))
     return ds
 
 
@@ -44,9 +45,9 @@ def write_counts(wd_cnt, wd_path):
     print("Counts written to:", wd_path)
 
 
-def dump_train_ds_info(config):
+def dump_train_ds_info(config, cache_name=None):
     config = Path(config)
-    ds = load_train_ds(config)
+    ds = load_train_ds(config, cache_name=cache_name)
 
     wd_cnt, kwd_cnt = collect_info(ds)
     word_path = config.with_suffix(".words.txt")
