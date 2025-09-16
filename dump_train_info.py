@@ -5,7 +5,6 @@ from collections import Counter
 from datasets import Dataset
 import yaml
 import fire
-from trl.scripts.audio_metrics import text_norm
 from trl.scripts.audio_dataset import create_audio_dataset
 
 
@@ -45,18 +44,18 @@ def write_counts(wd_cnt, wd_path):
     print("Counts written to:", wd_path)
 
 
-def dump_train_ds_info(config_path):
-    config_path = Path(config_path)
-    ds = load_train_ds(config_path)
+def dump_train_ds_info(config):
+    config = Path(config)
+    ds = load_train_ds(config)
 
     wd_cnt, kwd_cnt = collect_info(ds)
-    word_path = config_path.with_suffix(".words.txt")
-    keyword_path = config_path.with_suffix(".keywords.txt")
+    word_path = config.with_suffix(".words.txt")
+    keyword_path = config.with_suffix(".keywords.txt")
     write_counts(wd_cnt, word_path)
     write_counts(kwd_cnt, keyword_path)
 
     info_dict = {
-        "config": str(config_path),
+        "config": str(config),
         "total_samples": len(ds) if isinstance(ds, Dataset) else "unknown",
         "ds_columns": ds.column_names,
         "total_words": sum(wd_cnt.values()),
@@ -70,7 +69,7 @@ def dump_train_ds_info(config_path):
     print("Dataset info:")
     yaml_print(info_dict)
 
-    info_path = config_path.with_suffix(".info.yaml")
+    info_path = config.with_suffix(".info.yaml")
     print("Info written to:", info_path)
     with open(info_path, "w", encoding="utf-8") as f:
         yaml_print(info_dict, file=f)
