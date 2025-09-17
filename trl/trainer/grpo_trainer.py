@@ -607,6 +607,7 @@ class GRPOTrainer(Trainer):
 
         self.use_liger_loss = args.use_liger_loss
         self.loss_type = args.loss_type
+        self.shift_rewards = args.shift_rewards
         self.scale_rewards = args.scale_rewards
         self.mask_truncated_completions = args.mask_truncated_completions
         self.token_entropy_percentile_threshold = args.token_entropy_percentile_threshold
@@ -1434,7 +1435,9 @@ class GRPOTrainer(Trainer):
         # Normalize the rewards to compute the advantages
         mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(num_generations, dim=0)
         std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
-        advantages = rewards - mean_grouped_rewards
+        advantages = rewards
+        if self.shift_rewards:
+            advantages = advantages - mean_grouped_rewards
         if self.scale_rewards:
             advantages = advantages / (std_grouped_rewards + 1e-4)
 

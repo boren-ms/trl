@@ -462,6 +462,10 @@ class GRPOConfig(TrainingArguments):
         default=None,
         metadata={"help": "Weights for each reward function. Must match the number of reward functions. If `None`, all " "rewards are weighted equally with weight `1.0`."},
     )
+    shift_rewards: bool = field(
+        default=True,
+        metadata={"help": "Whether to shift the rewards by subtracting their mean. If `True` (default) "},
+    )
     scale_rewards: bool = field(
         default=True,
         metadata={
