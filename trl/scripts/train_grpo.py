@@ -3,7 +3,7 @@
 from datetime import datetime
 from jiwer import process_words
 import jiwer.transforms as tr
-from trl.scripts.audio_dataset import create_dataset
+from trl.scripts.audio_dataset import create_datasets
 import wandb
 from transformers import AutoModelForCausalLM, AutoProcessor
 from trl import GRPOConfig, GRPOTrainer
@@ -33,10 +33,7 @@ def word_error(ref, hyp):
 def reward_errors(completions, **kwargs):
     """Compute the reward for a list of completions."""
     references = kwargs["text"]
-    return [
-        -word_error(ref, completion[-1]["content"])
-        for completion, ref in zip(completions, references)
-    ]
+    return [-word_error(ref, completion[-1]["content"]) for completion, ref in zip(completions, references)]
 
 
 def init_model(model_id=None):
@@ -70,9 +67,7 @@ def grpo_train(
     wandb.init(project=f"{name}", name=log_name)
     batch_size = batch_size or num_sample
     if batch_size % num_sample != 0:
-        raise ValueError(
-            f"Batch size {batch_size} must be divisible by num_sample {num_sample}"
-        )
+        raise ValueError(f"Batch size {batch_size} must be divisible by num_sample {num_sample}")
     output_dir = output_dir or f"output/{log_name}"
     print(f"Dataset: {dataset}")
     print(f"Output dir: {output_dir}")
@@ -97,7 +92,7 @@ def grpo_train(
         model=model,
         reward_funcs=reward_errors,
         args=training_args,
-        train_dataset=create_dataset(dataset_name=dataset),
+        train_dataset=create_datasets(dataset_name=dataset),
         processing_class=processor,
     )
     print("Training...")

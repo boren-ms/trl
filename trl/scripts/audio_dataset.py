@@ -753,6 +753,21 @@ def create_audio_dataset(**kwargs):
     return ds
 
 
+def create_datasets(config):
+    """Create dataset."""
+    if config is None:
+        return None
+    if isinstance(config, (list, tuple)):
+        datasets = {}
+        for i, cfg in enumerate(config):
+            nickname = cfg.pop("nickname", f"dataset_{i}")
+            datasets[nickname] = create_audio_dataset(**cfg)
+        return datasets
+    elif isinstance(config, dict):
+        return create_audio_dataset(**config)
+    raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
+
+
 # %%
 if __name__ == "__main__":
     # Example usage

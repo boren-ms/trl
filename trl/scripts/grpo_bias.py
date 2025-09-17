@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 from trl import GRPOConfig, GRPOTrainer, TrlParser
 from trl.scripts.audio_metrics import eval_biasing_metrics
-from trl.scripts.shared_utils import init_model, WandbHelper, create_dataset, print_modules, get_latest_valid_checkpoint
+from trl.scripts.audio_dataset import create_datasets
+from trl.scripts.shared_utils import init_model, WandbHelper, print_modules, get_latest_valid_checkpoint
 
 
 @dataclass
@@ -89,8 +90,8 @@ def main(script_args, training_args):
         model=model,
         reward_funcs=reward_functions(script_args.reward_funcs, **reward_func_kwargs),
         args=training_args,
-        train_dataset=create_dataset(script_args.train_data),
-        eval_dataset=create_dataset(script_args.eval_data),
+        train_dataset=create_datasets(script_args.train_data),
+        eval_dataset=create_datasets(script_args.eval_data),
         processing_class=processor,
         compute_metrics=eval_biasing_metrics,
     )

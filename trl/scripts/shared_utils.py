@@ -204,21 +204,6 @@ def print_modules(model, trainable=False, all_rank=False):
     return n_total, n_trainable
 
 
-def create_dataset(config):
-    """Create dataset."""
-    if config is None:
-        return None
-    if isinstance(config, (list, tuple)):
-        datasets = {}
-        for i, cfg in enumerate(config):
-            nickname = cfg.pop("nickname", f"dataset_{i}")
-            datasets[nickname] = create_audio_dataset(**cfg)
-        return datasets
-    elif isinstance(config, dict):
-        return create_audio_dataset(**config)
-    raise ValueError("Unsupported dataset config type. Expected dict or list of dicts.")
-
-
 def human_readable(num):
     """Convert a number to human readable format (K, M, G)."""
     if num >= 1_000_000_000:
