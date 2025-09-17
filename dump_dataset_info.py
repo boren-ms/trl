@@ -5,6 +5,7 @@ from collections import Counter
 from datasets import Dataset
 import yaml
 import fire
+import json
 from trl.scripts.audio_dataset import create_datasets
 
 
@@ -22,7 +23,7 @@ def load_datasets(conf_path, field="train_data", cache_name=None):
         ds_conf["cache_name"] = cache_name
     print("Loading DS:")
     yaml_print(ds_conf)
-    datasets = create_datasets(**ds_conf)
+    datasets = create_datasets(ds_conf)
     if not isinstance(datasets, dict):
         datasets = {field: datasets}
     print("Dataset loaded. Summary:")
@@ -46,16 +47,17 @@ def collect_info(ds):
 
 
 def write_counts(wd_cnt, wd_path):
+    # Save counts as a JSON object: {word: count, ...}, sorted by most common
+    sorted_counts = dict(wd_cnt.most_common())
     with open(wd_path, "w", encoding="utf-8") as f:
-        for word, count in wd_cnt.most_common():
-            f.write(f"{word}\t{count}\n")
+        json.dump(sorted_counts, f, ensure_ascii=False, indent=2)
     print("Counts written to:", wd_path)
 
 
 def dump_ds_info(ds, output_path):
     wd_cnt, kwd_cnt = collect_info(ds)
-    word_path = output_path.with_suffix(".words.txt")
-    keyword_path = output_path.with_suffix(".keywords.txt")
+    word_path = output_path.with_suffix(".words.json")
+    keyword_path = output_path.with_suffix(".keywords.json")
     write_counts(wd_cnt, word_path)
     write_counts(kwd_cnt, keyword_path)
     info_dict = {
@@ -82,7 +84,7 @@ def main(config, field=None, cache_name=None):
     ds_dict = load_datasets(config, field=field, cache_name=cache_name)
     for name, ds in ds_dict.items():
         print(f"Processing dataset: {name}")
-        output_path = config.with_suffix(f".{name}")
+        output_path = config.with_suffix(f".{name}.yaml")
         dump_ds_info(ds, output_path)
 
 

@@ -70,9 +70,18 @@ eval_steps: 10
 per_device_eval_batch_size: 200
 num_eval_generations: 2
 eval_data:
-    - nickname: clean_no
-      dataset_name: ls_bias
-      jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+    - nickname: entity_Gaming_0
+      dataset_name: inhouse_entity
+      src_dir: /home/boren/data/
+      jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    - nickname: entity_Insurance_0
+      dataset_name: inhouse_entity
+      data_dir: /home/boren/data/
+      src_dir: /home/boren/data/
+      jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+    # - nickname: clean_no
+    #   dataset_name: ls_bias
+    #   jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
     #   data_dir: az://orngscuscresco/data/boren/data
 #   bias_key: null # null
 # data_dir: az://${DATA_STORAGE}/data/boren/data

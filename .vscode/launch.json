@@ -12,7 +12,9 @@
             "justMyCode": false,
             "console": "integratedTerminal",
             "args": [
-                "orng_conf/biasing/data/stage1_en_asr_hc_tag_entity_local.yaml"
+                // "orng_conf/biasing/data/stage1_en_asr_hc_tag_entity_local.yaml"
+                "orng_conf/biasing/debug/grpo_rare_debug_local.yaml",
+                "eval_data",
                 // "--metric",
                 // "metric_vllm",
                 // "search",
