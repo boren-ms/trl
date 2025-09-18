@@ -16,6 +16,7 @@ import os
 import textwrap
 import warnings
 import pandas as pd
+import random
 from collections import defaultdict
 from collections.abc import Sized
 from contextlib import nullcontext
@@ -291,6 +292,12 @@ def split_sequence_dict(tensor_dict, num_chunks: int):
             chunks[i][key] = val
 
     return chunks
+
+
+def sample_sequence_dict(tensor_dict, n):
+    l = len(next(tensor for tensor in tensor_dict.values() if isinstance(tensor, torch.Tensor)))
+    indexs = random.sample(range(l), n) if l >= n else random.choices(range(l), k=n)
+    return slice_sequence_dict(tensor_dict, indexs)
 
 
 def slice_sequence_dict(tensor_dict, indexs):
@@ -1062,13 +1069,8 @@ class GRPOTrainer(Trainer):
             if self._step % generate_every == 0 or self._buffered_inputs is None:
                 # self._buffered_inputs=None can occur when resuming from a checkpoint
                 self._log_keywords(generation_batch)
-                generation_batch = self._generate_and_score_completions(generation_batch)
-                # generation_batch = split_pixel_values_by_grid(generation_batch)
-                generation_batch = shuffle_sequence_dict(generation_batch)
-                generation_batches = split_sequence_dict(generation_batch, self.args.steps_per_generation)
-                self._buffered_inputs = generation_batches
-                # self._buffered_inputs = [unsplit_pixel_values_by_grid(batch) for batch in generation_batches]
-            inputs = self._buffered_inputs[self._step % self.args.steps_per_generation]
+                self._buffered_inputs = self._generate_and_score_completions(generation_batch)
+            inputs = sample_sequence_dict(self._buffered_inputs, self.args.per_device_train_batch_size)
             self._step += 1
         else:
             # In evaluation, there is neither batch grouping for generation, nor multiple iterations, hence
@@ -1398,6 +1400,30 @@ class GRPOTrainer(Trainer):
             prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
             prompt_completion_ids = prompt_completion_ids[indexs]
 
+        std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
+        is_std_zero = torch.isclose(std_grouped_rewards, torch.zeros_like(std_grouped_rewards))  # for logging before rewards filtering
+
+        if mode == "train" and self.args.min_reward_std is not None:
+            std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
+            indexs = (std_grouped_rewards >= self.args.min_reward_std).nonzero(as_tuple=True)[0]
+            if not indexs.any():
+                indexs = torch.tensor([0], device=device)
+                rank_print(f"Warning: All reward std are below {self.args.min_reward_std}, keeping one sample.")
+            rewards = rewards[indexs]
+            rewards_per_func = rewards_per_func[indexs]
+            is_eos = is_eos[indexs]
+            completions = [completions[i] for i in indexs]
+            completion_ids = completion_ids[indexs]
+            completion_mask = completion_mask[indexs]
+            completions_text = [completions_text[i] for i in indexs]
+            completion_lengths = completion_lengths[indexs]
+            prompts = [prompts[i] for i in indexs]
+            prompt_ids = prompt_ids[indexs]
+            prompt_mask = prompt_mask[indexs]
+            prompts_text = [prompts_text[i] for i in indexs]
+            prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
+            prompt_completion_ids = prompt_completion_ids[indexs]
+
         # Concatenate prompt_mask with completion_mask for logit computation
         attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B, P+C)
         logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
@@ -1430,7 +1456,6 @@ class GRPOTrainer(Trainer):
         # Compute grouped-wise rewards
         mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
         std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
-        is_std_zero = torch.isclose(std_grouped_rewards, torch.zeros_like(std_grouped_rewards))
 
         # Normalize the rewards to compute the advantages
         mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(num_generations, dim=0)
@@ -1472,7 +1497,8 @@ class GRPOTrainer(Trainer):
         self._metrics[mode]["reward"].append(mean_grouped_rewards.mean().item())
         self._metrics[mode]["reward_std"].append(std_grouped_rewards.mean().item())
         self._metrics[mode]["frac_reward_zero_std"].append(is_std_zero.float().mean().item())
-
+        self._metrics[mode]["keep_ratio"].append(len(prompts) / len(inputs))
+        rank_print(f"Generated {len(prompts)}/{len(inputs)} [{len(prompts) / len(inputs):.1%}] completions")
         # Log prompt and completion texts
         self._textual_logs["prompt"].extend(prompts_text)
         self._textual_logs["completion"].extend(completions_text)

@@ -475,6 +475,10 @@ class GRPOConfig(TrainingArguments):
             "deviation introduces a question-level difficulty bias."
         },
     )
+    min_reward_std: Optional[float] = field(
+        default=None,
+        metadata={"help": "Minimum reward standard deviation."},
+    )
     loss_type: str = field(
         default="bnpo",
         metadata={
