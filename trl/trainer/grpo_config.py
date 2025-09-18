@@ -479,6 +479,10 @@ class GRPOConfig(TrainingArguments):
         default=None,
         metadata={"help": "Minimum reward standard deviation."},
     )
+    reward_range: Optional[tuple[float, float]] = field(
+        default=None,
+        metadata={"help": "Reward range."},
+    )
     loss_type: str = field(
         default="bnpo",
         metadata={

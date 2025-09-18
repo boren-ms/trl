@@ -1381,34 +1381,24 @@ class GRPOTrainer(Trainer):
 
         # Apply weights to each reward function's output and sum
         rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
-
-        if mode == "train" and self.args.generation_scale is not None:
-            indexs, num_generations = self.downsample_by_rewards(rewards)
-            # Downsample the completions and rewards if needed
-            rewards = rewards[indexs]
-            rewards_per_func = rewards_per_func[indexs]
-            is_eos = is_eos[indexs]
-            completions = [completions[i] for i in indexs]
-            completion_ids = completion_ids[indexs]
-            completion_mask = completion_mask[indexs]
-            completions_text = [completions_text[i] for i in indexs]
-            completion_lengths = completion_lengths[indexs]
-            prompts = [prompts[i] for i in indexs]
-            prompt_ids = prompt_ids[indexs]
-            prompt_mask = prompt_mask[indexs]
-            prompts_text = [prompts_text[i] for i in indexs]
-            prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
-            prompt_completion_ids = prompt_completion_ids[indexs]
-
         std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
         is_std_zero = torch.isclose(std_grouped_rewards, torch.zeros_like(std_grouped_rewards))  # for logging before rewards filtering
 
-        if mode == "train" and self.args.min_reward_std is not None:
-            std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
-            indexs = (std_grouped_rewards >= self.args.min_reward_std).nonzero(as_tuple=True)[0]
+        indexs = None
+        if mode == "train":
+            if self.args.generation_scale is not None:
+                indexs, num_generations = self.downsample_by_rewards(rewards)
+            if self.args.min_reward_std is not None:
+                std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
+                indexs = (std_grouped_rewards >= self.args.min_reward_std).nonzero(as_tuple=True)[0]
+            if self.args.reward_range is not None:
+                min_reward, max_reward = self.args.reward_range
+                indexs = ((rewards >= min_reward) & (rewards <= max_reward)).nonzero(as_tuple=True)[0]
+
+        if indexs is not None:
             if not indexs.any():
                 indexs = torch.tensor([0], device=device)
-                rank_print(f"Warning: All reward std are below {self.args.min_reward_std}, keeping one sample.")
+                rank_print("Warning: no sample left, keeping one sample.")
             rewards = rewards[indexs]
             rewards_per_func = rewards_per_func[indexs]
             is_eos = is_eos[indexs]
