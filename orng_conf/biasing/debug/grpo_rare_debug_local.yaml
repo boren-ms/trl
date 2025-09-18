@@ -18,8 +18,9 @@ output_dir: ~/outputs/debug_rare
 per_device_train_batch_samples: 3
 num_generations: 4
 # generation_scale: 2
-# min_reward_std: 0.0001
-reward_range: [-100, 0.00001]
+min_reward_std: 0.0001
+# reward_range: [-100, 0.00001]
+gradient_accumulation_steps: 2
 
 inject_reference: True
 token_entropy_percentile_threshold: 0.8
@@ -31,7 +32,6 @@ temperature: 1.1
 logging_steps: 1
 bf16: True
 gradient_checkpointing: True
-gradient_accumulation_steps: 2
 log_completions: True
 max_prompt_length: 6000
 max_completion_length: 512
