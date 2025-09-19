@@ -678,8 +678,9 @@ class RayNode:
         """Prepare the environment, data, and output on all Ray nodes."""
         results = []
         print("Preparing all nodes...")
-        print("Releasing GPUs...")
-        results += self.async_run(release_gpus)
+        if forced:
+            print("Releasing GPUs...")
+            results += self.async_run(release_gpus)
         print("Preparing environment...")
         results += self.async_run(prepare_env, forced=forced)
         print("Preparing data...")
