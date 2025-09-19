@@ -280,7 +280,11 @@ class GRPOConfig(TrainingArguments):
     )
     inject_reference: bool = field(
         default=False,
-        metadata={"help": "Whether to inject rejection completions during training."},  # This does not work, do not set True.
+        metadata={"help": "Whether to inject rejection completions during training."},
+    )
+    diff_completion_mask: bool = field(
+        default=False,
+        metadata={"help": "Whether to mask out tokens that are the same as the reference."},
     )
     ds3_gather_for_generation: bool = field(
         default=True,

@@ -21,9 +21,9 @@ num_generations: 4
 min_reward_std: 0.0001
 # reward_range: [-100, 0.00001]
 gradient_accumulation_steps: 2
-
-inject_reference: True
-token_entropy_percentile_threshold: 0.8
+diff_completion_mask: True
+# inject_reference: True
+# token_entropy_percentile_threshold: 0.8
 # dataloader_drop_last: True
 
 shift_rewards: False
@@ -33,7 +33,7 @@ logging_steps: 1
 bf16: True
 gradient_checkpointing: True
 log_completions: True
-max_prompt_length: 6000
+max_prompt_length: 1024
 max_completion_length: 512
 #
 # beta: 0.1
@@ -42,7 +42,7 @@ save_steps: 100
 use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
-vllm_gpu_memory_utilization: 0.35
+vllm_gpu_memory_utilization: 0.30
 vllm_imp_ratio_cap: 5
 # use_vllm_lora_update: True # not work yet
 # vllm_server_host: ${VLLM_SERVER_HOST}

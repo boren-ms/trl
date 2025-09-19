@@ -17,6 +17,7 @@ import textwrap
 import warnings
 import pandas as pd
 import random
+import difflib
 from collections import defaultdict
 from collections.abc import Sized
 from contextlib import nullcontext
@@ -91,6 +92,18 @@ logger = logging.get_logger(__name__)
 # What we call a reward function is a callable that takes a list of prompts and completions and returns a list of
 # rewards. When it's a string, it's a model ID, so it's loaded as a pretrained model.
 RewardFunc = Union[str, PreTrainedModel, Callable[[list, list], list[float]]]
+
+
+def mask_diff(completion_ids, ref_ids):
+    output_mask = torch.ones_like(completion_ids)
+    ref_ids = ref_ids.tolist()
+    completion_ids = completion_ids.tolist()
+    for i, ids in enumerate(completion_ids):
+        matcher = difflib.SequenceMatcher(None, ref_ids, ids)
+        for tag, _, _, j1, j2 in matcher.get_opcodes():
+            if tag == "equal":
+                output_mask[i, j1:j2] = 0
+    return output_mask
 
 
 def prepare_vllm_inputs(texts, audios=None):
@@ -1123,7 +1136,7 @@ class GRPOTrainer(Trainer):
         # rewards_per_func = gather(rewards_per_func) # not needed, all in the same process.
         return rewards_per_func
 
-    def _post_process_completions(self, completion_ids, inputs):
+    def _inject_reference(self, completion_ids, inputs):
         """Post-processes the generated completions by grouping them into batches and handling bad cases."""
         if not self.args.inject_reference:
             return completion_ids
@@ -1154,6 +1167,29 @@ class GRPOTrainer(Trainer):
                 completion_ids[i * n_gen + j, n:] = self.processing_class.tokenizer.pad_token_id
 
         return completion_ids
+
+    def _diff_completion_mask(self, completion_ids, inputs, completion_mask=None):
+        """Post-processes the generated completions by grouping them into batches and handling bad cases."""
+        if not self.args.diff_completion_mask:
+            return completion_mask
+
+        if inputs[0].get("text", None) is None:
+            rank_print("No 'text' key found in inputs, skip diff completion mask.")
+            return completion_mask
+
+        n_gen = self.num_generations if self.model.training else self.num_eval_generations
+        new_masks = []
+        for i in range(len(inputs) // n_gen):
+            x = inputs[i * n_gen]
+            x_completion_ids = completion_ids[i * n_gen : (i + 1) * n_gen]
+            x_ref_ids = self.processing_class.tokenizer(x["text"] + "<|end|>", add_special_tokens=True, return_tensors="pt").input_ids[0]
+            new_mask = mask_diff(x_completion_ids, x_ref_ids)
+            new_masks.append(new_mask)
+        output_mask = torch.cat(new_masks, dim=0)
+
+        if completion_mask is not None:
+            output_mask = output_mask & completion_mask
+        return output_mask
 
     def downsample_by_rewards(self, rewards):
         """Downsamples the completions based on the rewards."""
@@ -1293,7 +1329,7 @@ class GRPOTrainer(Trainer):
             if rollout_per_token_logps is not None:
                 rollout_per_token_logps = pad(rollout_per_token_logps).to(device)
             if mode == "train":
-                completion_ids = self._post_process_completions(completion_ids, inputs)
+                completion_ids = self._inject_reference(completion_ids, inputs)
 
             # mask out _AUDIO_SPECIAL_TOKEN_ID if it is present in the completion_ids
             _AUDIO_SPECIAL_TOKEN_ID = 200011  # '<endoftext11>'
@@ -1424,6 +1460,8 @@ class GRPOTrainer(Trainer):
             advantages = advantages - mean_grouped_rewards
         if self.scale_rewards:
             advantages = advantages / (std_grouped_rewards + 1e-4)
+        # get the completion difference mask to reference
+        diff_mask = self._diff_completion_mask(completion_ids, inputs)
 
         # Log the metrics
         if mode == "train":
@@ -1490,9 +1528,17 @@ class GRPOTrainer(Trainer):
             prompts_text = [prompts_text[i] for i in indexs]
             prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
             prompt_completion_ids = prompt_completion_ids[indexs]
+            if diff_mask is not None:
+                diff_mask = diff_mask[indexs]
 
         rank_print(f"Generated {len(prompts)}/{len(inputs)} [{len(prompts) / len(inputs):.1%}] completions")
         self._metrics[mode]["keep_ratio"].append(len(prompts) / len(inputs))
+
+        if diff_mask is not None:
+            diff_completion = diff_mask & completion_mask
+            diff_ratio = diff_completion.sum(1).float() / completion_mask.sum(1).float()
+            self._metrics[mode]["diff_completion_ratio"].append(diff_ratio.mean().item())
+
         # Log prompt and completion texts
         self._textual_logs["prompt"].extend(prompts_text)
         self._textual_logs["completion"].extend(completions_text)
@@ -1511,6 +1557,7 @@ class GRPOTrainer(Trainer):
             "ref_per_token_logps": ref_per_token_logps,
             "rollout_per_token_logps": rollout_per_token_logps,
             "advantages": advantages,
+            "diff_mask": diff_mask,
         }
 
     def compute_liger_loss(self, unwrapped_model, inputs, **kwargs):
@@ -1607,10 +1654,6 @@ class GRPOTrainer(Trainer):
         per_token_loss1 = coef_1 * advantages.unsqueeze(1)
         per_token_loss2 = coef_2 * advantages.unsqueeze(1)
         per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
-        if entropy_mask is not None:
-            per_token_loss = per_token_loss * entropy_mask
-        if self.beta != 0.0:
-            per_token_loss = per_token_loss + self.beta * per_token_kl
 
         if self.args.vllm_imp_ratio_cap is not None:
             logps_diff = torch.exp(old_per_token_logps - inputs["rollout_per_token_logps"])
@@ -1621,6 +1664,15 @@ class GRPOTrainer(Trainer):
             self._metrics[mode]["logps_diff/max"].append(logps_diff.max().item())
             self._metrics[mode]["logps_diff/mean"].append(logps_diff.mean().item())
             self._metrics[mode]["logps_diff/equal_ratio"].append(equal_ratio)
+
+        if entropy_mask is not None:
+            per_token_loss = per_token_loss * entropy_mask
+
+        if (diff_mask := inputs.get("diff_mask", None)) is not None:
+            per_token_loss = per_token_loss * diff_mask
+
+        if self.beta != 0.0:
+            per_token_loss = per_token_loss + self.beta * per_token_kl
 
         if self.loss_type == "grpo":
             loss = ((per_token_loss * completion_mask).sum(-1) / completion_mask.sum(-1).clamp(min=1.0)).mean()
