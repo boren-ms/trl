@@ -17,25 +17,32 @@ model_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_path: /home/boren/data/ckp/hf_models/Phi4-7b-ASR-2506-v2
 # model_path: /home/boren/data/ckp/hf_models/Phi-4-7b-ASR-merged # a lora merged model
 eval_data:
-  - nickname: ls_train_debug_biasing_smp2
-    dataset_name: tsv
-    #   load_audio: True
-    #   streaming: True
-    tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
-    biasing:
-      buffer_size: 100000
-      max_piece_len: 1
-      bias_prob: 1
-      hit_prob: 1
-      miss_prob: 1
-      context_prob: 0.8 # prob for context
-      sample_range: [0, 1000] # all rare words
-      sampling_version: v2
-      hit_ratio: [0.9, 1.0]
-      log_interval: 10000 # print biasing every 10000 samples
-      # common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
-      # common_word_num: 3000
-    # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
+  - nickname: other_1000_th05
+    dataset_name: ls_bias
+    jsonl_path: /home/boren/data/librispeech_biasing/sunit_filter/20250919/test-other.biasing_1000.jsonl.th0.5.jsonl
+    # data_dir: az://orngscuscresco/data/boren/data
+    # bias_key: null # null
+    # bias_key: null # distractors
+    bias_key: distractors
+# - nickname: ls_train_debug_biasing_smp2
+#   dataset_name: tsv
+#   #   load_audio: True
+#   #   streaming: True
+#   tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
+#   biasing:
+#     buffer_size: 100000
+#     max_piece_len: 1
+#     bias_prob: 1
+#     hit_prob: 1
+#     miss_prob: 1
+#     context_prob: 0.8 # prob for context
+#     sample_range: [0, 1000] # all rare words
+#     sampling_version: v2
+#     hit_ratio: [0.9, 1.0]
+#     log_interval: 10000 # print biasing every 10000 samples
+#     # common_word_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
+#     # common_word_num: 3000
+#   # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/asr_train_transcribe.tsv
 # eval_data:
 #   # - nickname: health
 #   #   num_egs: 2

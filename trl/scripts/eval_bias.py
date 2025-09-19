@@ -18,7 +18,8 @@ from vllm import LLM, SamplingParams
 from pathlib import Path
 import blobfile as bf
 from trl.data_utils import load_audio, find_chkps, chkp_index
-from trl.scripts.grpo_bias import init_model, create_dataset, make_parser, WandbHelper
+from trl.scripts.grpo_bias import init_model, make_parser, WandbHelper
+from trl.scripts.audio_dataset import create_datasets
 from trl.scripts.audio_metrics import compute_wers
 from trl.trainer.utils import move_model_to_vllm
 from trl.scripts.chunk.svad import SVadChunker
@@ -419,7 +420,7 @@ def main(args):
     model_path = Path(args.model_path)
     job_name = args.job_name or model_path.parent.stem if model_path.stem.startswith("checkpoint-") else model_path.stem
     model_paths = find_models(args.model_path, args.checkpoints)
-    datasets = create_dataset(args.eval_data)
+    datasets = create_datasets(args.eval_data)
     kwargs = {k: v for k, v in vars(args).items() if k not in ["model_path", "eval_data", "checkpoints", "job_name"]}
 
     for model_path in model_paths:
