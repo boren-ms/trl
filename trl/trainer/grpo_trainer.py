@@ -1462,7 +1462,6 @@ class GRPOTrainer(Trainer):
             if self.args.generation_scale is not None:
                 indexs, num_generations = self.downsample_by_rewards(rewards)
             if self.args.min_reward_std is not None:
-                std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
                 indexs = (std_grouped_rewards >= self.args.min_reward_std).nonzero(as_tuple=True)[0]
             if self.args.reward_range is not None:
                 min_reward, max_reward = self.args.reward_range
