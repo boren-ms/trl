@@ -1381,38 +1381,6 @@ class GRPOTrainer(Trainer):
 
         # Apply weights to each reward function's output and sum
         rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
-        std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
-        is_std_zero = torch.isclose(std_grouped_rewards, torch.zeros_like(std_grouped_rewards))  # for logging before rewards filtering
-
-        indexs = None
-        if mode == "train":
-            if self.args.generation_scale is not None:
-                indexs, num_generations = self.downsample_by_rewards(rewards)
-            if self.args.min_reward_std is not None:
-                std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
-                indexs = (std_grouped_rewards >= self.args.min_reward_std).nonzero(as_tuple=True)[0]
-            if self.args.reward_range is not None:
-                min_reward, max_reward = self.args.reward_range
-                indexs = ((rewards >= min_reward) & (rewards <= max_reward)).nonzero(as_tuple=True)[0]
-
-        if indexs is not None:
-            if not indexs.any():
-                indexs = torch.tensor([0], device=device)
-                rank_print("Warning: no sample left, keeping one sample.")
-            rewards = rewards[indexs]
-            rewards_per_func = rewards_per_func[indexs]
-            is_eos = is_eos[indexs]
-            completions = [completions[i] for i in indexs]
-            completion_ids = completion_ids[indexs]
-            completion_mask = completion_mask[indexs]
-            completions_text = [completions_text[i] for i in indexs]
-            completion_lengths = completion_lengths[indexs]
-            prompts = [prompts[i] for i in indexs]
-            prompt_ids = prompt_ids[indexs]
-            prompt_mask = prompt_mask[indexs]
-            prompts_text = [prompts_text[i] for i in indexs]
-            prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
-            prompt_completion_ids = prompt_completion_ids[indexs]
 
         # Concatenate prompt_mask with completion_mask for logit computation
         attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)  # (B, P+C)
@@ -1446,6 +1414,7 @@ class GRPOTrainer(Trainer):
         # Compute grouped-wise rewards
         mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
         std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
+        is_std_zero = torch.isclose(std_grouped_rewards, torch.zeros_like(std_grouped_rewards))  # for logging before rewards filtering
 
         # Normalize the rewards to compute the advantages
         mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(num_generations, dim=0)
@@ -1487,8 +1456,44 @@ class GRPOTrainer(Trainer):
         self._metrics[mode]["reward"].append(mean_grouped_rewards.mean().item())
         self._metrics[mode]["reward_std"].append(std_grouped_rewards.mean().item())
         self._metrics[mode]["frac_reward_zero_std"].append(is_std_zero.float().mean().item())
-        self._metrics[mode]["keep_ratio"].append(len(prompts) / len(inputs))
+
+        indexs = None
+        if mode == "train":
+            if self.args.generation_scale is not None:
+                indexs, num_generations = self.downsample_by_rewards(rewards)
+            if self.args.min_reward_std is not None:
+                std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
+                indexs = (std_grouped_rewards >= self.args.min_reward_std).nonzero(as_tuple=True)[0]
+            if self.args.reward_range is not None:
+                min_reward, max_reward = self.args.reward_range
+                indexs = ((rewards >= min_reward) & (rewards <= max_reward)).nonzero(as_tuple=True)[0]
+
+        if indexs is not None:
+            if not indexs.any():
+                indexs = torch.tensor([0], device=device)
+                rank_print("Warning: no sample left, keeping one sample.")
+            rewards = rewards[indexs]
+            rewards_per_func = rewards_per_func[indexs]
+            advantages = advantages[indexs]
+            if old_per_token_logps is not None:
+                old_per_token_logps = old_per_token_logps[indexs]
+            if ref_per_token_logps is not None:
+                ref_per_token_logps = ref_per_token_logps[indexs]
+            is_eos = is_eos[indexs]
+            completions = [completions[i] for i in indexs]
+            completion_ids = completion_ids[indexs]
+            completion_mask = completion_mask[indexs]
+            completions_text = [completions_text[i] for i in indexs]
+            completion_lengths = completion_lengths[indexs]
+            prompts = [prompts[i] for i in indexs]
+            prompt_ids = prompt_ids[indexs]
+            prompt_mask = prompt_mask[indexs]
+            prompts_text = [prompts_text[i] for i in indexs]
+            prompt_inputs = slice_sequence_dict(prompt_inputs, indexs)
+            prompt_completion_ids = prompt_completion_ids[indexs]
+
         rank_print(f"Generated {len(prompts)}/{len(inputs)} [{len(prompts) / len(inputs):.1%}] completions")
+        self._metrics[mode]["keep_ratio"].append(len(prompts) / len(inputs))
         # Log prompt and completion texts
         self._textual_logs["prompt"].extend(prompts_text)
         self._textual_logs["completion"].extend(completions_text)
