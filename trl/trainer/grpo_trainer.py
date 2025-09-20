@@ -1467,13 +1467,17 @@ class GRPOTrainer(Trainer):
             else:
                 ref_per_token_logps = None
         # Compute grouped-wise rewards
-        mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
-        std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
+        if self.args.rewards_norm == "group":
+            mean_grouped_rewards = rewards.view(-1, num_generations).mean(dim=1)
+            std_grouped_rewards = rewards.view(-1, num_generations).std(dim=1)
+            mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(num_generations, dim=0)
+            std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
+        elif self.args.rewards_norm == "batch":
+            mean_grouped_rewards = rewards.mean().repeat(rewards.size(0))
+            std_grouped_rewards = rewards.std().repeat(rewards.size(0))
+        else:  # no normalization
+            raise ValueError(f"Unknown rewards_norm: {self.args.rewards_norm}")
         is_std_zero = torch.isclose(std_grouped_rewards, torch.zeros_like(std_grouped_rewards))
-
-        # Normalize the rewards to compute the advantages
-        mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(num_generations, dim=0)
-        std_grouped_rewards = std_grouped_rewards.repeat_interleave(num_generations, dim=0)
         advantages = rewards
         if self.shift_rewards:
             advantages = advantages - mean_grouped_rewards

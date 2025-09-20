@@ -22,6 +22,7 @@ diff_completion_mask: True
 # token_entropy_percentile_threshold: 0.8
 # dataloader_drop_last: True
 rank_rewards: True
+# rewards_norm: batch
 # shift_rewards: False
 # scale_rewards: False
 temperature: 1.1

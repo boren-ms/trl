@@ -470,6 +470,10 @@ class GRPOConfig(TrainingArguments):
         default=False,
         metadata={"help": "Whether to rank the rewards. If `True` (default) "},
     )
+    rewards_norm: str = field(
+        default="group",  # group, batch
+        metadata={"help": "Normalization method for rewards. Can be 'global', 'group' or 'none'."},
+    )
     shift_rewards: bool = field(
         default=True,
         metadata={"help": "Whether to shift the rewards by subtracting their mean. If `True` (default) "},
