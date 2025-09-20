@@ -156,7 +156,7 @@ def chunk_dataset(specs, max_cached_chunk=None, **kwargs):
     return ds
 
 
-def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=None, tag="*", src_dir=None, data_dir=None, **kwargs):
+def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=None, word_bias=False, tag="*", src_dir=None, data_dir=None, **kwargs):
     ds = jsonl_dataset(jsonl_path, **kwargs)
     distractors = read_words(distractor_file)
     shared_entities = read_words(entity_file)
@@ -177,8 +177,12 @@ def entity_dataset(jsonl_path, max_bias=0, entity_file=None, distractor_file=Non
 
         if max_bias > 0 and max_bias < len(entities):
             print(f"Groundtruth words [{len(entities)}] exceed max_bias [{max_bias}], truncating.")
-        bias_words = entities.copy()[:max_bias]
-        bias_words += distractors[: max(0, max_bias - len(bias_words))]
+        bias_entities = entities.copy()[:max_bias]
+        if word_bias:
+            bias_words = set([word for entity in bias_entities for word in entity.split()])  # split entities into words
+        else:
+            bias_words = set(bias_entities)
+        bias_words.update(distractors[: max(0, max_bias - len(bias_words))])
 
         bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
         prompt = get_task_prompt(task="biasing" if bias_str else "asr")

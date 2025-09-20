@@ -17,6 +17,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 0
 
   - nickname: entity_Conversation_Gaming_100
@@ -24,6 +25,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 100
 
   - nickname: entity_Conversation_Gaming_500
@@ -31,6 +33,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 500
 
   - nickname: entity_Conversation_Gaming_1000
@@ -38,6 +41,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 1000
 
   - nickname: entity_Conversation_Insurance_0
@@ -45,6 +49,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 0
 
   - nickname: entity_Conversation_Insurance_100
@@ -52,6 +57,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 100
 
   - nickname: entity_Conversation_Insurance_500
@@ -59,6 +65,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 500
 
   - nickname: entity_Conversation_Insurance_1000
@@ -66,6 +73,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 1000
 
   - nickname: entity_Conversation_K12HigherEdu_0
@@ -73,6 +81,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 0
 
   - nickname: entity_Conversation_K12HigherEdu_100
@@ -80,6 +89,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 100
 
   - nickname: entity_Conversation_K12HigherEdu_500
@@ -87,6 +97,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 500
 
   - nickname: entity_Conversation_K12HigherEdu_1000
@@ -94,6 +105,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 1000
 
   - nickname: entity_Conversation_Retail_0
@@ -101,6 +113,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 0
 
   - nickname: entity_Conversation_Retail_100
@@ -108,6 +121,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 100
 
   - nickname: entity_Conversation_Retail_500
@@ -115,6 +129,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 500
 
   - nickname: entity_Conversation_Retail_1000
@@ -122,6 +137,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 1000
 
   - nickname: entity_Conversation_ScienceTech_0
@@ -129,6 +145,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 0
 
   - nickname: entity_Conversation_ScienceTech_100
@@ -136,6 +153,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 100
 
   - nickname: entity_Conversation_ScienceTech_500
@@ -143,6 +161,7 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 500
 
   - nickname: entity_Conversation_ScienceTech_1000
@@ -150,4 +169,5 @@ eval_data:
     data_dir: /root/data/
     jsonl_path: /root/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/test.jsonl
     distractor_file: /root/data/librispeech_biasing/words/all_rare_words.txt
+    word_bias: True
     max_bias: 1000
