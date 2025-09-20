@@ -1415,6 +1415,9 @@ class GRPOTrainer(Trainer):
 
         # Apply weights to each reward function's output and sum
         rewards = (rewards_per_func * self.reward_weights.to(device).unsqueeze(0)).nansum(dim=1)
+        if self.args.rank_rewards:
+            _, ranks = torch.unique(rewards, sorted=True, return_inverse=True)
+            rewards = ranks.float()
 
         if mode == "train" and self.args.generation_scale is not None:
             indexs, num_generations = self.downsample_by_rewards(rewards)
