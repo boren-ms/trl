@@ -22,13 +22,9 @@ eval_data:
     dataset_name: ls_bias
     jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-other.biasing_1000.jsonl
     bias_key: distractors
-
-  - nickname: ls_other_100_sunit_th05
-    dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/sunit_filter/20250919/test-other.biasing_100.jsonl.th0.5.jsonl
   - nickname: ls_other_2000
     dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing2ref/test-other.biasing_1000.jsonl
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing2ref/test-other.biasing_2000.jsonl
     bias_key: distractors
 
   - nickname: ls_other_100_sunit_th05
