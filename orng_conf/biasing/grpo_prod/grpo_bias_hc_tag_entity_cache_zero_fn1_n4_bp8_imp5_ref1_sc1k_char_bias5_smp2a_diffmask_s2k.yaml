@@ -5,7 +5,7 @@ train_data:
   num_proc: auto
   cache_name: auto
   pre_process:
-    # num_egs: 300000
+    num_egs: 600000 # not all needed # total 85M egs
     path_map:
       field: audio_chunk
       src_part: "az://orngwus2cresco/"
