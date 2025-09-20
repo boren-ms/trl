@@ -19,6 +19,7 @@ eval_data:
     jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
     distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
     max_bias: 0
+    word_bias: True
   - nickname: entity_Gaming_100
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -26,6 +27,7 @@ eval_data:
     jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
     distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
     max_bias: 100
+    word_bias: True
   - nickname: entity_Gaming_500
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -33,6 +35,7 @@ eval_data:
     jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
     distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
     max_bias: 500
+    word_bias: True
   - nickname: entity_Gaming_1000
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -40,6 +43,7 @@ eval_data:
     jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
     distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
     max_bias: 1000
+    word_bias: True
   - nickname: entity_Insurance_0
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -47,6 +51,7 @@ eval_data:
     jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
     distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
     max_bias: 0
+    word_bias: True
   - nickname: entity_Insurance_100
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -54,6 +59,7 @@ eval_data:
     jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
     distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
     max_bias: 100
+    word_bias: True
   - nickname: entity_Insurance_500
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -61,6 +67,7 @@ eval_data:
     jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
     distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
     max_bias: 500
+    word_bias: True
   - nickname: entity_Insurance_1000
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -68,6 +75,7 @@ eval_data:
     jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
     distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
     max_bias: 1000
+    word_bias: True
   # - nickname: entity_K12HigherEdu_0
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -75,6 +83,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 0
+  # word_bias: True
   # - nickname: entity_K12HigherEdu_100
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -82,6 +91,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 100
+  # word_bias: True
   # - nickname: entity_K12HigherEdu_500
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -89,6 +99,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 500
+  # word_bias: True
   # - nickname: entity_K12HigherEdu_1000
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -96,6 +107,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 1000
+  # word_bias: True
   # - nickname: entity_Retail_0
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -103,6 +115,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 0
+  # word_bias: True
   # - nickname: entity_Retail_100
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -110,6 +123,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 100
+  # word_bias: True
   # - nickname: entity_Retail_500
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -117,6 +131,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 500
+  # word_bias: True
   # - nickname: entity_Retail_1000
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -124,6 +139,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 1000
+  # word_bias: True
   # - nickname: entity_ScienceTech_0
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -131,6 +147,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 0
+  # word_bias: True
   # - nickname: entity_ScienceTech_100
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -138,6 +155,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 100
+  # word_bias: True
   # - nickname: entity_ScienceTech_500
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -145,6 +163,7 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 500
+  # word_bias: True
   # - nickname: entity_ScienceTech_1000
   #   dataset_name: inhouse_entity
   #   data_dir: az://${DATA_STORAGE}/data/boren/data/
@@ -152,3 +171,4 @@ eval_data:
   #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/segments.jsonl
   #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
   #   max_bias: 1000
+  # word_bias: True
