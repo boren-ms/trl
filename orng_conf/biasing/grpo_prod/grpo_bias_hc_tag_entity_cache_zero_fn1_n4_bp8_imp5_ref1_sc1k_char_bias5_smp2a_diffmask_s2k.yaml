@@ -1,3 +1,4 @@
+shuffle_dataset: False # required for chunk files
 project_name: biasing_entity
 train_data:
   dataset_name: cached
