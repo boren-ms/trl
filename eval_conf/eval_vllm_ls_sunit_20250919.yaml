@@ -24,7 +24,7 @@ eval_data:
     bias_key: distractors
   - nickname: ls_other_2000
     dataset_name: ls_bias
-    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing2ref/test-other.biasing_2000.jsonl
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/ref/test-other.biasing_2000.jsonl
     bias_key: distractors
 
   - nickname: ls_other_100_sunit_th05
