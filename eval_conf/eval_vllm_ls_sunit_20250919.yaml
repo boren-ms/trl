@@ -1,5 +1,5 @@
 use_vllm: true
-vllm_max_length: 8192 # limited by 7B model
+vllm_max_length: 10240 # limited by 7B model
 batch_size: 128
 generation_config:
   max_new_tokens: 1024
