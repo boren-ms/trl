@@ -2,7 +2,7 @@
 # model_name_or_path: /home/boren/data/ckp/hf_models/phi4_mm_bias
 model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 new_run: True
-reward_funcs: [reward_full_error, reward_bias_error]
+reward_funcs: [reward_full_error_rate]
 reward_func_kwargs:
     tn: simple
     unit: char
@@ -57,14 +57,14 @@ train_data:
     tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
     # cache_name: auto_train
     num_proc: 1
-    add_rare_keywords:
-        common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
-        common_num: 1000
-    filter_by_keywords:
-        min_num: 1
+    # add_rare_keywords:
+    #     common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
+    #     common_num: 1000
+    # filter_by_keywords:
+    #     min_num: 1
     add_prompt:
-        task: rare_asr
-        forced: True
+        task: asr
+        # forced: True
 
 eval_strategy: steps
 eval_on_start: False

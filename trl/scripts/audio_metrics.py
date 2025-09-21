@@ -3,6 +3,7 @@ import re
 from collections import deque, Counter
 from enum import Enum
 from functools import partial
+from itertools import zip_longest
 from whisper_normalizer.english import EnglishTextNormalizer
 from whisper_normalizer.basic import BasicTextNormalizer
 import jiwer.transforms as tr
@@ -470,7 +471,7 @@ def compute_reward_wers(completions, tn=None, unit=None, **kwargs):
     references = kwargs["text"]
     keyword_lists = kwargs.get("keywords", [])
     rewards = []
-    for i, (hyp, ref, keywords) in enumerate(zip(completions, references, keyword_lists)):
+    for i, (hyp, ref, keywords) in enumerate(zip_longest(completions, references, keyword_lists, fillvalue=None)):
         rewards.append(compute_wers([{"id": i, "ref": ref, "keywords": keywords, "hyp": hyp}], tn=tn, unit=unit))
     return rewards
 

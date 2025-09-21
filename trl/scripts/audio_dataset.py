@@ -598,8 +598,9 @@ def add_prompt(ds, **kwargs):
     def add_prompt_fn(egs):
         prompt = egs.get("prompt", None)
         if forced or prompt is None:
-            prompt = get_task_prompt(task=task, rand=rand)
-        return {"prompt": prompt_format.format(prompt)}
+            prompt_txt = get_task_prompt(task=task, rand=rand)
+            prompt = prompt_format.format(prompt_txt)
+        return {"prompt": prompt}
 
     ds = ds.map(add_prompt_fn, **pop_map_kwargs(kwargs))
     return ds
