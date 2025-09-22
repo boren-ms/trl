@@ -89,9 +89,13 @@ def launch_training(script_path, config_file, output_dir, acc_config=None, ray_n
     with open(rank_log_file, "w") as logf:
         logf.write(f"Running {' '.join(cmd)}\n")
     # Optionally, printenv could be logged here
-
+    env = dict(os.environ)
+    timeout = 60 * 60 * 10  # 2 hours
+    env["TORCH_DISTRIBUTED_TIMEOUT"] = str(timeout)
+    env["TORCH_RUN_RDZV_TIMEOUT"] = str(timeout)
+    env["NCCL_COMM_ID_TIMEOUT"] = str(timeout)
     with open(rank_log_file, "a") as logf:
-        process = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT, env=env)
         process.communicate()
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, cmd)
