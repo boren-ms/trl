@@ -4,8 +4,8 @@ model_name_or_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 new_run: True
 reward_funcs: [reward_full_error_rate]
 reward_func_kwargs:
-    tn: simple
-    unit: char
+  tn: simple
+  unit: char
 report_to: [] # no wandb
 learning_rate: 1e-5
 save_only_model: True
@@ -48,23 +48,28 @@ vllm_imp_ratio_cap: 5
 # vllm_server_port: 26500
 
 train_data:
-    dataset_name: tsv
-    # nug_egs: 5000
-    # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
-    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
-    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
-    # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
-    tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
-    # cache_name: auto_train
-    num_proc: 1
-    # add_rare_keywords:
-    #     common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
-    #     common_num: 1000
-    # filter_by_keywords:
-    #     min_num: 1
-    add_prompt:
-        task: asr
-        # forced: True
+  dataset_name: tsv
+  # nug_egs: 5000
+  # tsv_paths: az://${DATA_STORAGE}/data/boren/data/LibriSpeech/debug.tsv
+  # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
+  # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/ls_30k_shuf.tsv
+  # tsv_paths: az://orngscuscresco/data/boren/data/LibriSpeech/debug.tsv
+  tsv_paths: /home/boren/data/LibriSpeech/debug.tsv
+  pre_process:
+    output_egs_limit: 50
+  # cache_name: auto_train
+  num_proc: 1
+  add_rare_keywords:
+    common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
+    common_num: 1000
+  add_prompt:
+    task: asr
+    # forced: True
+  post_process:
+    input_egs_limit: 100
+    filter_by_keywords:
+      min_num: 1
+    output_egs_limit: 40
 
 eval_strategy: steps
 eval_on_start: False
@@ -72,19 +77,19 @@ eval_steps: 10
 per_device_eval_batch_size: 200
 num_eval_generations: 2
 eval_data:
-    - nickname: entity_Gaming_0
-      dataset_name: inhouse_entity
-      src_dir: /home/boren/data/
-      jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-    - nickname: entity_Insurance_0
-      dataset_name: inhouse_entity
-      data_dir: /home/boren/data/
-      src_dir: /home/boren/data/
-      jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-    # - nickname: clean_no
-    #   dataset_name: ls_bias
-    #   jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
-    #   data_dir: az://orngscuscresco/data/boren/data
+  - nickname: entity_Gaming_0
+    dataset_name: inhouse_entity
+    src_dir: /home/boren/data/
+    jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+  - nickname: entity_Insurance_0
+    dataset_name: inhouse_entity
+    data_dir: /home/boren/data/
+    src_dir: /home/boren/data/
+    jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+  # - nickname: clean_no
+  #   dataset_name: ls_bias
+  #   jsonl_path: /home/boren/data/librispeech_biasing/ref/test-clean.biasing_100.jsonl
+  #   data_dir: az://orngscuscresco/data/boren/data
 #   bias_key: null # null
 # data_dir: az://${DATA_STORAGE}/data/boren/data
 # - nickname: other_no

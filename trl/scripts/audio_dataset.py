@@ -535,9 +535,19 @@ def merge_kwargs(*args):
     return merged
 
 
+def limit_ds(ds, egs_limit=None):
+    """Limit the dataset to a maximum number of examples."""
+    if egs_limit is not None and len(ds) > egs_limit:
+        all_rank_print(f"Limiting dataset from {len(ds)} to {egs_limit} examples.")
+        ds = ds.take(egs_limit)
+    return ds
+
+
 def process_ds(ds, **kwargs):
     """Post process the dataset."""
     map_kwargs = pop_map_kwargs(kwargs)
+    if input_egs_limit := kwargs.get("input_egs_limit", None):
+        ds = limit_ds(ds, egs_limit=input_egs_limit)
     ds = stream_shuffle(ds, **kwargs)
     if filter_by_keywords_kwargs := kwargs.get("filter_by_keywords", {}):
         ds = filter_by_keywords(ds, **merge_kwargs(map_kwargs, filter_by_keywords_kwargs))
@@ -553,6 +563,8 @@ def process_ds(ds, **kwargs):
         ds = load_audio(ds, **map_kwargs)
     if kwargs.get("do_shard", False):
         ds = shard_ds(ds, **map_kwargs)
+    if output_egs_limit := kwargs.get("output_egs_limit", None):
+        ds = limit_ds(ds, egs_limit=output_egs_limit)
     return ds
 
 
