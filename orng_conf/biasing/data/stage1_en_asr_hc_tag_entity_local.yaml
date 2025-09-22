@@ -33,6 +33,6 @@ train_data:
     model_path: /home/boren/data/ckp/hf_models/roberta-large-ner-english
     batch_size: 64
     num_proc: 2
-
-  filter_by_keywords:
-    min_num: 1
+  post_process:
+    filter_by_keywords:
+      min_num: 1

@@ -7,8 +7,9 @@ train_data:
     add_rare_keywords:
         common_file: /home/boren/data/librispeech_biasing/words/all_words.count.txt
         common_num: 3000
-    filter_by_keywords:
-        min_ratio: 0.1
+    post_process:
+        filter_by_keywords:
+            min_ratio: 0.1
 # Got dataset info
 # Dataset({
 #     features: ['audio_chunk', 'text', 'keywords'],

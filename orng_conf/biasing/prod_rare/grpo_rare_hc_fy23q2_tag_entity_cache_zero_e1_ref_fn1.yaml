@@ -10,8 +10,9 @@ train_data:
       field: audio_chunk
       src_part: "az://orngwus2cresco/"
       dst_part: "az://${DATA_STORAGE}/"
-  filter_by_keywords:
-    min_num: 1
+  post_process:
+    filter_by_keywords:
+      min_num: 1
   add_prompt:
     task: rare_asr
     forced: True

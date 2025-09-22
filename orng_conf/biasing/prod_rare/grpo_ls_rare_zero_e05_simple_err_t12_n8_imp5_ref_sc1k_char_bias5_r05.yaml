@@ -8,8 +8,9 @@ train_data:
   add_rare_keywords:
     common_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_words.count.txt
     common_num: 1000
-  filter_by_keywords:
-    min_ratio: 0.5
+  post_process:
+    filter_by_keywords:
+      min_ratio: 0.5
 reward_funcs: [reward_full_error, reward_bias_error]
 reward_func_kwargs:
   tn: simple_with_tag

@@ -23,4 +23,5 @@
 # python ./wandb_result.py  --metric eval search 'grpo_ls_m1000_seed_e05_simple_err_t12_n16_bp8_imp5_G1x8|grpo_ls_m1000_seed_e4_simple_err_t12_n8_bp8_imp5_ref_sc1k_char_bias5_smp2a_G2x8|grpo_ls_m1000_seed_e2_simple_err_t12_n8_bp8_imp5_ref_sc1k_char_bias5_smp2a_G2x8|grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_ref_sc1k_char_bias5_smp2a_G2x8|grpo_ls_m1000_seed_e05_simple_err_t12_n8_bp8_imp5_entropy50_G2x8'
 # python ./wandb_result.py --metric metric_vllm search grpo_ls_m1000_zero_e05_simple_err_t12_n8_bp8_imp5_G1x8
 
-python ./wandb_result.py --metric metric_vllm search sft_bias_ls_zero_bias08_sc1k_e05
+# python ./wandb_result.py --metric metric_vllm search sft_bias_ls_zero_bias08_sc1k_e05
+python ./wandb_result.py --project biasing_entity --metric eval search grpo_bias_hc_tag_entity_cache_zero_fn1_n8_bp8_imp5_ref1_sc1k_char_bias5_smp2a_diffmask_s2k_G1x8

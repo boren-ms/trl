@@ -539,6 +539,12 @@ def process_ds(ds, **kwargs):
     """Post process the dataset."""
     map_kwargs = pop_map_kwargs(kwargs)
     ds = stream_shuffle(ds, **kwargs)
+    if filter_by_keywords_kwargs := kwargs.get("filter_by_keywords", {}):
+        ds = filter_by_keywords(ds, **merge_kwargs(map_kwargs, filter_by_keywords_kwargs))
+    if filter_kwargs := kwargs.get("filter", {}):
+        ds = filter_ds(ds, **merge_kwargs(map_kwargs, filter_kwargs))
+    if wer_filter_kwargs := kwargs.get("wer_filter", {}):
+        ds = wer_filter_ds(ds, **merge_kwargs(map_kwargs, wer_filter_kwargs))
     if path_map_kwargs := kwargs.get("path_map", {}):
         ds = path_map(ds, **merge_kwargs(map_kwargs, path_map_kwargs))
     if rename_fields_kwargs := kwargs.get("rename_fields", {}):
@@ -665,10 +671,6 @@ def augment(ds, **kwargs):
     map_kwargs = pop_map_kwargs(kwargs)
     if pre_process_kwargs := kwargs.get("pre_process", {}):
         ds = process_ds(ds, **merge_kwargs(map_kwargs, pre_process_kwargs))
-    if filter_kwargs := kwargs.get("filter", {}):
-        ds = filter_ds(ds, **merge_kwargs(map_kwargs, filter_kwargs))
-    if wer_filter_kwargs := kwargs.get("wer_filter", {}):
-        ds = wer_filter_ds(ds, **merge_kwargs(map_kwargs, wer_filter_kwargs))
     if overlap_prefix_kwargs := kwargs.get("overlap_prefix", {}):
         ds = overlap_prefix(ds, **merge_kwargs(map_kwargs, overlap_prefix_kwargs))
     if context_prefix_kwargs := kwargs.get("context_prefix", {}):
@@ -685,8 +687,6 @@ def augment(ds, **kwargs):
         ds = add_tag_keywords(ds, **merge_kwargs(map_kwargs, add_tag_keywords_kwargs))
     if tag_entity_kwargs := kwargs.get("tag_entity", {}):
         ds = tag_entity(ds, **merge_kwargs(map_kwargs, tag_entity_kwargs))
-    if filter_by_keywords_kwargs := kwargs.get("filter_by_keywords", {}):
-        ds = filter_by_keywords(ds, **merge_kwargs(map_kwargs, filter_by_keywords_kwargs))
     if add_prompt_kwargs := kwargs.get("add_prompt", {}):
         ds = add_prompt(ds, **merge_kwargs(map_kwargs, add_prompt_kwargs))
     if post_process_kwargs := kwargs.get("post_process", {}):
