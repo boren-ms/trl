@@ -6,13 +6,15 @@ train_data:
   num_proc: auto
   cache_name: auto
   pre_process:
-    num_egs: 600000 # not all needed # total 85M egs
+    input_egs_limit: 600000 # input limit
     path_map:
       field: audio_chunk
       src_part: "az://orngwus2cresco/"
       dst_part: "az://${DATA_STORAGE}/"
     filter_by_keywords:
       min_num: 1
+    output_egs_limit: 300000 # output limit
+
   biasing:
     buffer_size: 100000
     max_piece_len: 1
