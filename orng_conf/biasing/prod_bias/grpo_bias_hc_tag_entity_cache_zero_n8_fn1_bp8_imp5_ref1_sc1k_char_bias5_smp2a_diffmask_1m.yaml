@@ -2,9 +2,9 @@ project_name: biasing_entity
 shuffle_dataset: False # required for chunk files
 train_data:
   dataset_name: cached
-  # cache_path: az://${DATA_STORAGE}/data/boren/data/cache_datasets/stage1_en_asr_hc_tag_entity/
+  cache_path: az://${DATA_STORAGE}/data/boren/data/cache_datasets/stage1_en_asr_hc_tag_entity/
   # filter by keywords min_num 1
-  cache_path: az://${DATA_STORAGE}/data/boren/data/cache_datasets/grpo_rare_hc_tag_entity_cache_zero_e1_bp8_ref_fn1_G2x8/
+  # cache_path: az://${DATA_STORAGE}/data/boren/data/cache_datasets/grpo_rare_hc_tag_entity_cache_zero_e1_bp8_ref_fn1_G2x8/
   num_proc: auto
   cache_name: auto
   pre_process:
