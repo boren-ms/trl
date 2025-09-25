@@ -17,19 +17,20 @@ model_path: /home/boren/data/ckp/hf_models/Phi-4-multimodal-instruct
 # model_path: /home/boren/data/ckp/hf_models/Phi4-7b-ASR-2506-v2
 # model_path: /home/boren/data/ckp/hf_models/Phi-4-7b-ASR-merged # a lora merged model
 eval_data:
-  # - nickname: other_1000_th05
-  #   dataset_name: ls_bias
-  #   jsonl_path: /home/boren/data/librispeech_biasing/sunit_filter/20250919/test-other.biasing_1000.jsonl.th0.5.jsonl
-  #   # data_dir: az://orngscuscresco/data/boren/data
-  #   # bias_key: null # null
-  #   # bias_key: null # distractors
-  #   bias_key: distractors
-  - nickname: entity_Gaming_0
-    dataset_name: inhouse_entity
-    jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-    distractor_file: /home/boren/data/librispeech_biasing/words/all_rare_words.txt
-    max_bias: 10
-    word_bias: True
+  - nickname: other_1000_th05
+    dataset_name: ls_bias
+    jsonl_path: /home/boren/data/librispeech_biasing/sunit_filter/20250919/test-other.biasing_1000.jsonl.th0.5.jsonl
+    # data_dir: az://orngscuscresco/data/boren/data
+    # bias_key: null # null
+    # bias_key: null # distractors
+    bias_key: distractors
+    with_gt: True
+  # - nickname: entity_Gaming_0
+  #   dataset_name: inhouse_entity
+  #   jsonl_path: /home/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
+  #   distractor_file: /home/boren/data/librispeech_biasing/words/all_rare_words.txt
+  #   max_bias: 10
+  #   word_bias: True
 # - nickname: ls_train_debug_biasing_smp2
 #   dataset_name: tsv
 #   #   load_audio: True

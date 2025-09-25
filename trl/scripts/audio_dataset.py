@@ -123,7 +123,7 @@ def ls_bias_dataset(jsonl_path, bias_key=None, with_gt=False, tag="*", data_dir=
         """Load audio from a file."""
         bias_words = example.get(bias_key, [])
         gt_words = example.get("ground_truth", [])
-        if not with_gt:
+        if with_gt:
             bias_words = list(set(bias_words) | set(gt_words))
         bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
         prompt = get_task_prompt(task="biasing" if bias_str else "asr")
