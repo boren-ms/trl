@@ -47,3 +47,25 @@ eval_data:
       path_map:
         src_part: /datablob1/users/ruchaofan/Evaluation/WavLLM_Data/DATA/
         dst_part: /root/data/
+  - nickname: ls_other_2000_sunit_th05_mwl2_sort
+    dataset_name: ls_bias
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/sunit_filter/20250919/test-other.biasing_2000.jsonl.th0.5.jsonl
+    bias_key: distractors
+    bias_sort: True
+    min_word_len: 2
+    # with_gt: True
+    post_process:
+      path_map:
+        src_part: /datablob1/users/ruchaofan/Evaluation/WavLLM_Data/DATA/
+        dst_part: /root/data/
+  - nickname: ls_other_2000_sunit_th05_w_gt_mwl2_sort
+    dataset_name: ls_bias
+    jsonl_path: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/sunit_filter/20250919/test-other.biasing_2000.jsonl.th0.5.jsonl
+    bias_key: distractors
+    bias_sort: True
+    min_word_len: 2
+    with_gt: True
+    post_process:
+      path_map:
+        src_part: /datablob1/users/ruchaofan/Evaluation/WavLLM_Data/DATA/
+        dst_part: /root/data/
