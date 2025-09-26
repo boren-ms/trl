@@ -70,10 +70,11 @@ def process(example):
 
 ds = ds.map(process)
 # %%
+n_total = len(ds)
+n_sunit = 0
+n_raw = 0
 for example in ds:
-    diff = example["diff"]
-    if len(diff) == 0:
-        continue
-    print(f"Diff: {diff}")
-
+    n_sunit += len(example["input_words_sunit"])
+    n_raw += len(example["input_words_raw"])
+print(f"Average input words: raw {n_raw/n_total:.2f}, sunit {n_sunit/n_total:.2f}")
 # %%
