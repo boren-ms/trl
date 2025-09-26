@@ -115,7 +115,7 @@ def pop_filter_kwargs(kwargs):
     }
 
 
-def ls_bias_dataset(jsonl_path, bias_key=None, with_gt=False, min_word_len=None, tag="*", data_dir=None, **kwargs):
+def ls_bias_dataset(jsonl_path, bias_key=None, with_gt=False, min_word_len=None, bias_sort=False, tag="*", data_dir=None, **kwargs):
     """Create a dataset from the given split."""
     ds = jsonl_dataset(jsonl_path, **kwargs)
 
@@ -127,6 +127,8 @@ def ls_bias_dataset(jsonl_path, bias_key=None, with_gt=False, min_word_len=None,
             bias_words = list(set(bias_words) | set(gt_words))
         if min_word_len is not None:
             bias_words = [w for w in bias_words if len(w) >= min_word_len]
+        if bias_sort:
+            bias_words = sorted(bias_words)
         bias_str = ", ".join(tag_pieces(bias_words, tag=tag))
         prompt = get_task_prompt(task="biasing" if bias_str else "asr")
         audio_path = update_dir(example["audio_path"], src_dir="/root/data", dst_dir=data_dir)
