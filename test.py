@@ -52,7 +52,10 @@ ds = Dataset.from_pandas(mdf)
 
 # %%
 def extract_words(text):
-    text = text.replace("<|user|><|audio_1|>Transcribe the audio clip into text. Pay extra attention to the following phrases/words. ", "")
+    text = text.replace(
+        "<|user|><|audio_1|>Transcribe the audio clip into text. Pay extra attention to the following phrases/words. ",
+        "",
+    )
     text = text.replace("<|end|><|assistant|>", "")
     return [w.strip().strip("*") for w in text.split(",")]
 
@@ -76,5 +79,24 @@ n_raw = 0
 for example in ds:
     n_sunit += len(example["input_words_sunit"])
     n_raw += len(example["input_words_raw"])
-print(f"Average input words: raw {n_raw/n_total:.2f}, sunit {n_sunit/n_total:.2f}")
+print(f"Average input words: raw {n_raw / n_total:.2f}, sunit {n_sunit / n_total:.2f}")
+# %%
+from pathlib import Path
+from datasets import Dataset
+
+src_path = Path("/home/boren/data/parquet/ls_sc1k_fn1.parquet")
+ds = Dataset.from_parquet(str(src_path))
+
+
+# %%
+def filter_path(example):
+    return "LibriSpeech/train-clean" in example["audio_path"]
+
+
+clean_ds = ds.filter(filter_path)
+# %%
+clean_ds.to_parquet("/home/boren/data/parquet/ls_clean_sc1k_fn1.parquet")
+# %%
+h100_ds = clean_ds.take(100)
+h100_ds.to_parquet("/home/boren/data/parquet/ls_clean_sc1k_fn1_h100.parquet")
 # %%
