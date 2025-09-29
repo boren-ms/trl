@@ -54,8 +54,8 @@ lr_scheduler_type: cosine #cosine
 temperature: 1.2
 output_dir: ./output
 # per_device_train_batch_samples: 2
-per_device_train_batch_size: 16
-num_generations: 8
+per_device_train_batch_size: 12
+num_generations: 4
 # generation_scale: 2
 inject_reference: True
 diff_completion_mask: True
