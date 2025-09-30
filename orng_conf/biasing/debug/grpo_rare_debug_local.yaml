@@ -18,7 +18,7 @@ output_dir: ~/outputs/debug_rare
 per_device_train_batch_samples: 3
 num_generations: 4
 inject_reference: True
-diff_completion_mask: True
+# diff_completion_mask: first # none, all, first
 # token_entropy_percentile_threshold: 0.8
 # dataloader_drop_last: True
 rank_rewards: True
@@ -40,7 +40,7 @@ save_steps: 100
 use_vllm: True
 vllm_mode: colocate
 vllm_tensor_parallel_size: 1
-vllm_gpu_memory_utilization: 0.30
+vllm_gpu_memory_utilization: 0.35
 vllm_imp_ratio_cap: 5
 # use_vllm_lora_update: True # not work yet
 # vllm_server_host: ${VLLM_SERVER_HOST}
