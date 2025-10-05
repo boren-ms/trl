@@ -93,7 +93,7 @@ logger = logging.get_logger(__name__)
 RewardFunc = Union[str, PreTrainedModel, Callable[[list, list], list[float]]]
 
 
-def mask_diff(completion_ids, ref_ids, first_only=False):
+def mask_diff(completion_ids, ref_ids, first_only=False, same=False):
     output_mask = torch.ones_like(completion_ids)
     ref_ids = ref_ids.tolist()
     completion_ids = completion_ids.tolist()
@@ -104,6 +104,8 @@ def mask_diff(completion_ids, ref_ids, first_only=False):
         for tag, _, _, j1, j2 in alignments:
             if tag == "equal":
                 output_mask[i, j1:j2] = 0
+    if same:
+        output_mask = 1 - output_mask
     return output_mask
 
 
@@ -1232,13 +1234,14 @@ class GRPOTrainer(Trainer):
 
     def _diff_completion_mask(self, completion_ids, inputs, completion_mask=None):
         """Post-processes the generated completions by grouping them into batches and handling bad cases."""
-        if self.args.diff_completion_mask not in ("all", "first"):
+        if self.args.diff_completion_mask not in ("all", "first", "same"):
             return completion_mask
 
         if inputs[0].get("text", None) is None:
             rank_print("No 'text' key found in inputs, skip diff completion mask.")
             return completion_mask
         first_only = self.args.diff_completion_mask == "first"
+        mask_same = self.args.diff_completion_mask == "same"
 
         n_gen = self.num_generations if self.model.training else self.num_eval_generations
         new_masks = []
@@ -1250,7 +1253,7 @@ class GRPOTrainer(Trainer):
                 add_special_tokens=True,
                 return_tensors="pt",
             ).input_ids[0]
-            new_mask = mask_diff(x_completion_ids, x_ref_ids, first_only)
+            new_mask = mask_diff(x_completion_ids, x_ref_ids, first_only, mask_same)
             new_masks.append(new_mask)
         output_mask = torch.cat(new_masks, dim=0)
 
