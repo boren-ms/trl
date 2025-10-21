@@ -4,18 +4,17 @@
 import backoff
 import os
 import io
-import copy
 import json
 import logging
 import math
 import struct
-import random
+import random as stdlib_random
 import threading
 import torch
 import torch.distributed as dist
 from typing import Any, Callable, Dict, List, Optional
 import numpy as np
-from numpy import random
+from numpy import random as np_random
 import pandas as pd
 import soundfile as sf
 from torch.utils.data import IterableDataset
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 import warnings
 
-from numpy import uint64, random
+from numpy import uint64
 
 class KenslerPermutation:
     """
@@ -50,7 +49,7 @@ class KenslerPermutation:
 
     def __init__(self, length, seed=0):
         self.length = uint64(length)
-        self.seed = random.default_rng(seed).integers(2**64, dtype=uint64)
+        self.seed = np_random.default_rng(seed).integers(2**64, dtype=uint64)
         self.mask = KenslerPermutation.get_mask(self.length)
 
     def __iter__(self):
@@ -311,7 +310,7 @@ class DatasetSpec:
             target_type = f.read(len(chunk_type.encode())).decode()
             if chunk_type.lower() != target_type.lower():
                 raise ValueError(f"Target type is not expected in {blob_name}, expected {chunk_type}, but got {target_type}")
-            version_number = int.from_bytes(f.read(4), byteorder=ENDIAN)
+            _ = int.from_bytes(f.read(4), byteorder=ENDIAN)  # version_number (unused)
 
             for i in range(chunk_size):
                 example_index = int.from_bytes(f.read(4), byteorder=ENDIAN)
@@ -666,7 +665,7 @@ class _BlobChunkIterableDatasetIterator:
                 "Empty buffer after replenishment. Advance to the next chunks. \
                             Dangerous operations if you uses multiple iter-type data, when only one data is moved to next."
             )
-            self.worker_step_in_epoch += block_size
+            # Skip to next iteration (worker_step_in_epoch will be incremented in the recursive call)
             return next(self)
 
         if example_index >= len(self.example_buffer):
@@ -888,7 +887,7 @@ class ChunkSpeechTextSeq2SeqDataset(IterableDataset):
         Args:
             epoch (int): epoch from which data loading should start
         """
-        random.seed(epoch)
+        stdlib_random.seed(epoch)
         self.audio_dataset.set_epoch(epoch)
 
     def set_state(self, state: Dict[str, Any]):

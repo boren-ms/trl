@@ -951,7 +951,7 @@ def cap_exp(value, cap=-1):
     return torch.exp(torch.clamp(value, max=cap))
 
 
-def print_rich_table(df: pd.DataFrame) -> None:
+def print_rich_table(df: pd.DataFrame, step: Optional[int] = None) -> None:
     if not is_rich_available():
         raise ImportError("The function `print_rich_table` requires the `rich` library. Please install it with `pip install rich`.")
     console = Console()
@@ -968,7 +968,8 @@ def print_rich_table(df: pd.DataFrame) -> None:
         table.add_row(*formatted_cells)
         table.add_section()  # Adds a separator between rows
 
-    panel = Panel(table, expand=False, title=f"Step {step}", border_style="bold white")
+    title = f"Step {step}" if step is not None else "Table"
+    panel = Panel(table, expand=False, title=title, border_style="bold white")
     console.print(panel)
 
 

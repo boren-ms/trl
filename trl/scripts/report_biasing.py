@@ -338,7 +338,7 @@ def main(ref_file, hyp_file, output=False, exp_name=None, chkp_num=None, dataset
         print(f"Logging to wandb for {exp_name}@{chkp_num}")
         dataset = dataset or "default"
         chkp = extract_int(chkp_num, -1)
-        with wandb.init(project="ls_biasing", name=exp_name, id=exp_name, resume="allow") as run:
+        with wandb.init(project="ls_biasing", name=exp_name, id=exp_name, resume="allow"):
             wandb.log(
                 {
                     f"{dataset}/wer": wer.get_wer(),

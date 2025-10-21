@@ -475,7 +475,6 @@ def get_speech_regions(
 
 
 if __name__ == "__main__":
-    import os
     from pathlib import Path
 
     silero_vad = SileroVAD()

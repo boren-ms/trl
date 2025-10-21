@@ -3,8 +3,6 @@
 # %%
 import re
 import os
-import subprocess
-import sys
 import json
 import wandb
 import blobfile as bf
@@ -14,7 +12,6 @@ from transformers.trainer_utils import get_last_checkpoint
 from accelerate import PartialState
 from contextlib import nullcontext
 from trl.trainer.utils import add_adapter_func, rank_print
-from trl.scripts.audio_dataset import create_audio_dataset
 from trl.scripts.utils import get_config_path, cache_dir
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 

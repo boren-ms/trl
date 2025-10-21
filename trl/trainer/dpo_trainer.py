@@ -14,7 +14,6 @@
 
 import inspect
 import os
-import random
 import textwrap
 import warnings
 from collections import defaultdict
@@ -24,8 +23,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Literal, Optional, Union
 
-import pandas as pd
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -51,12 +48,11 @@ from transformers.integrations import (
     is_mlflow_available,
     is_wandb_available,
 )
-from transformers.models.auto.modeling_auto import MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES
 from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_utils import EvalLoopOutput, has_length
 from transformers.utils import is_liger_kernel_available, is_peft_available
 
-from ..data_utils import maybe_apply_chat_template, maybe_extract_prompt, sf_read
+from ..data_utils import load_audio, maybe_apply_chat_template, maybe_extract_prompt, sf_read
 from ..models import create_reference_model, prepare_deepspeed
 from ..models.utils import prepare_fsdp
 from .callbacks import SyncRefModelCallback
@@ -70,7 +66,6 @@ from .utils import (
     flush_right,
     generate_model_card,
     get_comet_experiment_url,
-    log_table_to_comet_experiment,
     pad,
     pad_to_length,
     peft_module_casting_to_bf16,
@@ -94,9 +89,6 @@ if is_liger_kernel_available():
 
 if is_wandb_available():
     import wandb
-
-if is_mlflow_available():
-    import mlflow
 
 
 def shift_tokens_right(input_ids: torch.Tensor, decoder_start_token_id: int) -> torch.Tensor:

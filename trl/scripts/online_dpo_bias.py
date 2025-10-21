@@ -18,7 +18,7 @@ import argparse
 from dataclasses import dataclass, field
 from typing import Optional
 from trl import OnlineDPOConfig, OnlineDPOTrainer, TrlParser
-from trl.scripts.audio_metrics import eval_biasing_metrics, compute_wers
+from trl.scripts.audio_metrics import compute_wers
 from trl.scripts.shared_utils import init_model, WandbHelper, create_dataset, print_modules
 from trl import BasePairwiseJudge
 

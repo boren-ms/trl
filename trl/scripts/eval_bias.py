@@ -18,7 +18,7 @@ from vllm import LLM, SamplingParams
 from pathlib import Path
 import blobfile as bf
 from trl.data_utils import load_audio, find_chkps, chkp_index
-from trl.scripts.grpo_bias import init_model, make_parser, WandbHelper
+from trl.scripts.grpo_bias import init_model, WandbHelper
 from trl.scripts.audio_dataset import create_datasets
 from trl.scripts.audio_metrics import compute_wers
 from trl.trainer.utils import move_model_to_vllm

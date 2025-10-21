@@ -86,6 +86,12 @@ if is_vllm_available():
 if is_wandb_available():
     import wandb
 
+# Import FSDP if available (torch >= 1.12)
+try:
+    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel as FSDP
+except ImportError:
+    FSDP = None
+
 logger = logging.get_logger(__name__)
 
 # What we call a reward function is a callable that takes a list of prompts and completions and returns a list of
