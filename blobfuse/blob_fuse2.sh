@@ -4,6 +4,7 @@
 accounts=(
     tsstd01uks
     tsstd01wus2
+    zettaprod01eus2
     # highperf01eus
 )
 

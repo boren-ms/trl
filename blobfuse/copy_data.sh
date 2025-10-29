@@ -33,9 +33,15 @@ dst_sas=$(get_sas ${dst_storage}_${dst_blob})
 
 # https://tsstd01uks.blob.core.windows.net/amulet/projects/phimm/amlt-results/7261045517.23695-d19a1453-dea3-4d4b-9e82-a60db2f8ce1d/540000/
 
-src_rel_path=am_data/en/data_prep_e2e_R15/human_caption_v2/batch_gpt_post_process/FY22_AdjustBoundary_BiasLM_verbatim/ChunkFiles/
+# Gaming_43k
+# K12_Higher_Education_36k
+# Retail_26k
+# Science_And_Tech_48k
+# Insurance_16k
+tag="Insurance_16k"
+src_rel_path="users/v-zhhon/en-US/chunk_dragon_display/speed_simulate_6chunk_display/${tag}/*"
 # src_rel_path=users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv
-dst_rel_path=~/data/am_data/en/data_prep_e2e_R15/human_caption_v2/batch_gpt_post_process/FY22_AdjustBoundary_BiasLM_verbatim/ChunkFiles/
+dst_rel_path=/home/boren/data/inhouse/entity_data/entity_chunk/${tag}/ChunkFiles
 #train-other-500
 
 
@@ -45,7 +51,7 @@ dst_rel_path=~/data/am_data/en/data_prep_e2e_R15/human_caption_v2/batch_gpt_post
 # "${src_rel_path}/*" \
 # "https://${dst_storage}.blob.core.windows.net/${dst_blob}/${dst_rel_path}?${dst_sas}"
 
-azcopy cp --recursive=true --overwrite=false \
+azcopy cp --recursive=true --overwrite=false --include-pattern "*.audio;*.transcription;*.json"  \
 "https://${src_storage}.blob.core.windows.net/${src_blob}/${src_rel_path}?${src_sas}" \
 ${dst_rel_path}
 
