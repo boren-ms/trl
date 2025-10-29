@@ -33,11 +33,11 @@ dst_sas=$(get_sas ${dst_storage}_${dst_blob})
 
 # https://tsstd01uks.blob.core.windows.net/amulet/projects/phimm/amlt-results/7261045517.23695-d19a1453-dea3-4d4b-9e82-a60db2f8ce1d/540000/
 
-# tag=Gaming_43k
+tag=Gaming_43k
 # tag=K12_Higher_Education_36k
 # tag=Retail_26k
 # tag=Science_And_Tech_48k
-tag=Insurance_16k
+# tag=Insurance_16k
 src_rel_path="users/v-zhhon/en-US/chunk_dragon_display/speed_simulate_6chunk_display/${tag}/base_chunk/*"
 # src_rel_path=users/ruchaofan/wavllm_data/wavllm/converted_path_train_data_4chunk/asr_train_transcribe.tsv
 dst_rel_path=/home/boren/data/inhouse/entity_data/entity_chunk/${tag}/base_chunk/

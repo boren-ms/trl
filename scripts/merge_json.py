@@ -31,6 +31,9 @@ data_dir = Path("/home/boren/data/inhouse/entity_data/entity_chunk")
 
 chunks = ["Insurance_16k", "Gaming_43k", "K12_Higher_Education_36k", "Retail_26k", "Science_And_Tech_48k"]
 for chunk in chunks:
-    chunk_dir = data_dir / chunk / "ChunkFiles"
+    chunk_dir = data_dir / chunk
+    if not chunk_dir.exists():
+        print(f"Chunk directory does not exist: {chunk_dir}")
+        continue
     merge_jsons_in_dir(chunk_dir)
 # %%
