@@ -1,15 +1,25 @@
 [tool.ruff]
-target-version = "py39"
-line-length = 119
-
+line-length = 160
+target-version = "py310"
+fix = true
+select = [
+    "E",
+    "F",
+    "I",   # import sorting
+    "B",
+    "UP",
+]
+[tool.ruff.format]
 [tool.ruff.lint]
+select = ["E", "F", "W", "UP", "B", "T", "C"]
 ignore = [
     "B028", # warning without explicit stacklevel
     "C408", # dict() calls (stylistic)
     "C901", # function complexity
     "E501",
+    "I",
+    "T201", # use of print
 ]
-extend-select = ["E", "F", "I", "W", "UP", "B", "T", "C"]
 
 [tool.ruff.lint.per-file-ignores]
 # Allow prints in auxiliary scripts

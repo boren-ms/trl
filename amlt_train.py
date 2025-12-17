@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """submit a job to AMLT"""
+
 import os
 import subprocess
 from pathlib import Path
 import shortuuid
-from omegaconf import OmegaConf
 import fire
+from omegaconf import OmegaConf
 
 
 def uuid4():
@@ -16,7 +17,7 @@ def uuid4():
 def amlt_run(
     conf_file,
     node=4,
-    job_pfx="phi",
+    job_pfx="llm",
     sla_tier=None,
     tag="eus",
     prepare=False,
