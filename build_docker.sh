@@ -1,4 +1,4 @@
-# az login
+# az login # the subscription:  Acoustic Modeling
 # az acr login -n sramdevregistry -g devboxes
 set -x
 docker build --build-arg WANDB_API_KEY="${WANDB_API_KEY}" -t sramdevregistry.azurecr.io/boren_dev:trl -f Dockerfile.trl .
