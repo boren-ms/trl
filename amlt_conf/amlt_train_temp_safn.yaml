@@ -47,6 +47,7 @@ jobs:
     command:
         - pwd
         - ls -hl
+        - pip install -r requirements.txt
         - export NCCL_P2P_LEVEL=NVL
         - python trl/scripts/grpo_bias.py --config ls_biasing.yaml --output_dir $$AMLT_OUTPUT_DIR
     submit_args:

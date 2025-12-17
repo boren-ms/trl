@@ -14,14 +14,7 @@ def uuid4():
     return short_id
 
 
-def amlt_run(
-    conf_file,
-    node=1,
-    job_pfx="llm",
-    sla_tier=None,
-    tag="safn",
-    prepare=False,
-):
+def amlt_run(conf_file, node=1, job_pfx="llm", sla_tier=None, tag="safn", prepare=False):
     """submit a job to AMLT"""
     # remove script/train from the path
     conf_file = Path(conf_file)
@@ -38,6 +31,8 @@ def amlt_run(
         tr_cmd = f"python trl/scripts/dpo_bias.py --config {conf_file} --job_name {job_name} --output_dir $$AMLT_OUTPUT_DIR "
     elif "grpo" in file_stem:
         tr_cmd = f"python trl/scripts/grpo_bias.py --config {conf_file} --job_name {job_name} --output_dir $$AMLT_OUTPUT_DIR "
+    elif "dummy" in file_stem:
+        tr_cmd = "python trl/scripts/dummy_train.py"
     else:
         raise ValueError(f"Unknown config file: {conf_file}")
     conf.jobs[0].name = job_name
