@@ -16,10 +16,10 @@ def uuid4():
 
 def amlt_run(
     conf_file,
-    node=4,
+    node=1,
     job_pfx="llm",
     sla_tier=None,
-    tag="eus",
+    tag="safn",
     prepare=False,
 ):
     """submit a job to AMLT"""
