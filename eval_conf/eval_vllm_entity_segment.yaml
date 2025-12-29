@@ -12,53 +12,8 @@ generation_config:
 model_path: /root/data/ckp/hf_models/phi4_mm_bias
 # model_path: az://orngscuscresco/data/boren/data/ckp/hf_models/phi4_mm_bias
 eval_data:
-  # - nickname: Gaming
-  #   dataset_name: inhouse_entity
-  #   data_dir: az://${DATA_STORAGE}/data/boren/data/
-  #   src_dir: /home/boren/data/
-  #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-  #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
-  #   word_bias: True
-  #   max_bias: 0
-  
-  # - nickname: Insurance
-  #   dataset_name: inhouse_entity
-  #   data_dir: az://${DATA_STORAGE}/data/boren/data/
-  #   src_dir: /home/boren/data/
-  #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-  #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
-  #   word_bias: True
-  #   max_bias: 0
-  
-  # - nickname: K12HigherEdu
-  #   dataset_name: inhouse_entity
-  #   data_dir: az://${DATA_STORAGE}/data/boren/data/
-  #   src_dir: /home/boren/data/
-  #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
-  #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
-  #   word_bias: True
-  #   max_bias: 0
-  
-  # - nickname: Retail
-  #   dataset_name: inhouse_entity
-  #   data_dir: az://${DATA_STORAGE}/data/boren/data/
-  #   src_dir: /home/boren/data/
-  #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
-  #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
-  #   word_bias: True
-  #   max_bias: 0
-  
-  # - nickname: ScienceTech
-  #   dataset_name: inhouse_entity
-  #   data_dir: az://${DATA_STORAGE}/data/boren/data/
-  #   src_dir: /home/boren/data/
-  #   jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-  #   distractor_file: az://${DATA_STORAGE}/data/boren/data/librispeech_biasing/words/all_rare_words.txt
-  #   word_bias: True
-  #   max_bias: 0
-    
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Gaming_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-    nick_name: Gaming
+    nickname: Gaming
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -66,7 +21,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Insurance_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-    nick_name: Insurance
+    nickname: Insurance
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -74,7 +29,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_K12HigherEdu_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: K12HigherEdu
+    nickname: K12HigherEdu
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -82,7 +37,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Retail_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: Retail
+    nickname: Retail
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -90,7 +45,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_ScienceTech_Entity_FY24Q1_en-US_DTEST/segments.jsonl
-    nick_name: ScienceTech
+    nickname: ScienceTech
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -98,7 +53,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Manufactory_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: Manufactory
+    nickname: Manufactory
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -106,7 +61,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_PatientHistoryDictation_Entity_FY25Q2_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: PatientHistoryDictation
+    nickname: PatientHistoryDictation
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -114,7 +69,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Energy_Entity_FY24Q3_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: Energy
+    nickname: Energy
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -122,7 +77,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://ornwus2gcresco/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Sustain_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: Sustain
+    nickname: Sustain
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -130,7 +85,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_Media_Entity_FY24Q4_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: Media
+    nickname: Media
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -138,7 +93,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_CapitalMarket_Entity_FY24Q3_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: CapitalMarket
+    nickname: CapitalMarket
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -146,7 +101,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_LifeHealth_Entity_FY24Q3_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: LifeHealth
+    nickname: LifeHealth
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -154,7 +109,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/Conversation_DomainSet_DTEST_DoctorPatientConsultation_Entity_FY25Q2_en-US_DTEST_OfflineDataCollection/segments.jsonl
-    nick_name: DoctorPatientConsultation
+    nickname: DoctorPatientConsultation
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
@@ -162,7 +117,7 @@ eval_data:
     word_bias: True
     max_bias: 0
   - jsonl_path: az://${DATA_STORAGE}/data/boren/data/Evaluation/InhouseASR/EWER/en-US-entity-v3/CustomerSpeechDomainSet_DTEST_Banking_Entity_FY23Q4_en-US_DTEST/segments.jsonl
-    nick_name: Banking
+    nickname: Banking
     dataset_name: inhouse_entity
     data_dir: az://${DATA_STORAGE}/data/boren/data/
     src_dir: /home/boren/data/
