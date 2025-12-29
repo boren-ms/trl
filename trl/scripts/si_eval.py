@@ -132,11 +132,12 @@ def si_measure(df, metric="ewer", locale="en-US"):
     return si.measure(df, metric=metric, locale=locale)
 
 
-def measure_result(result_file: Path, metric: str = "ewer", locale: str = "en-US"):
+def measure_result(result_file, metric: str = "ewer", locale: str = "en-US"):
+    result_file = Path(result_file)
     stem = result_file.stem
     si_summary_path = result_file.parent / (stem.replace("_results", "_si_summary") + ".json")
 
-    df = pd.read_jsonl(result_file, lines=True)
+    df = pd.read_json(result_file, lines=True)
     df.rename(columns={"ref": "Transcription"}, inplace=True)
     si_results = si_measure(df, metric=metric, locale=locale)
     with open(si_summary_path, "w") as f:
