@@ -144,7 +144,7 @@ class OutputWatcher:
         print("Sync completed.")
 
     def start(self):
-        print(f"Watcher started with interval {self.interval/60} minutes.")
+        print(f"Watcher started with interval {self.interval / 60} minutes.")
         print(f"Local dir: {self.local_dir}")
         print(f"Remote dir: {self.remote_dir}")
         while self._running:
@@ -171,7 +171,7 @@ def run_output_watcher(local_dir=None, remote_dir=None, interval=600, sync_all=F
     resources = {}
     if head_label is not None:
         resources = {head_label: 0.01}
-    print(f"Watching  @ {head_label} every {interval/60} minutes")
+    print(f"Watching  @ {head_label} every {interval / 60} minutes")
     print(f"Local directory: {local_dir}")
     print(f"Remote directory: {remote_dir}")
     watcher = OutputWatcher.options(resources=resources).remote(local_dir=local_dir, remote_dir=remote_dir, interval=interval, sync_all=sync_all)
@@ -437,15 +437,15 @@ def prepare_data(forced=False):
         # "ckp/hf_models/phi4_mm_bias",
         # "ckp/hf_models/Phi4-7b-ASR-2506",
         # "ckp/hf_models/libri_ft_m200_p8_bp6_new_notag_ckp5000",
-        # "ckp/hf_models/phi4-7b-fast-api-s2-final-v4",
+        "ckp/hf_models/phi4-7b-fast-api-s2-final-v4",
         # "ckp/hf_models/Phi4-7b-ASR-2506-v2",
         "ckp/hf_models/Phi-4-multimodal-instruct",
         "ckp/hf_models/roberta-large-ner-english",  # to tag entities
         "tools",
-        # "Evaluation/InhouseASR/EWER/en-US-entity-v3",
+        "Evaluation/InhouseASR/EWER/en-US-entity-v3",
         "librispeech_biasing/words",
         "librispeech_biasing/ref",
-        "LibriSpeech/test-clean",
+        # "LibriSpeech/test-clean",
         "LibriSpeech/test-other",
         # "LibriSpeech/train-clean-360/115/122944",
     ]
@@ -575,7 +575,6 @@ def job_log(cmd="tail", key=None, n=100, log_dir=None):
 
 
 class RayNode:
-
     def __init__(self, indexs=None):
         """Initialize the RayHelper with the specified nodes."""
         print("Connecting to Ray cluster...")
@@ -696,7 +695,7 @@ class RayNode:
         """Run the output watcher on head."""
         if local_dir is None or remote_dir is None:
             local_dir, remote_dir = get_output_dirs()
-        print(f"Running output watcher on head: {local_dir} from {remote_dir} every {interval/60} minutes")
+        print(f"Running output watcher on head: {local_dir} from {remote_dir} every {interval / 60} minutes")
         head_label = self.label(0)
         return run_output_watcher(local_dir, remote_dir, interval, sync_all, head_label=head_label)
 
