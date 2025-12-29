@@ -23,6 +23,7 @@ from trl.scripts.audio_dataset import create_datasets
 from trl.scripts.audio_metrics import compute_wers
 from trl.trainer.utils import move_model_to_vllm
 from trl.scripts.chunk.svad import SVadChunker
+from trl.scripts.si_eval import measure_result
 
 
 @dataclass
@@ -387,6 +388,7 @@ class Evaluation:
             json.dump(metrics, f, indent=4)
         self.rank_log(f"Metrics saved to {metrics_file}")
         self.rank_log(f"Results saved to {result_file}")
+        measure_result(result_file)
 
     def evaluate_all(self, datasets, step=0):
         """Evaluate the model on all datasets."""
