@@ -393,7 +393,7 @@ def prepare_env(forced=False):
         "transformers==4.51.3",
         "datasets==4.0.0",
         "trl",
-        "peft",
+        "peft==0.17.1",
         "tensorboardX",
         "blobfile",
         "soundfile",
