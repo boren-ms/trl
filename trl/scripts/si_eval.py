@@ -10,6 +10,7 @@ import tempfile
 import logging
 from orng import to_orng
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -70,7 +71,7 @@ class SpeechInsight:
         tmp_dir = tmp_dir or tempfile.mkdtemp(prefix="si_tmp")
         logger.info(f"Using temporary directory for SI: {tmp_dir}")
         tsv_path = Path(tmp_dir) / f"{shortuuid.uuid()}.tsv"
-        assert {"id", "hyp", "ref"} <= set(df.columns), "dfFrame must contain 'id', 'hyp', and 'ref' columns"
+        assert {"id", "hyp", "ref"} <= set(df.columns), f"df.columns {set(df.columns)}, do not have required id, ref, hyp"
         df[["id", "hyp", "ref"]].to_csv(tsv_path, sep="\t", index=False, header=False)
         output_dir = Path(tmp_dir) / "output"
 
@@ -82,6 +83,7 @@ class SpeechInsight:
             cmd = f"{self._metrics_bin} -t {tsv_path} -o {output_dir} -l {locale} --idcol 0 --recocol 1 --transcol 2 --nondisfluency"
         elif metric == "ter":
             cmd = f"python speechinsight_tools/getdfmetrics.py ter -i {tsv_path} -o {output_dir} --locale {locale} --utt_id_idx 0 --disp_trans_idx 2 --disp_reco_idx 1 --ter_type nondisfluency"
+        logger.info(f"cmd: {cmd}")
         subprocess.run(cmd, capture_output=False, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stdin=subprocess.DEVNULL, shell=True, check=True)
         result = {
             **read_wer(output_dir),
@@ -138,12 +140,12 @@ def measure_result(result_file, metric: str = "ewer", locale: str = "en-US"):
     si_summary_path = result_file.parent / (stem.replace("_results", "_si_summary") + ".json")
 
     df = pd.read_json(result_file, lines=True)
-    df.rename(columns={"ref": "Transcription"}, inplace=True)
+    df["ref"] = df.apply(lambda x: x.get("Transcription", x["ref"]), axis=1)
     si_results = si_measure(df, metric=metric, locale=locale)
     with open(si_summary_path, "w") as f:
         json.dump(si_results, f)
-    print(f"SI summary for {stem}: \n{si_results}")
-    print(f"SI summary saved to {si_summary_path}")
+    logger.info(f"SI summary for {stem}: \n{si_results}")
+    logger.info(f"SI summary saved to {si_summary_path}")
     return si_results
 
 
@@ -151,7 +153,7 @@ def main(result_path: str, metric: str = "ewer", locale: str = "en-US"):
     """Main entry point for evaluating speech recognition results using SpeechInsight."""
     result_files = [result_path] if os.path.isfile(result_path) else list(Path(result_path).glob("*_results.jsonl"))
     for result_file in result_files:
-        print(f"Measuring SI for {result_file}...")
+        logger.info(f"Measuring SI for {result_file}...")
         si_results = measure_result(result_file, metric=metric, locale=locale)
     return si_results
 
