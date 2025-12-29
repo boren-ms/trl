@@ -10,12 +10,11 @@ import tempfile
 import logging
 from orng import to_orng
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
-def pkg_version(pkg_name: str) -> str:
+def pkg_version(pkg_name: str):
     from importlib.metadata import version, PackageNotFoundError
 
     try:
