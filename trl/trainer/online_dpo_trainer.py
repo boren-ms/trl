@@ -19,7 +19,6 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 from collections import defaultdict
-from pathlib import Path
 import datasets
 import jinja2
 import pandas as pd
@@ -49,7 +48,7 @@ from accelerate.utils import gather_object
 from transformers.utils import is_peft_available, is_sagemaker_mp_enabled, logging
 from ..extras.profiling import profiling_decorator
 from ..data_utils import apply_chat_template, is_conversational, sf_read
-from ..import_utils import is_vllm_available, is_rich_available
+from ..import_utils import is_vllm_available
 from ..models import create_reference_model
 from ..models.utils import unwrap_model_for_generation
 from .judges import BasePairwiseJudge

@@ -1,7 +1,7 @@
 #%%
 from transformers import AutoModelForCausalLM
 
-from peft import LoraConfig, get_peft_model, PeftModel
+from peft import LoraConfig, get_peft_model
 from peft.tuners.lora.layer import LoraLayer
 
 # %%# LoRA related settings

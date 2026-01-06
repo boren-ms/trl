@@ -540,7 +540,6 @@ def reward_major_vote(completions, **kwargs):
     for group in groups:
         counter = Counter(group)
         candidate, votes = counter.most_common(1)[0]
-        vote_rate = votes / len(group)
         rewards += [int(hyp == candidate) for hyp in group]
     return rewards
 

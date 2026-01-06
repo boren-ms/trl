@@ -3,7 +3,6 @@ import os
 import re
 from collections import defaultdict
 import ast
-import urllib
 import random
 import blobfile as bf
 import pandas as pd
